@@ -51,7 +51,7 @@ class GeminiMCP:
             # Use provided model or default
             if model is None:
                 model = "gemini-2.0-flash"
-            
+
             # Fix common model name errors
             if model == "gemini-2.5-pro-preview":
                 model = "gemini-2.5-flash"
@@ -98,7 +98,7 @@ class GeminiMCP:
             # Use provided model or default
             if model is None:
                 model = "gemini-2.0-flash"
-            
+
             # Fix common model name errors
             if model == "gemini-2.5-pro-preview":
                 model = "gemini-2.5-flash"
