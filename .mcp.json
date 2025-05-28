@@ -1,0 +1,13 @@
+{
+	"mcpServers": {
+		"collect": {
+			"command": "/Users/benjaminmetz/.local/bin/uv",
+			"args": [
+				"--directory",
+				"/Users/benjaminmetz/python/collect",
+				"run",
+				"collect.py"
+			]
+		}
+	}
+}
