@@ -1,5 +1,3 @@
-import os
-import datetime
 from typing import List
 from mcp.server.fastmcp import FastMCP, Context
 import tiktoken
@@ -14,11 +12,43 @@ from models.openai_mpc import OpenAIMCP
 from models.xai_mcp import XaiMCP
 from models.gemini_mcp import GeminiMCP
 from fetcher import Fetcher
-import json
-import asyncio
 import pyperclip
+from reviewer.code_review import CodeReviewer
 
 mcp = FastMCP("URL Collector")
+
+
+@mcp.tool()
+async def run_code_review(from_file: str, to_file: str = "codereview"):
+    """
+    Run code review on a diff file using multiple LLM models.
+
+    Args:
+        from_file: Path to the file containing the diff/code to review
+        to_file: Directory name to write results to (default: "codereview")
+
+    Returns:
+        Summary of the code review results
+    """
+    reviewer = CodeReviewer(to_file)
+    return await reviewer.review_code(from_file, to_file)
+
+
+@mcp.tool()
+async def run_git_diff_review(
+        to_file: str = "codereview", staged_only: bool = True):
+    """
+    Run code review on git diff output.
+
+    Args:
+        to_file: Directory name to write results to (default: "codereview")
+        staged_only: If True, review only staged changes; if False, review all changes
+
+    Returns:
+        Summary of the code review results
+    """
+    reviewer = CodeReviewer(to_file)
+    return await reviewer.review_diff_from_git(to_file, staged_only)
 
 
 @mcp.tool()
@@ -146,132 +176,6 @@ def html_to_markdown(html: str) -> str:
 
 
 @mcp.tool()
-async def multi_model_code_review(output_dir: str, from_file: str = "diff.md"):
-    config = Config()
-    secret_mgr = SecretManager(config.project_id)
-
-    anthropic_model = config.anthropic_default_code_review_model
-    gemini_model = config.gemini_default_code_review_model
-    xai_model = config.xai_default_code_review_model
-    openai_model = config.openai_default_code_review_model
-
-    models = [
-        anthropic_model,
-        gemini_model,
-        xai_model,
-        openai_model,
-    ]
-
-    # Initialize MCP instances with default models
-    gemini_mcp = GeminiMCP(config, secret_mgr, gemini_model)
-    openai_mcp = OpenAIMCP(config, secret_mgr, openai_model)
-    xai_mcp = XaiMCP(config, secret_mgr, xai_model)
-    anthropic_mcp = AnthropicMCP(config, secret_mgr, anthropic_model)
-
-    model_mcps = {
-        gemini_model: gemini_mcp,
-        openai_model: openai_mcp,
-        xai_model: xai_mcp,
-        anthropic_model: anthropic_mcp,
-    }
-
-    # Read content from file
-    try:
-        with open(from_file, 'r', encoding='utf-8') as f:
-            content = f.read()
-    except FileNotFoundError:
-        return {"error": f"File not found: {from_file}"}
-    except Exception as e:
-        return {"error": f"Error reading file: {str(e)}"}
-
-    # Create output directory
-    os.makedirs(output_dir, exist_ok=True)
-
-    async def call_model(model_name: str):
-
-        try:
-            start_time = datetime.now()
-            iso_time = start_time.isoformat()
-
-            # Send message to model
-            mcp_instance = model_mcps[model_name]
-            print(f"sending to --> {model_name} : at -> {iso_time}")
-            response = mcp_instance.send_message(content, model=model_name)
-            end_time = datetime.now()
-
-            result = {
-                "model": model_name,
-                "actual_model": model_name,
-                "timestamp": iso_time,
-                "duration_seconds": (end_time - start_time).total_seconds(),
-                "response": response,
-                "success": True
-            }
-
-            # Save individual result to file
-            safe_filename = model_name.replace('/', '_').replace(':', '_')
-            filename = f"{safe_filename}_{
-                start_time.strftime('%Y%m%d_%H%M%S')}.json"
-            filepath = os.path.join(output_dir, filename)
-
-            with open(filepath, 'w', encoding='utf-8') as f:
-                json.dump(result, f, indent=2, ensure_ascii=False)
-
-            return {
-                "success": True,
-                "file": filepath,
-                "model": model_name,
-                "duration": result["duration_seconds"],
-            }
-
-        except Exception as e:
-            error_result = {
-                "success": False,
-                "error": str(e),
-                "model": model_name,
-                "timestamp": datetime.now().isoformat()
-            }
-
-            return error_result
-
-    # Run all model calls concurrently
-    print(f"Starting concurrent calls to {len(models)} models...")
-    tasks = [call_model(model) for model in models]
-    results = await asyncio.gather(*tasks, return_exceptions=True)
-
-    # Create summary
-    successful_results = [
-        r.get("response") for r in results
-        if isinstance(r, dict) and r.get("success")
-    ]
-
-    failed_results = [r for r in results if isinstance(
-        r, dict) and not r.get("success")]
-
-    summary = {
-        "timestamp": datetime.now().isoformat(),
-        "input_file": from_file,
-        "output_directory": output_dir,
-        "total_models": len(models),
-        "successful": len(successful_results),
-        "failed": len(failed_results),
-        "models_requested": models,
-        "available_models": list(model_mcps.keys()),
-        "results": results,
-        "total_input_tokens": sum(r.get("input_tokens", 0) for r in successful_results),
-        "average_duration": sum(r.get("duration", 0) for r in successful_results) / len(successful_results) if successful_results else 0
-    }
-
-    # Save summary file
-    summary_file = os.path.join(output_dir, f"summary_{
-        datetime.now().strftime('%Y%m%d_%H%M%S')}.json")
-    with open(summary_file, 'w', encoding='utf-8') as f:
-        json.dump(summary, f, indent=2, ensure_ascii=False)
-
-    return summary
-
-
-@mcp.tool()
 async def get_anthropic_model_list() -> List[str]:
     config = Config()
     secret_mgr = SecretManager(config.project_id)
@@ -305,7 +209,7 @@ async def get_gemini_model_list() -> List[str]:
     config = Config()
     secret_mgr = SecretManager(config.project_id)
 
-    gemini_mcp = GeminiMCP(config, secret_mgr, model="gemini-2.0-flash")
+    gemini_mcp = GeminiMCP(config, secret_mgr, model="gemini-2.5-flash")
     return gemini_mcp.get_model_list()
 
 
