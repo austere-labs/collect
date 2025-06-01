@@ -1,0 +1,13 @@
+{
+  "timestamp": "20250601_091219",
+  "input_file": "test_diff.md",
+  "total_models": 4,
+  "successful_reviews": 4,
+  "failed_reviews": 0,
+  "output_files": [
+    "gemini-2.0-flash_20250601_091219.md",
+    "o3-mini-2025-01-31_20250601_091219.md",
+    "grok-3-mini-fast-latest_20250601_091219.md",
+    "claude-opus-4-20250514_20250601_091219.md"
+  ]
+}

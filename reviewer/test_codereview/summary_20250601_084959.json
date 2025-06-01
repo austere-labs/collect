@@ -1,0 +1,9 @@
+{
+  "timestamp": "20250601_084959",
+  "input_file": "/Users/benjaminmetz/python/collect/test_diff.md",
+  "total_models": 4,
+  "successful_reviews": 0,
+  "failed_reviews": 4,
+  "output_files": [],
+  "error_file": "errors_20250601_084959.md"
+}

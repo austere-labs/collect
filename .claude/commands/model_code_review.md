@@ -1,47 +1,165 @@
-# Code Review Using Multiple LLMs
+# Multi-Model Code Review Workflow
 
-## Context
+## Overview
 
-You are a helpful assistant that conducts a code review using multiple LLMs.
+Conduct comprehensive code reviews using multiple AI models to get diverse perspectives on code changes. This workflow leverages the MCP code review tools to analyze git diffs across multiple LLM providers.
 
-## Instructions
+## Prerequisites
 
-> Execute each task in the order given to conduct a thorough code review.
+- Ensure your changes are staged: `git add <files>`
+- Or have unstaged changes you want to review
 
-## Task 1: Create diff.md
+## Workflow Steps
 
-Create a new file called diff.md.
+### Step 1: Run Multi-Model Code Review
 
-At the top of the file, add the following markdown:
+Use the built-in MCP tools to analyze your code changes across multiple AI models:
 
-```md
-# Code Review
-- Review the diff, report on issues, bugs, and improvements. 
-- End with a concise markdown table of any issues found, their solutions, and a risk assessment for each issue if applicable.
-- Use emojis to convey the severity of each issue.
-
-## Diff
-
+**Option A: Review Git Diff (Recommended)**
+```
+Use the mcp__collect__run_git_diff_review tool with these parameters:
+- staged_only: true (for staged changes only) or false (for all changes)  
+- to_file: "codereview" (output directory name)
 ```
 
-## Task 2: git diff and append
+**Option B: Review Specific Diff File**
+```
+If you have a pre-made diff file, use mcp__collect__run_code_review with:
+- from_file: "path/to/your/diff.md" 
+- to_file: "codereview"
+```
 
-Then run git diff and append the output to the file.
+**Quick Start Commands:**
+- For staged changes: Call `mcp__collect__run_git_diff_review` with `staged_only=true`
+- For all changes: Call `mcp__collect__run_git_diff_review` with `staged_only=false`
+- For file review: Call `mcp__collect__run_code_review` with your file path
 
-## Task 3: just-prompt multi-llm tool call
+### Step 2: Analyze Results
 
-Then use that file as the input to this just-prompt tool call.
+The tool automatically creates these files in the output directory (default: `codereview/`):
+- `{model}_YYYYMMDD_HHMMSS.md` - Individual model reviews (e.g., `claude-3-5-sonnet-20241022_20241201_143052.md`)
+- `errors_YYYYMMDD_HHMMSS.md` - Any failed model responses (if any models fail)
+- `summary_YYYYMMDD_HHMMSS.json` - Review metadata and statistics
 
-prompts_from_file_to_file(
-    from_file = diff.md,
-    models = "openai:o3-mini, anthropic:claude-3-7-sonnet-20250219:4k, gemini:gemini-2.0-flash-thinking-exp"
-    output_dir = ultra_diff_review/
-)
+**Example output files:**
+```
+codereview/
+├── claude-3-5-sonnet-20241022_20241201_143052.md
+├── gpt-4-turbo-2024-04-09_20241201_143052.md  
+├── gemini-2.0-flash-exp_20241201_143052.md
+├── grok-beta_20241201_143052.md
+├── summary_20241201_143052.json
+└── errors_20241201_143052.md (if any failures)
+```
 
-## Task 4: Read the output files and synthesize
+### Step 3: Synthesize Findings
 
-Then read the output files and think hard to synthesize the results into a new single file called `ultra_diff_review/fusion_ultra_diff_review.md` following the original instructions plus any additional instructions or callouts you think are needed to create the best possible review.
+After the tool completes, review the individual model outputs and create a consolidated analysis:
 
-## Task 5: Present the results
+1. **Read all model reviews** to identify common themes and unique insights
+2. **Categorize findings** by severity and impact:
+   - 🔴 Critical: Security, bugs, breaking changes
+   - 🟡 Important: Performance, maintainability, best practices
+   - 🟢 Minor: Style, documentation, optimizations
+3. **Create action plan** with prioritized recommendations
 
-Then let me know which issues you think are worth resolving and we'll proceed from there.
+### Step 4: Create Synthesis Report
+
+Generate a comprehensive report in `codereview/synthesis_review.md`:
+
+```markdown
+# Multi-Model Code Review Synthesis
+
+## Executive Summary
+- Total models consulted: X
+- Critical issues found: X
+- Key recommendations: X
+
+## Consensus Findings
+[Issues identified by multiple models]
+
+## Model-Specific Insights
+[Unique perspectives from individual models]
+
+## Priority Action Items
+| Priority | Issue | Solution | Risk Level |
+|----------|-------|----------|------------|
+| 🔴 High | ... | ... | ... |
+| 🟡 Medium | ... | ... | ... |
+| 🟢 Low | ... | ... | ... |
+
+## Implementation Recommendations
+[Specific steps to address findings]
+```
+
+### Step 5: Review and Act
+
+1. **Prioritize fixes** based on consensus and severity
+2. **Implement changes** for high-priority items
+3. **Re-run review** on critical fixes to validate improvements
+4. **Document decisions** for future reference
+
+## Advanced Usage
+
+### Custom Prompts
+The review prompt emphasizes:
+- Security vulnerabilities and potential exploits
+- Performance implications and bottlenecks
+- Code maintainability and readability
+- Best practices adherence
+- Testing coverage and quality
+
+### Model Coverage
+Reviews typically include:
+- **Anthropic Claude**: Strong reasoning and security analysis
+- **OpenAI GPT**: Comprehensive code understanding
+- **Google Gemini**: Multi-modal and pattern recognition
+- **XAI Grok**: Alternative perspectives and edge cases
+
+### Integration with Development Workflow
+- Run before creating pull requests
+- Use for pre-commit quality gates
+- Integrate with CI/CD pipelines
+- Archive reviews for historical analysis
+
+## Practical Example
+
+Here's a complete example workflow:
+
+1. **Make some code changes and stage them:**
+   ```bash
+   git add src/components/UserAuth.tsx
+   git add tests/auth.test.ts
+   ```
+
+2. **Run the code review:**
+   Call the MCP tool `mcp__collect__run_git_diff_review` with:
+   - `staged_only`: `true`
+   - `to_file`: `"codereview"`
+
+3. **Review the generated files:**
+   ```bash
+   ls codereview/
+   # Shows: claude-3-5-sonnet-20241022_20241201_143052.md
+   #        gpt-4-turbo-2024-04-09_20241201_143052.md
+   #        gemini-2.0-flash-exp_20241201_143052.md
+   #        summary_20241201_143052.json
+   ```
+
+4. **Read individual reviews** and look for common themes
+5. **Create synthesis** in `codereview/synthesis_review.md`
+6. **Implement fixes** based on consensus findings
+
+## Tips for Best Results
+
+1. **Stage meaningful chunks** - Review logical units of change
+2. **Include context** - Add commit messages or PR descriptions
+3. **Follow up on consensus** - Pay special attention to issues multiple models identify
+4. **Balance perspectives** - Consider both conservative and innovative viewpoints
+5. **Document decisions** - Track which recommendations you implement and why
+
+## Troubleshooting
+
+- **No git changes found**: Make sure you have staged changes (`git add`) or unstaged modifications
+- **Tool fails**: Check the `errors_timestamp.md` file for specific model failures
+- **Empty reviews**: Verify your diff contains meaningful code changes, not just whitespace
