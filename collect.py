@@ -1,6 +1,6 @@
-import httpx
-import pyperclip
-from typing import List, Union
+import os
+import datetime
+from typing import List
 from mcp.server.fastmcp import FastMCP, Context
 import tiktoken
 import markdownify
@@ -13,130 +13,89 @@ from models.anthropic_mpc import AnthropicMCP
 from models.openai_mpc import OpenAIMCP
 from models.xai_mcp import XaiMCP
 from models.gemini_mcp import GeminiMCP
+from fetcher import Fetcher
+import json
+import asyncio
+import pyperclip
 
 mcp = FastMCP("URL Collector")
 
 
 @mcp.tool()
-async def collect(
-        urls: List[str], ctx: Context = None) -> Union[str, List[str]]:
-    result_str = fetch_urls(urls, ctx)
-
-    token_count = await count_anthropic_tokens(result_str)
-    if token_count > 25000:
-        return chunk_by_token_count(result_str)
-
-    return result_str
+async def fetch_urls(urls: List[str], ctx: Context = None) -> str:
+    fetcher = Fetcher(ctx)
+    merged_responses = await fetcher.fetch_urls(urls)
+    return merged_responses
 
 
-async def chunk_by_token_count(
-        text: str, max_tokens: int = 25000) -> List[str]:
+@mcp.tool()
+async def fetch_url(url: str, ctx: Context = None) -> str:
+    fetcher = Fetcher(ctx)
+    return fetcher.get_url(url)
+
+
+@mcp.tool()
+async def get_docs(
+        url: str, extract_value: str = None, ctx: Context = None) -> str:
     """
-    Split text into chunks that are each under the specified token count.
+    If you provide a extract value, we will run the prompt below to provide
+    a contextual prompt to extract the value that we are looking for in the
+    web page.
+    Otherwise we just go get the webpage.
+    """
+    config = Config()
+    secret_mgr = SecretManager(config.project_id)
+    model = "gemini-2.5-flash-preview-05-20"
+    gemini = GeminiMCP(config, secret_mgr, model=model)
 
-    Args:
-        text: The text to chunk
-        max_tokens: Maximum tokens per chunk
+    if extract_value is None:
 
-    Returns:
-        List of text chunks, each under max_tokens
+        fetcher = Fetcher(ctx)
+        response = await fetcher.get(url)
+        return response.text
+    else:
+        prompt_prefatory = f"""
+        # Documentation Extraction Task
+
+        Extract and format the documentation for: **{extract_value}**
+
+        ## Instructions:
+        - Focus specifically on the requested section/topic
+        - Include code examples, parameters, and usage details if present
+        - Maintain original formatting and structure
+        - If the exact section isn't found, extract the most relevant related content
+        - Return only the extracted documentation content, no meta-commentary
+
+        ## Content to extract: {extract_value}
+        """
+
+        prompt = prompt_prefatory + "\n\n"
+        response = await gemini.build_prompt_from_url(url, prompt, ctx)
+        return response
+
+
+@mcp.prompt()
+async def copy_clipboard_prompt(text: str) -> str:
+    """
+    I actually think the model can do this just fine without this prompt
+    This lives here only as an example
+    """
+    return f"""
+        # Use the instructions from {text} to create the text input for the mcp tool defined in Task 1.
+
+        ## Task 1: Please use the mcp tool copy_clipboard
+
+        ```python
+        @mcp.tool()
+        async def copy_clipboard(text: str):
+            pyperclip.copy(text)
+        ```
     """
 
-    # If text is short enough, return as a single chunk
-    token_count = await count_anthropic_tokens(text)
-    if token_count <= max_tokens:
-        return [text]
 
-    # Split text into paragraphs as a starting point
-    paragraphs = text.split("\n\n")
-    chunks = []
-    current_chunk = []
-    current_chunk_tokens = 0
-
-    for paragraph in paragraphs:
-        paragraph_tokens = await count_anthropic_tokens(paragraph + "\n\n")
-
-        # If adding this paragraph would exceed the limit, start a new chunk
-        if current_chunk_tokens + paragraph_tokens > max_tokens:
-            # If the paragraph alone exceeds the limit, we split it further
-            if paragraph_tokens > max_tokens:
-                # Split by sentences or just characters if needed
-                sentences = paragraph.split(". ")
-                for sentence in sentences:
-                    sentence_tokens = await count_anthropic_tokens(sentence + ". ")
-                    if current_chunk_tokens + sentence_tokens > max_tokens:
-                        if current_chunk:
-                            chunks.append("".join(current_chunk))
-                        current_chunk = [sentence + ". "]
-                        current_chunk_tokens = sentence_tokens
-                    else:
-                        current_chunk.append(sentence + ". ")
-                        current_chunk_tokens += sentence_tokens
-            else:
-                # Save the current chunk and start a new one
-                chunks.append("".join(current_chunk))
-                current_chunk = [paragraph + "\n\n"]
-                current_chunk_tokens = paragraph_tokens
-        else:
-            # Add paragraph to current chunk
-            current_chunk.append(paragraph + "\n\n")
-            current_chunk_tokens += paragraph_tokens
-
-    # Add the last chunk if it's not empty
-    if current_chunk:
-        chunks.append("".join(current_chunk))
-
-    return chunks
-
-
-async def fetch_urls(
-        urls: List[str], ctx: Context = None) -> str:
-    """
-    Fetch content from multiple URLs and concatenate their responses.
-    If token count exceeds 25000, content is split into chunks.
-
-    Args:
-        urls: List of URLs to fetch content from
-        ctx: Optional context object for progress reporting
-
-    Returns:
-        Either concatenated content from all URLs as a string,
-        or a list of content chunks if token count exceeds 25000
-    """
-    results = []
-
-    async with httpx.AsyncClient(
-            timeout=30.0, follow_redirects=True) as client:
-        for i, url in enumerate(urls):
-            if ctx:
-                ctx.info(f"Fetching content from {url}")
-                await ctx.report_progress(i, len(urls))
-
-            try:
-                response = await client.get(url)
-                response.raise_for_status()
-
-                results.append(f"\n\n--- Content from {url} --\n\n")
-                results.append(response.text)
-
-            except httpx.HTTPError as e:
-                results.append(
-                    f"\n\n --- Error fetching {url}: {str(e)} ---\n\n")
-            except Exception as e:
-                results.append(
-                    f"\n\n--- error fetching {url}: {str(e)} ---\n\n")
-
-    if ctx:
-        ctx.info("all urls processed")
-        await ctx.report_progress(len(urls), len(urls))
-
-    content = "".join(results)
-
-    # Copy original content to clipboard
-    pyperclip.copy(content)
-
-    # Otherwise return the original content
-    return content
+@mcp.tool()
+async def copy_clipboard(text: str):
+    pyperclip.copy(text)
 
 
 @mcp.tool()
@@ -195,6 +154,13 @@ async def multi_model_code_review(output_dir: str, from_file: str = "diff.md"):
     gemini_model = config.gemini_default_code_review_model
     xai_model = config.xai_default_code_review_model
     openai_model = config.openai_default_code_review_model
+
+    models = [
+        anthropic_model,
+        gemini_model,
+        xai_model,
+        openai_model,
+    ]
 
     # Initialize MCP instances with default models
     gemini_mcp = GeminiMCP(config, secret_mgr, gemini_model)
@@ -298,7 +264,7 @@ async def multi_model_code_review(output_dir: str, from_file: str = "diff.md"):
 
     # Save summary file
     summary_file = os.path.join(output_dir, f"summary_{
-                                datetime.now().strftime('%Y%m%d_%H%M%S')}.json")
+        datetime.now().strftime('%Y%m%d_%H%M%S')}.json")
     with open(summary_file, 'w', encoding='utf-8') as f:
         json.dump(summary, f, indent=2, ensure_ascii=False)
 
@@ -332,6 +298,15 @@ async def get_xai_model_list() -> List[str]:
 
     xai_mcp = XaiMCP(config, secret_mgr, model="grok-3-mini-fast-latest")
     return xai_mcp.get_model_list()
+
+
+@mcp.tool()
+async def get_gemini_model_list() -> List[str]:
+    config = Config()
+    secret_mgr = SecretManager(config.project_id)
+
+    gemini_mcp = GeminiMCP(config, secret_mgr, model="gemini-2.0-flash")
+    return gemini_mcp.get_model_list()
 
 
 @mcp.tool()
