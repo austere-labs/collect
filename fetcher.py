@@ -9,7 +9,7 @@ class Fetcher:
     def __init__(self, ctx: Context = None) -> None:
         self.ctx = ctx
 
-    async def fetch_url(self, url: str) -> str:
+    async def get(self, url: str) -> str:
         """
         Fetch content from a single URL.
 

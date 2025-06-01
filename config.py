@@ -3,8 +3,7 @@ import os
 
 
 class Config:
-    # Load .env.local first (for local development), then .env (for defaults)
-    load_dotenv('.env.local')
+    # Load .env for configuration
     load_dotenv('.env')
 
     def __init__(self) -> None:
@@ -25,9 +24,3 @@ class Config:
             "ANTHROPIC_DEFAULT_CODE_REVIEW_MODEL")
         self.xai_default_code_review_model = os.getenv(
             "XAI_DEFAULT_CODE_REVIEW_MODEL")
-
-        # Direct API Keys (alternative to Secret Manager)
-        self.anthropic_api_key = os.getenv("ANTHROPIC_API_KEY")
-        self.openai_api_key = os.getenv("OPENAI_API_KEY")
-        self.gemini_api_key = os.getenv("GEMINI_API_KEY")
-        self.xai_api_key = os.getenv("XAI_API_KEY")
