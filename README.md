@@ -107,3 +107,12 @@ pytest
 ```
 
 Tests cover all MCP tools, AI model integrations, and async token counting functionality.
+
+urls for testing fetcher:  
+```
+
+url1 = "https://github.com/modelcontextprotocol/python-sdk/blob/main/README.md"
+url2 = "https://modelcontextprotocol.io/llms-full.txt"
+
+
+```
