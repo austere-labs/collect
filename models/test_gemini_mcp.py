@@ -75,3 +75,27 @@ def test_gemini_25_preview_count_tokens(gemini_25_preview):
     assert token_count > 0
 
     print(f"Gemini 2.5 Preview - Token count for '{text}': {token_count}")
+
+
+def test_extract_text(gemini_mcp):
+    message = "Say 'Hello, test!' and nothing else."
+    response = gemini_mcp.send_message(message)
+    extracted_text = gemini_mcp.extract_text(response)
+    
+    assert isinstance(extracted_text, str)
+    assert len(extracted_text) > 0
+    assert "Hello" in extracted_text
+    
+    print(f"Extracted text: {extracted_text}")
+
+
+def test_extract_text_gemini_25(gemini_25_preview):
+    message = "Say 'Hello, Gemini 2.5!' and nothing else."
+    response = gemini_25_preview.send_message(message)
+    extracted_text = gemini_25_preview.extract_text(response)
+    
+    assert isinstance(extracted_text, str)
+    assert len(extracted_text) > 0
+    assert "Hello" in extracted_text
+    
+    print(f"Gemini 2.5 extracted text: {extracted_text}")

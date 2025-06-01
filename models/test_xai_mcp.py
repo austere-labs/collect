@@ -45,3 +45,15 @@ def test_count_tokens(xai_mcp):
     assert token_count > 0
 
     print(f"Token count for '{text}': {token_count}")
+
+
+def test_extract_text(xai_mcp):
+    message = "Say 'Hello, test!' and nothing else."
+    response = xai_mcp.send_message(message)
+    extracted_text = xai_mcp.extract_text(response)
+    
+    assert isinstance(extracted_text, str)
+    assert len(extracted_text) > 0
+    assert "Hello" in extracted_text
+    
+    print(f"Extracted text: {extracted_text}")

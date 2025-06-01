@@ -32,6 +32,19 @@ class AnthropicMCP:
 
         return name_list
 
+    def extract_text(self, response) -> str:
+        """Extract text from Anthropic response format."""
+        if not isinstance(response, dict):
+            return str(response)
+
+        # Anthropic format
+        if "content" in response:
+            content = response["content"]
+            if isinstance(content, list) and content:
+                return content[0].get("text", "")
+
+        return str(response)
+
     def send_message(
         self,
         message: str,

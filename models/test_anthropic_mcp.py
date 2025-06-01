@@ -33,3 +33,15 @@ def test_send_message(anthropic_mcp):
     assert response["model"] == anthropic_mcp.config.anthropic_model_sonnet
 
     print(f"Response: {response}")
+
+
+def test_extract_text(anthropic_mcp):
+    message = "Say 'Hello, test!' and nothing else."
+    response = anthropic_mcp.send_message(message)
+    extracted_text = anthropic_mcp.extract_text(response)
+    
+    assert isinstance(extracted_text, str)
+    assert len(extracted_text) > 0
+    assert "Hello" in extracted_text
+    
+    print(f"Extracted text: {extracted_text}")

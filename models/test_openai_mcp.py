@@ -1,7 +1,7 @@
 import pytest
 from config import Config
 from secret_manager import SecretManager
-from models.openai import OpenAIMCP
+from models.openai_mpc import OpenAIMCP
 
 
 @pytest.fixture
@@ -45,3 +45,15 @@ def test_count_tokens(openai_mcp):
     assert token_count > 0
 
     print(f"Token count for '{text}': {token_count}")
+
+
+def test_extract_text(openai_mcp):
+    message = "Say 'Hello, test!' and nothing else."
+    response = openai_mcp.send_message(message)
+    extracted_text = openai_mcp.extract_text(response)
+    
+    assert isinstance(extracted_text, str)
+    assert len(extracted_text) > 0
+    assert "Hello" in extracted_text
+    
+    print(f"Extracted text: {extracted_text}")

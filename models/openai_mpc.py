@@ -41,6 +41,19 @@ class OpenAIMCP:
         except Exception as e:
             raise RuntimeError(f"Unexpected error in get_model_list: {e}")
 
+    def extract_text(self, response) -> str:
+        """Extract text from OpenAI response format."""
+        if not isinstance(response, dict):
+            return str(response)
+
+        # OpenAI format
+        if "choices" in response:
+            choices = response["choices"]
+            if choices and "message" in choices[0]:
+                return choices[0]["message"].get("content", "")
+
+        return str(response)
+
     def send_message(
         self,
         message: str,

@@ -40,6 +40,16 @@ class GeminiMCP:
         except Exception as e:
             raise RuntimeError(f"Unexpected error in get_model_list: {e}")
 
+    def extract_text(self, ai_response: dict) -> str:
+        # Extract text from response
+        if "candidates" in ai_response and len(ai_response["candidates"]) > 0:
+            candidate = ai_response["candidates"][0]
+            if "content" in candidate and "parts" in candidate["content"]:
+                parts = candidate["content"]["parts"]
+                if len(parts) > 0 and "text" in parts[0]:
+                    return parts[0]["text"]
+        return str(ai_response)
+
     async def build_prompt_from_url(
             self, url: str, prompt: str, ctx: Context = None) -> str:
         fetcher = Fetcher(ctx)
@@ -50,15 +60,7 @@ class GeminiMCP:
             max_tokens=1024,
             model="gemini-2.5-flash-preview-05-20")
 
-        # Extract text from response
-        if "candidates" in ai_response and len(ai_response["candidates"]) > 0:
-            candidate = ai_response["candidates"][0]
-            if "content" in candidate and "parts" in candidate["content"]:
-                parts = candidate["content"]["parts"]
-                if len(parts) > 0 and "text" in parts[0]:
-                    return parts[0]["text"]
-
-        return str(ai_response)
+        return self.extract_text(ai_response)
 
     def send_message(
         self,
@@ -73,10 +75,6 @@ class GeminiMCP:
             # Use provided model or default
             if model is None:
                 model = "gemini-2.0-flash"
-
-            # Fix common model name errors
-            if model == "gemini-2.5-pro-preview":
-                model = "gemini-2.5-flash"
 
             base_url = self.config.gemini_base_url
             url = f"{base_url}models/{model}:generateContent?key={gemini_key}"

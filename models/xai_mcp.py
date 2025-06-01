@@ -35,6 +35,19 @@ class XaiMCP:
             print(f"Error fetching XAI models: {str(e)}")
             return []
 
+    def extract_text(self, response) -> str:
+        """Extract text from XAI response format."""
+        if not isinstance(response, dict):
+            return str(response)
+
+        # XAI format (same as OpenAI)
+        if "choices" in response:
+            choices = response["choices"]
+            if choices and "message" in choices[0]:
+                return choices[0]["message"].get("content", "")
+
+        return str(response)
+
     def send_message(
         self,
         message: str,
