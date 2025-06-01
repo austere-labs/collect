@@ -10,8 +10,10 @@ uv sync
 ```
 
 **Testing:**
+## IMPORTANT: Always Always use uv run when running tests
+### Here is an example
 ```bash
-pytest -v -s
+uv run pytest test_collect.py::test_function_name -v -s
 # Run specific test: pytest test_collect.py::test_function_name -v -s
 ```
 
@@ -24,7 +26,7 @@ make check    # Run all: lint, format, test
 
 **Run MCP Server:**
 ```bash
-python collect.py
+uv run collect.py
 ```
 
 ## Architecture Overview

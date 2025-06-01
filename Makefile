@@ -7,7 +7,7 @@ format:
 	black .
 
 test: 
-	pytest -v -s
+	uv run pytest -v -s
 
 check: 
 	make lint
