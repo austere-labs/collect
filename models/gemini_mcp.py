@@ -1,6 +1,8 @@
 from config import Config
 from secret_manager import SecretManager
 import requests
+from fetcher import Fetcher
+from mcp.server.fastmcp import Context
 
 
 class GeminiMCP:
@@ -37,6 +39,26 @@ class GeminiMCP:
             raise ValueError(f"Missing required configuration or secret: {e}")
         except Exception as e:
             raise RuntimeError(f"Unexpected error in get_model_list: {e}")
+
+    async def build_prompt_from_url(
+            self, url: str, prompt: str, ctx: Context = None) -> str:
+        fetcher = Fetcher(ctx)
+        response = await fetcher.get(url)
+        concat = prompt + response
+        ai_response = self.send_message(
+            concat,
+            max_tokens=1024,
+            model="gemini-2.5-flash-preview-05-20")
+
+        # Extract text from response
+        if "candidates" in ai_response and len(ai_response["candidates"]) > 0:
+            candidate = ai_response["candidates"][0]
+            if "content" in candidate and "parts" in candidate["content"]:
+                parts = candidate["content"]["parts"]
+                if len(parts) > 0 and "text" in parts[0]:
+                    return parts[0]["text"]
+
+        return str(ai_response)
 
     def send_message(
         self,

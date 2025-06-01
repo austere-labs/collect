@@ -1,7 +1,7 @@
 import pytest
 from config import Config
 from secret_manager import SecretManager
-from models.gemini import GeminiMCP
+from models.gemini_mcp import GeminiMCP
 
 
 @pytest.fixture
@@ -9,6 +9,14 @@ def gemini_mcp():
     config = Config()
     secret_mgr = SecretManager(config.project_id)
     model = "gemini-2.0-flash"
+    return GeminiMCP(config, secret_mgr, model)
+
+
+@pytest.fixture
+def gemini_25_preview():
+    config = Config()
+    secret_mgr = SecretManager(config.project_id)
+    model = "gemini-2.5-pro-preview-05-06"
     return GeminiMCP(config, secret_mgr, model)
 
 
@@ -44,3 +52,26 @@ def test_count_tokens(gemini_mcp):
     assert token_count > 0
 
     print(f"Token count for '{text}': {token_count}")
+
+
+def test_gemini_25_preview_send_message(gemini_25_preview):
+    message = "Explain quantum computing in one sentence."
+    response = gemini_25_preview.send_message(message)
+
+    assert isinstance(response, dict)
+    assert "candidates" in response
+    assert len(response["candidates"]) > 0
+    assert "content" in response["candidates"][0]
+    assert "parts" in response["candidates"][0]["content"]
+
+    print(f"Gemini 2.5 Preview Response: {response}")
+
+
+def test_gemini_25_preview_count_tokens(gemini_25_preview):
+    text = "This is a test for Gemini 2.5 preview model token counting."
+    token_count = gemini_25_preview.count_tokens(text)
+
+    assert isinstance(token_count, int)
+    assert token_count > 0
+
+    print(f"Gemini 2.5 Preview - Token count for '{text}': {token_count}")
