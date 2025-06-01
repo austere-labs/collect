@@ -7,6 +7,7 @@ from collect import (
     count_gemini_tokens,
     count_openai_tokens,
     count_grok_tokens,
+    get_docs,
 )
 
 # The @pytest.mark.parametrize decorator runs the test function
@@ -42,40 +43,31 @@ async def test_nonempty_text_returns_positive_int(func, text):
     assert n > 0
 
 
-url1 = "https://github.com/modelcontextprotocol/python-sdk/blob/main/README.md"
-url2 = "https://modelcontextprotocol.io/llms-full.txt"
+@pytest.mark.asyncio
+async def test_get_docs_with_extract_value():
+    url = "https://docs.python.org/3/library/json.html"
+    extract_value = "json.dumps"
+
+    result = await get_docs(url, extract_value)
+
+    assert isinstance(result, str)
+    assert len(result) > 0
+    assert "json.dumps" in result.lower()
+
+    print(f"Extracted docs for {extract_value}:")
+    print(result[:500] + "..." if len(result) > 500 else result)
 
 
 @pytest.mark.asyncio
-async def test_fetch():
-    """
-    pytest test_collect.py::test_fetch -v -s
-    """
-    urls = [url1, url2]
+async def test_get_docs_without_extract_value():
+    url = "https://docs.python.org/3/library/json.html"
 
-    result = await fetch_urls(urls)
-    markdown = to_markdown(result)
+    result = await get_docs(url)
 
-    anthropic__count_html = await count_anthropic_tokens(result)
-    print(f"\n\n ---- ANTHROPIC:HTML {anthropic__count_html} ----\n")
+    assert isinstance(result, str)
+    assert len(result) > 0
+    # Should contain raw HTML content when no extraction is performed
+    assert "html" in result.lower() or "json" in result.lower()
 
-    anthropic_count_markdown = await count_anthropic_tokens(markdown)
-    print(f"\n\n ---- ANTHROPIC:Markdown {anthropic_count_markdown} ----\n")
-
-    gemini_count_html = await count_gemini_tokens(result)
-    print(f"\n\n ---- GEMINI:HTML: {gemini_count_html} ----\n")
-
-    gemini_count_markdown = await count_gemini_tokens(markdown)
-    print(f"\n\n ---- GEMINI:Markdown: {gemini_count_markdown} ----\n")
-
-    openai_count_html = await count_openai_tokens(result)
-    print(f"\n\n ---- OPENAI:HTML {openai_count_html} ----\n")
-
-    openai_count_markdown = await count_openai_tokens(markdown)
-    print(f"\n\n ---- OPENAI:Markdown {openai_count_markdown} ----\n")
-
-    grok_count_html = await count_grok_tokens(result)
-    print(f"\n\n ---- GROK:HTML {grok_count_html} ----\n")
-
-    grok_count_markdown = await count_grok_tokens(markdown)
-    print(f"\n\n ---- GROK:Markdown {grok_count_markdown} ----\n")
+    print(f"Raw content length: {len(result)}")
+    print(result[:200] + "..." if len(result) > 200 else result)
