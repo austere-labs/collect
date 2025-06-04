@@ -42,7 +42,8 @@ async def run_git_diff_review(
 
     Args:
         to_file: Directory name to write results to (default: "codereview")
-        staged_only: If True, review only staged changes; if False, review all changes
+        staged_only: If True, review only staged changes;
+        if False, review all changes
 
     Returns:
         Summary of the code review results
@@ -61,7 +62,7 @@ async def fetch_urls(urls: List[str], ctx: Context = None) -> str:
 @mcp.tool()
 async def fetch_url(url: str, ctx: Context = None) -> str:
     fetcher = Fetcher(ctx)
-    return fetcher.get_url(url)
+    return fetcher.get(url)
 
 
 @mcp.tool()
@@ -79,7 +80,6 @@ async def get_docs(
     gemini = GeminiMCP(config, secret_mgr, model=model)
 
     if extract_value is None:
-
         fetcher = Fetcher(ctx)
         response = await fetcher.get(url)
         return response.text
@@ -101,7 +101,7 @@ async def get_docs(
 
         prompt = prompt_prefatory + "\n\n"
         response = await gemini.build_prompt_from_url(url, prompt, ctx)
-        return response
+        return response.strip()
 
 
 @mcp.prompt()

@@ -51,10 +51,15 @@ class GeminiMCP:
         return str(ai_response)
 
     async def build_prompt_from_url(
-            self, url: str, prompt: str, ctx: Context = None) -> str:
+            self,
+            url: str,
+            prompt: str,
+            ctx: Context = None) -> str:
+
         fetcher = Fetcher(ctx)
         response = await fetcher.get(url)
         concat = prompt + response
+
         ai_response = self.send_message(
             concat,
             max_tokens=1024,
