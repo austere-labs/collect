@@ -68,3 +68,6 @@ Each model has dedicated test files in `models/test_*.py`. Tests cover API integ
 
 ## Rules
 - Never use python to run anything, always use uv run
+
+## Workflow Rules
+- I do not want a pr created if I don't have a branch already

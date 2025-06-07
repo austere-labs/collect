@@ -105,6 +105,52 @@ class AnthropicMCP:
         return result["input_tokens"]
 
     def generate_prompt(self, data: dict) -> PromptGenerateResponse:
+        """
+        Generate an optimized prompt using Anthropic's experimental prompt tools API.
+
+        This method utilizes Anthropic's closed research preview API to automatically
+        generate high-quality prompts based on a task description. The API creates
+        structured prompts suitable for use with Claude models.
+
+        Args:
+            data (dict): Request payload containing:
+                - task (str, required): Description of the prompt's purpose
+                  Example: "a chef for a meal prep planning service"
+                - target_model (str, optional): Target model for optimization
+                  Example: "claude-3-7-sonnet-20250219"
+
+        Returns:
+            PromptGenerateResponse: Response object containing:
+                - messages: List of message objects for use with Messages API
+                  - User message with generated prompt text
+                  - Optional assistant message with response guidance
+                - system: System prompt (currently always empty string)
+                - usage: Token usage statistics (input/output tokens)
+
+        Raises:
+            RuntimeError: If API request fails or network issues occur
+            ValueError: If required configuration/secrets are missing
+            requests.HTTPError: If API returns error status codes
+
+        Example:
+            >>> data = {
+            ...     "task": "a helpful programming assistant",
+            ...     "target_model": "claude-3-7-sonnet-20250219"
+            ... }
+            >>> response = anthropic_mcp.generate_prompt(data)
+            >>> prompt_text = response.messages[0].content[0].text
+            >>> print(f"Generated prompt: {prompt_text}")
+
+        Note:
+            - This is an experimental API in closed research preview
+            - Access requires explicit invitation from Anthropic
+            - Requires anthropic-beta header: "prompt-tools-2025-04-02"
+            - No long-term support guarantees for experimental features
+            - Designed primarily for prompt engineering platforms
+
+        API Documentation:
+            https://docs.anthropic.com/en/api/prompt-tools-generate
+        """
         url = "https://api.anthropic.com/v1/experimental/generate_prompt"
 
         try:

@@ -14,7 +14,7 @@ from models.gemini_mcp import GeminiMCP
 from fetcher import Fetcher
 import pyperclip
 from reviewer.code_review import CodeReviewer
-from bars import Bar, TimeFrame, TimeFrameMatcher
+from bars import Bar, TimeFrameMatcher
 from polygon.polygon import Polygon
 
 
@@ -276,6 +276,51 @@ async def use_polygon(url: str) -> List[Bar]:
     symbol = parsed_url["symbol"]
     bars = pg.build_bars(json_response, symbol, timeframe)
     return bars
+
+
+@mcp.tool()
+async def generate_prompt(prompt: str, target_model: str = None) -> str:
+    """
+    Generate an improved prompt using Anthropic's experimental prompt tools API.
+
+    Args:
+        prompt: Task description or prompt text to optimize
+        target_model: Optional target model name for optimization
+
+    Returns:
+        Generated prompt text from Anthropic's API
+    """
+    try:
+        # Validate input
+        task_content = prompt.strip()
+        if not task_content:
+            raise ValueError("Prompt cannot be empty")
+
+        # Set up Anthropic MCP client
+        config = Config()
+        secret_mgr = SecretManager(config.project_id)
+        anthropic_mcp = AnthropicMCP(
+            config, secret_mgr, config.anthropic_model_sonnet)
+
+        # Build API request payload
+        data = {"task": task_content}
+        if target_model:
+            data["target_model"] = target_model
+
+        # Call generate_prompt API
+        response = anthropic_mcp.generate_prompt(data)
+
+        # Extract the generated prompt text from the response
+        if response.messages and response.messages[0].content:
+            return response.messages[0].content[0].text
+        else:
+            raise ValueError("No prompt generated in response")
+
+    except ValueError:
+        # Re-raise ValueError (like empty prompt) without wrapping
+        raise
+    except Exception as e:
+        raise RuntimeError(f"Error generating prompt: {str(e)}")
 
 
 def main():
