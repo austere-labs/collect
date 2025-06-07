@@ -1,64 +1,92 @@
 from pydantic import BaseModel
 from enum import Enum
+from decimal import Decimal
+from typing import Optional
 
 
-class TimeFrame(str, Enum):
-    MIN = "min"
-    HOUR = "hour"
-    DAY = "day"
-    WEEK = "week"
+class TimeFrame(Enum):
+    min = "min"
+    hour = "hour"
+    day = "day"
+    week = "week"
+    month = "month"
+    year = "year"
+
+
+class TimeFrameMatcher:
+    def __init__(self):
+        self.mappings = {
+            # Minute variations
+            "minute": TimeFrame.min,
+            "minutes": TimeFrame.min,
+            "min": TimeFrame.min,
+            "m": TimeFrame.min,
+            
+            # Hour variations  
+            "hour": TimeFrame.hour,
+            "hours": TimeFrame.hour,
+            "h": TimeFrame.hour,
+            
+            # Day variations
+            "day": TimeFrame.day,
+            "days": TimeFrame.day,
+            "d": TimeFrame.day,
+            
+            # Week variations
+            "week": TimeFrame.week,
+            "weeks": TimeFrame.week,
+            "w": TimeFrame.week,
+            
+            # Month variations
+            "month": TimeFrame.month,
+            "months": TimeFrame.month,
+            "mo": TimeFrame.month,
+            
+            # Year variations
+            "year": TimeFrame.year,
+            "years": TimeFrame.year,
+            "y": TimeFrame.year,
+        }
+    
+    def match(self, span: str) -> Optional[TimeFrame]:
+        """
+        Match a string to a TimeFrame enum value.
+        
+        Args:
+            span: String representation of timeframe (e.g. "day", "minute", "h", etc.)
+            
+        Returns:
+            TimeFrame enum value or None if no match found
+            
+        Example:
+            >>> matcher = TimeFrameMatcher()
+            >>> matcher.match("day")
+            <TimeFrame.day: 'day'>
+            >>> matcher.match("minutes")
+            <TimeFrame.min: 'min'>
+        """
+        return self.mappings.get(span.lower())
+    
+    def get_supported_strings(self) -> list[str]:
+        """
+        Get all supported string representations.
+        
+        Returns:
+            List of all supported string values
+        """
+        return list(self.mappings.keys())
 
 
 class Bar(BaseModel):
+    timestamp: int
     timeframe: TimeFrame
-    assetName: str
-    open: float
-    high: float
-    close: float
-    low: float
-    volume: float
-    vwap: float
-    numTrx: int
-    timestampInt: int
-    readableTimestamp: str
-    trueRange: float
-    typicalPrice: float
-    eightDayEMA: float
-    twentyOneDayEMA: float
-    fiftyDayEMA: float
-    twoHundredDayEMA: float
-    RSI: float
-    MFI: float
-    ATR: float
-    alphaTrend: float
-    buySignal: bool
-    sellSignal: bool
-
-    class Config:
-        # Use field aliases to match the JSON field names exactly
-        allow_population_by_field_name = True
-        fields = {
-            "timeframe": {"alias": "timeframe"},
-            "assetName": {"alias": "assetName"},
-            "open": {"alias": "open"},
-            "high": {"alias": "high"},
-            "close": {"alias": "close"},
-            "low": {"alias": "low"},
-            "volume": {"alias": "volume"},
-            "vwap": {"alias": "vwap"},
-            "numTrx": {"alias": "numTrx"},
-            "timestampInt": {"alias": "timestampInt"},
-            "readableTimestamp": {"alias": "readableTimestamp"},
-            "trueRange": {"alias": "trueRange"},
-            "typicalPrice": {"alias": "typicalPrice"},
-            "eightDayEMA": {"alias": "eightDayEMA"},
-            "twentyOneDayEMA": {"alias": "twentyOneDayEMA"},
-            "fiftyDayEMA": {"alias": "fiftyDayEMA"},
-            "twoHundredDayEMA": {"alias": "twoHundredDayEMA"},
-            "RSI": {"alias": "RSI"},
-            "MFI": {"alias": "MFI"},
-            "ATR": {"alias": "ATR"},
-            "alphaTrend": {"alias": "alphaTrend"},
-            "buySignal": {"alias": "buySignal"},
-            "sellSignal": {"alias": "sellSignal"},
-        }
+    asset_name: str
+    open: Decimal
+    high: Decimal
+    close: Decimal
+    low: Decimal
+    volume: Decimal
+    vwap: Decimal
+    num_trx: int
+    readable_timestamp: str
+    atr: Decimal

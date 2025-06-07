@@ -63,6 +63,8 @@ Environment variables are loaded from `.env` file:
 
 ### Testing Strategy
 Each model has dedicated test files in `models/test_*.py`. Tests cover API integrations, token counting, and async functionality. Main functionality is tested in `test_collect.py` and `test_llmrunner.py`.
+- **IMPORTANT**: Never build tests using mocks. We only want live direct integration tests.
+
 
 ## Rules
 - Never use python to run anything, always use uv run
