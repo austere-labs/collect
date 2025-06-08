@@ -249,9 +249,16 @@ async def count_grok_tokens(text: str) -> int:
 
 @mcp.tool()
 async def use_polygon(url: str) -> List[Bar]:
+    import asyncio
+
     config = Config()
     secret_mgr = SecretManager(config.project_id)
-    api_key = secret_mgr.get_secret(config.polygon_api_key_path)
+
+    # Run the blocking secret retrieval in thread pool
+    loop = asyncio.get_event_loop()
+    api_key = await loop.run_in_executor(
+        None, secret_mgr.get_secret, config.polygon_api_key_path)
+
     pg = Polygon(config.polygon_base_url, api_key)
 
     # Parse URL first to validate format before making API call
@@ -295,7 +302,8 @@ async def generate_prompt(prompt: str, target_model: str = None) -> str:
         # Set up Anthropic MCP client
         config = Config()
         secret_mgr = SecretManager(config.project_id)
-        anthropic_mcp = AnthropicMCP(config, secret_mgr, config.anthropic_model_sonnet)
+        anthropic_mcp = AnthropicMCP(
+            config, secret_mgr, config.anthropic_model_sonnet)
 
         # Build API request payload
         data = {"task": task_content}
