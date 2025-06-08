@@ -248,29 +248,19 @@ async def count_grok_tokens(text: str) -> int:
 
 
 @mcp.tool()
-async def use_polygon(url: str) -> List[Bar]:
-    import asyncio
-
+async def use_polygon(url: str) -> dict:
     config = Config()
     secret_mgr = SecretManager(config.project_id)
-
-    # Run the blocking secret retrieval in thread pool
-    loop = asyncio.get_event_loop()
-    api_key = await loop.run_in_executor(
-        None, secret_mgr.get_secret, config.polygon_api_key_path)
+    api_key = secret_mgr.get_secret(config.polygon_api_key_path)
 
     pg = Polygon(config.polygon_base_url, api_key)
 
     # Parse URL first to validate format before making API call
     parsed_url = pg.parse_polygon_url(url)
-    if parsed_url is None:
-        raise ValueError(f"Invalid Polygon URL format: {url}")
 
     # Validate timeframe before making API call
     matcher = TimeFrameMatcher()
     timeframe = matcher.match(parsed_url["span"])
-    if timeframe is None:
-        raise ValueError(f"Unsupported timeframe: {parsed_url['span']}")
 
     # Make API call
     json_response = await pg.ohlvc_url(url)
@@ -278,7 +268,10 @@ async def use_polygon(url: str) -> List[Bar]:
     # Build bars
     symbol = parsed_url["symbol"]
     bars = pg.build_bars(json_response, symbol, timeframe)
-    return bars
+
+    # Convert to JSON string for serialization
+    bars_dict = [bar.model_dump() for bar in bars]
+    return bars_dict
 
 
 @mcp.tool()

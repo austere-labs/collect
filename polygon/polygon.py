@@ -219,6 +219,5 @@ class Polygon:
 
             ohlcv_list.append(newbar)
             prev_bar = newbar
-            print(prev_bar)
 
         return ohlcv_list
