@@ -21,43 +21,38 @@ class TimeFrameMatcher:
             "minutes": TimeFrame.min,
             "min": TimeFrame.min,
             "m": TimeFrame.min,
-            
-            # Hour variations  
+            # Hour variations
             "hour": TimeFrame.hour,
             "hours": TimeFrame.hour,
             "h": TimeFrame.hour,
-            
             # Day variations
             "day": TimeFrame.day,
             "days": TimeFrame.day,
             "d": TimeFrame.day,
-            
             # Week variations
             "week": TimeFrame.week,
             "weeks": TimeFrame.week,
             "w": TimeFrame.week,
-            
             # Month variations
             "month": TimeFrame.month,
             "months": TimeFrame.month,
             "mo": TimeFrame.month,
-            
             # Year variations
             "year": TimeFrame.year,
             "years": TimeFrame.year,
             "y": TimeFrame.year,
         }
-    
+
     def match(self, span: str) -> Optional[TimeFrame]:
         """
         Match a string to a TimeFrame enum value.
-        
+
         Args:
             span: String representation of timeframe (e.g. "day", "minute", "h", etc.)
-            
+
         Returns:
             TimeFrame enum value or None if no match found
-            
+
         Example:
             >>> matcher = TimeFrameMatcher()
             >>> matcher.match("day")
@@ -66,11 +61,11 @@ class TimeFrameMatcher:
             <TimeFrame.min: 'min'>
         """
         return self.mappings.get(span.lower())
-    
+
     def get_supported_strings(self) -> list[str]:
         """
         Get all supported string representations.
-        
+
         Returns:
             List of all supported string values
         """

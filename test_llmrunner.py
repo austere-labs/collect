@@ -48,8 +48,10 @@ async def test_llmrunner(models_to_mcp):
     print(f"Failed: {result.failure_count}")
 
     for failed_result in result.failed_results:
-        print(f"Failed model: {
-              failed_result.model} - Error: {failed_result.error}")
+        print(
+            f"Failed model: {
+              failed_result.model} - Error: {failed_result.error}"
+        )
 
     for success_result in result.successful_results:
         print(f"Successful model: {success_result.model}")

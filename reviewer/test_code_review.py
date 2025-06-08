@@ -3,8 +3,7 @@ import os
 import json
 import tempfile
 import shutil
-from unittest.mock import Mock, patch, AsyncMock, MagicMock
-from datetime import datetime
+from unittest.mock import Mock, patch, AsyncMock
 from reviewer.code_review import CodeReviewer
 from llmrunner import LLMRunnerResults, ModelResult
 
@@ -53,12 +52,14 @@ def mock_model_result():
         actual_model="test-model",
         duration_seconds=2.5,
         response={
-            "choices": [{
-                "message": {
-                    "content": "# Code Review\n\nThis is a test review response."
+            "choices": [
+                {
+                    "message": {
+                        "content": "# Code Review\n\nThis is a test review response."
+                    }
                 }
-            }]
-        }
+            ]
+        },
     )
 
 
@@ -69,7 +70,7 @@ def mock_failed_result():
         model="failed-model",
         timestamp="2024-01-01T12:00:00",
         success=False,
-        error="API timeout error"
+        error="API timeout error",
     )
 
 
@@ -81,7 +82,7 @@ def mock_llm_results(mock_model_result, mock_failed_result):
         failed_results=[mock_failed_result],
         total_models=2,
         success_count=1,
-        failure_count=1
+        failure_count=1,
     )
 
 
@@ -110,13 +111,9 @@ class TestExtractResponseText:
     def test_extract_gemini_response(self, reviewer):
         """Test extracting text from Gemini response format."""
         gemini_response = {
-            "candidates": [{
-                "content": {
-                    "parts": [{
-                        "text": "This is a Gemini response"
-                    }]
-                }
-            }]
+            "candidates": [
+                {"content": {"parts": [{"text": "This is a Gemini response"}]}}
+            ]
         }
         result = reviewer.extract_response_text(gemini_response)
         assert result == "This is a Gemini response"
@@ -124,22 +121,14 @@ class TestExtractResponseText:
     def test_extract_openai_response(self, reviewer):
         """Test extracting text from OpenAI/XAI response format."""
         openai_response = {
-            "choices": [{
-                "message": {
-                    "content": "This is an OpenAI response"
-                }
-            }]
+            "choices": [{"message": {"content": "This is an OpenAI response"}}]
         }
         result = reviewer.extract_response_text(openai_response)
         assert result == "This is an OpenAI response"
 
     def test_extract_anthropic_response(self, reviewer):
         """Test extracting text from Anthropic response format."""
-        anthropic_response = {
-            "content": [{
-                "text": "This is an Anthropic response"
-            }]
-        }
+        anthropic_response = {"content": [{"text": "This is an Anthropic response"}]}
         result = reviewer.extract_response_text(anthropic_response)
         assert result == "This is an Anthropic response"
 
@@ -168,8 +157,7 @@ class TestMarkdownContent:
     def test_create_markdown_content(self, reviewer, mock_model_result):
         """Test creating markdown content for a model result."""
         response_text = "Test review content"
-        result = reviewer.create_markdown_content(
-            mock_model_result, response_text)
+        result = reviewer.create_markdown_content(mock_model_result, response_text)
 
         assert "# Code Review - test-model" in result
         assert "**Model**: test-model" in result
@@ -185,7 +173,7 @@ class TestFileOperations:
     def test_read_input_file_success(self, reviewer, temp_dir, sample_diff_content):
         """Test successfully reading an input file."""
         test_file = os.path.join(temp_dir, "test_diff.md")
-        with open(test_file, 'w', encoding='utf-8') as f:
+        with open(test_file, "w", encoding="utf-8") as f:
             f.write(sample_diff_content)
 
         result = reviewer.read_input_file(test_file)
@@ -201,14 +189,13 @@ class TestFileOperations:
         timestamp = "20240101_120000"
         failed_results = [mock_failed_result]
 
-        error_filename = reviewer.write_error_file(
-            temp_dir, timestamp, failed_results)
+        error_filename = reviewer.write_error_file(temp_dir, timestamp, failed_results)
 
         assert error_filename == "errors_20240101_120000.md"
         error_path = os.path.join(temp_dir, error_filename)
         assert os.path.exists(error_path)
 
-        with open(error_path, 'r', encoding='utf-8') as f:
+        with open(error_path, "r", encoding="utf-8") as f:
             content = f.read()
 
         assert "# Code Review Errors" in content
@@ -225,17 +212,16 @@ class TestFileOperations:
             "total_models": 2,
             "successful_reviews": 1,
             "failed_reviews": 1,
-            "output_files": ["model1_20240101_120000.md"]
+            "output_files": ["model1_20240101_120000.md"],
         }
 
-        summary_filename = reviewer.write_summary_file(
-            temp_dir, timestamp, summary)
+        summary_filename = reviewer.write_summary_file(temp_dir, timestamp, summary)
 
         assert summary_filename == "summary_20240101_120000.json"
         summary_path = os.path.join(temp_dir, summary_filename)
         assert os.path.exists(summary_path)
 
-        with open(summary_path, 'r', encoding='utf-8') as f:
+        with open(summary_path, "r", encoding="utf-8") as f:
             loaded_summary = json.load(f)
 
         assert loaded_summary == summary
@@ -265,8 +251,7 @@ class TestSummaryCreation:
         timestamp = "20240101_120000"
         from_file = "test.md"
 
-        summary = reviewer.create_summary(
-            timestamp, from_file, mock_llm_results)
+        summary = reviewer.create_summary(timestamp, from_file, mock_llm_results)
 
         expected_summary = {
             "timestamp": timestamp,
@@ -274,7 +259,7 @@ class TestSummaryCreation:
             "total_models": 2,
             "successful_reviews": 1,
             "failed_reviews": 1,
-            "output_files": []
+            "output_files": [],
         }
 
         assert summary == expected_summary
@@ -285,7 +270,8 @@ class TestSummaryCreation:
         summary = {"output_files": []}
 
         reviewer.write_successful_results(
-            mock_llm_results, temp_dir, timestamp, summary)
+            mock_llm_results, temp_dir, timestamp, summary
+        )
 
         # Check that file was created
         expected_filename = "test-model_20240101_120000.md"
@@ -296,7 +282,7 @@ class TestSummaryCreation:
         assert expected_filename in summary["output_files"]
 
         # Check file content
-        with open(expected_path, 'r', encoding='utf-8') as f:
+        with open(expected_path, "r", encoding="utf-8") as f:
             content = f.read()
 
         assert "# Code Review - test-model" in content
@@ -307,17 +293,23 @@ class TestReviewCode:
     """Test the main review_code method."""
 
     @pytest.mark.asyncio
-    async def test_review_code_success(self, reviewer, temp_dir, sample_diff_content, mock_llm_results):
+    async def test_review_code_success(
+        self, reviewer, temp_dir, sample_diff_content, mock_llm_results
+    ):
         """Test successful code review execution."""
         # Create input file
         input_file = os.path.join(temp_dir, "input_diff.md")
-        with open(input_file, 'w', encoding='utf-8') as f:
+        with open(input_file, "w", encoding="utf-8") as f:
             f.write(sample_diff_content)
 
         # Mock dependencies
-        with patch('reviewer.code_review.code_review_models_to_mcp') as mock_models, \
-                patch('reviewer.code_review.llmrunner', new_callable=AsyncMock) as mock_runner, \
-                patch('reviewer.code_review.datetime') as mock_datetime:
+        with (
+            patch("reviewer.code_review.code_review_models_to_mcp") as mock_models,
+            patch(
+                "reviewer.code_review.llmrunner", new_callable=AsyncMock
+            ) as mock_runner,
+            patch("reviewer.code_review.datetime") as mock_datetime,
+        ):
 
             mock_models.return_value = Mock()
             mock_runner.return_value = mock_llm_results
@@ -332,12 +324,13 @@ class TestReviewCode:
             assert result["files_created"] == 3
 
             # Verify files were created
-            assert os.path.exists(os.path.join(
-                temp_dir, "test-model_20240101_120000.md"))
-            assert os.path.exists(os.path.join(
-                temp_dir, "errors_20240101_120000.md"))
-            assert os.path.exists(os.path.join(
-                temp_dir, "summary_20240101_120000.json"))
+            assert os.path.exists(
+                os.path.join(temp_dir, "test-model_20240101_120000.md")
+            )
+            assert os.path.exists(os.path.join(temp_dir, "errors_20240101_120000.md"))
+            assert os.path.exists(
+                os.path.join(temp_dir, "summary_20240101_120000.json")
+            )
 
     @pytest.mark.asyncio
     async def test_review_code_file_not_found(self, reviewer, temp_dir):
@@ -347,32 +340,38 @@ class TestReviewCode:
 
     @pytest.mark.asyncio
     async def test_review_code_no_failures(
-            self, reviewer, temp_dir, sample_diff_content):
+        self, reviewer, temp_dir, sample_diff_content
+    ):
         """Test review_code with only successful results."""
         input_file = os.path.join(temp_dir, "input_diff.md")
-        with open(input_file, 'w', encoding='utf-8') as f:
+        with open(input_file, "w", encoding="utf-8") as f:
             f.write(sample_diff_content)
 
         # Create results with no failures
         success_only_results = LLMRunnerResults(
-            successful_results=[ModelResult(
-                model="test-model",
-                timestamp="2024-01-01T12:00:00",
-                success=True,
-                actual_model="test-model",
-                duration_seconds=2.5,
-                response={"choices": [
-                    {"message": {"content": "Review content"}}]}
-            )],
+            successful_results=[
+                ModelResult(
+                    model="test-model",
+                    timestamp="2024-01-01T12:00:00",
+                    success=True,
+                    actual_model="test-model",
+                    duration_seconds=2.5,
+                    response={"choices": [{"message": {"content": "Review content"}}]},
+                )
+            ],
             failed_results=[],
             total_models=1,
             success_count=1,
-            failure_count=0
+            failure_count=0,
         )
 
-        with patch('reviewer.code_review.code_review_models_to_mcp') as mock_models, \
-                patch('reviewer.code_review.llmrunner', new_callable=AsyncMock) as mock_runner, \
-                patch('reviewer.code_review.datetime') as mock_datetime:
+        with (
+            patch("reviewer.code_review.code_review_models_to_mcp") as mock_models,
+            patch(
+                "reviewer.code_review.llmrunner", new_callable=AsyncMock
+            ) as mock_runner,
+            patch("reviewer.code_review.datetime") as mock_datetime,
+        ):
 
             mock_models.return_value = Mock()
             mock_runner.return_value = success_only_results
@@ -389,14 +388,20 @@ class TestReviewDiffFromGit:
     """Test git diff review functionality."""
 
     @pytest.mark.asyncio
-    async def test_review_diff_from_git_staged(self, reviewer, temp_dir, mock_llm_results):
+    async def test_review_diff_from_git_staged(
+        self, reviewer, temp_dir, mock_llm_results
+    ):
         """Test reviewing staged git diff."""
         mock_git_output = "diff --git a/file.py b/file.py\n+added line"
 
-        with patch('subprocess.run') as mock_subprocess, \
-                patch('reviewer.code_review.code_review_models_to_mcp') as mock_models, \
-                patch('reviewer.code_review.llmrunner', new_callable=AsyncMock) as mock_runner, \
-                patch('reviewer.code_review.datetime') as mock_datetime:
+        with (
+            patch("subprocess.run") as mock_subprocess,
+            patch("reviewer.code_review.code_review_models_to_mcp") as mock_models,
+            patch(
+                "reviewer.code_review.llmrunner", new_callable=AsyncMock
+            ) as mock_runner,
+            patch("reviewer.code_review.datetime") as mock_datetime,
+        ):
 
             # Setup mocks
             mock_subprocess.return_value.stdout = mock_git_output
@@ -409,10 +414,7 @@ class TestReviewDiffFromGit:
 
             # Verify subprocess call
             mock_subprocess.assert_called_once_with(
-                ['git', 'diff', '--staged'],
-                capture_output=True,
-                text=True,
-                check=True
+                ["git", "diff", "--staged"], capture_output=True, text=True, check=True
             )
 
             # Verify result
@@ -421,14 +423,20 @@ class TestReviewDiffFromGit:
             assert result["summary"]["input_file"] == "git diff"
 
     @pytest.mark.asyncio
-    async def test_review_diff_from_git_all_changes(self, reviewer, temp_dir, mock_llm_results):
+    async def test_review_diff_from_git_all_changes(
+        self, reviewer, temp_dir, mock_llm_results
+    ):
         """Test reviewing all git changes."""
         mock_git_output = "diff --git a/file.py b/file.py\n+added line"
 
-        with patch('subprocess.run') as mock_subprocess, \
-                patch('reviewer.code_review.code_review_models_to_mcp') as mock_models, \
-                patch('reviewer.code_review.llmrunner', new_callable=AsyncMock) as mock_runner, \
-                patch('reviewer.code_review.datetime') as mock_datetime:
+        with (
+            patch("subprocess.run") as mock_subprocess,
+            patch("reviewer.code_review.code_review_models_to_mcp") as mock_models,
+            patch(
+                "reviewer.code_review.llmrunner", new_callable=AsyncMock
+            ) as mock_runner,
+            patch("reviewer.code_review.datetime") as mock_datetime,
+        ):
 
             mock_subprocess.return_value.stdout = mock_git_output
             mock_subprocess.return_value.check_returncode = Mock()
@@ -439,10 +447,7 @@ class TestReviewDiffFromGit:
             result = await reviewer.review_diff_from_git(temp_dir, staged_only=False)
 
             mock_subprocess.assert_called_once_with(
-                ['git', 'diff'],
-                capture_output=True,
-                text=True,
-                check=True
+                ["git", "diff"], capture_output=True, text=True, check=True
             )
 
             assert result["summary"]["source"] == "git_diff_all"
@@ -450,7 +455,7 @@ class TestReviewDiffFromGit:
     @pytest.mark.asyncio
     async def test_review_diff_no_changes(self, reviewer, temp_dir):
         """Test git diff with no changes."""
-        with patch('subprocess.run') as mock_subprocess:
+        with patch("subprocess.run") as mock_subprocess:
             mock_subprocess.return_value.stdout = ""
             mock_subprocess.return_value.check_returncode = Mock()
 
@@ -460,7 +465,7 @@ class TestReviewDiffFromGit:
     @pytest.mark.asyncio
     async def test_review_diff_git_not_found(self, reviewer, temp_dir):
         """Test git diff when git is not installed."""
-        with patch('subprocess.run', side_effect=FileNotFoundError("git not found")):
+        with patch("subprocess.run", side_effect=FileNotFoundError("git not found")):
             with pytest.raises(Exception, match="Git not found"):
                 await reviewer.review_diff_from_git(temp_dir)
 
@@ -469,7 +474,9 @@ class TestReviewDiffFromGit:
         """Test git diff with git command error."""
         import subprocess
 
-        with patch('subprocess.run', side_effect=subprocess.CalledProcessError(1, 'git')):
+        with patch(
+            "subprocess.run", side_effect=subprocess.CalledProcessError(1, "git")
+        ):
             with pytest.raises(Exception, match="Git diff failed"):
                 await reviewer.review_diff_from_git(temp_dir)
 
@@ -479,23 +486,13 @@ class TestEdgeCases:
 
     def test_extract_response_malformed_gemini(self, reviewer):
         """Test extracting from malformed Gemini response."""
-        malformed = {
-            "candidates": [{
-                "content": {
-                    "parts": []  # Empty parts
-                }
-            }]
-        }
+        malformed = {"candidates": [{"content": {"parts": []}}]}  # Empty parts
         result = reviewer.extract_response_text(malformed)
         assert result == str(malformed)
 
     def test_extract_response_malformed_openai(self, reviewer):
         """Test extracting from malformed OpenAI response."""
-        malformed = {
-            "choices": [{
-                "message": {}  # Missing content
-            }]
-        }
+        malformed = {"choices": [{"message": {}}]}  # Missing content
         result = reviewer.extract_response_text(malformed)
         assert result == ""
 
@@ -506,10 +503,12 @@ class TestEdgeCases:
         assert result == str(empty)
 
     @pytest.mark.asyncio
-    async def test_review_code_with_default_output_dir(self, reviewer, temp_dir, sample_diff_content):
+    async def test_review_code_with_default_output_dir(
+        self, reviewer, temp_dir, sample_diff_content
+    ):
         """Test review_code using default output directory from None."""
         input_file = os.path.join(temp_dir, "input_diff.md")
-        with open(input_file, 'w', encoding='utf-8') as f:
+        with open(input_file, "w", encoding="utf-8") as f:
             f.write(sample_diff_content)
 
         success_results = LLMRunnerResults(
@@ -517,13 +516,17 @@ class TestEdgeCases:
             failed_results=[],
             total_models=0,
             success_count=0,
-            failure_count=0
+            failure_count=0,
         )
 
-        with patch('reviewer.code_review.code_review_models_to_mcp') as mock_models, \
-                patch('reviewer.code_review.llmrunner', new_callable=AsyncMock) as mock_runner, \
-                patch('reviewer.code_review.datetime') as mock_datetime, \
-                patch('os.makedirs') as mock_makedirs:
+        with (
+            patch("reviewer.code_review.code_review_models_to_mcp") as mock_models,
+            patch(
+                "reviewer.code_review.llmrunner", new_callable=AsyncMock
+            ) as mock_runner,
+            patch("reviewer.code_review.datetime") as mock_datetime,
+            patch("os.makedirs") as mock_makedirs,
+        ):
 
             mock_models.return_value = Mock()
             mock_runner.return_value = success_results

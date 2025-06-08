@@ -38,8 +38,7 @@ async def run_code_review(from_file: str, to_file: str = "codereview"):
 
 
 @mcp.tool()
-async def run_git_diff_review(
-        to_file: str = "codereview", staged_only: bool = True):
+async def run_git_diff_review(to_file: str = "codereview", staged_only: bool = True):
     """
     Run code review on git diff output.
 
@@ -69,8 +68,7 @@ async def fetch_url(url: str, ctx: Context = None) -> str:
 
 
 @mcp.tool()
-async def get_docs(
-        url: str, extract_value: str = None, ctx: Context = None) -> str:
+async def get_docs(url: str, extract_value: str = None, ctx: Context = None) -> str:
     """
     If you provide a extract value, we will run the prompt below to provide
     a contextual prompt to extract the value that we are looking for in the
@@ -85,7 +83,7 @@ async def get_docs(
     if extract_value is None:
         fetcher = Fetcher(ctx)
         response = await fetcher.get(url)
-        return response.text
+        return response
     else:
         prompt_prefatory = f"""
         # Documentation Extraction Task
@@ -185,8 +183,7 @@ async def get_anthropic_model_list() -> List[str]:
     secret_mgr = SecretManager(config.project_id)
 
     model = config.anthropic_model_sonnet
-    anthropic_mcp = AnthropicMCP(
-        config, secret_mgr, model)
+    anthropic_mcp = AnthropicMCP(config, secret_mgr, model)
     return anthropic_mcp.get_model_list()
 
 
@@ -228,8 +225,7 @@ async def count_anthropic_tokens(text: str) -> int:
     config = Config()
     secret_mgr = SecretManager(config.project_id)
     model = config.anthropic_model_sonnet
-    anthropic_mcp = AnthropicMCP(
-        config, secret_mgr, model)
+    anthropic_mcp = AnthropicMCP(config, secret_mgr, model)
     return anthropic_mcp.count_tokens(text)
 
 
@@ -299,8 +295,7 @@ async def generate_prompt(prompt: str, target_model: str = None) -> str:
         # Set up Anthropic MCP client
         config = Config()
         secret_mgr = SecretManager(config.project_id)
-        anthropic_mcp = AnthropicMCP(
-            config, secret_mgr, config.anthropic_model_sonnet)
+        anthropic_mcp = AnthropicMCP(config, secret_mgr, config.anthropic_model_sonnet)
 
         # Build API request payload
         data = {"task": task_content}

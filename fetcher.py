@@ -20,8 +20,7 @@ class Fetcher:
             Content from the URL as a string
         """
 
-        async with httpx.AsyncClient(
-                timeout=30.0, follow_redirects=True) as client:
+        async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
             try:
                 response = await client.get(url)
                 response.raise_for_status()
@@ -50,8 +49,7 @@ class Fetcher:
 
         results = []
 
-        async with httpx.AsyncClient(
-                timeout=30.0, follow_redirects=True) as client:
+        async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
             for i, url in enumerate(urls):
                 if self.ctx:
                     self.ctx.info(f"Fetching content from {url}")
@@ -65,11 +63,9 @@ class Fetcher:
                     results.append(response.text)
 
                 except httpx.HTTPError as e:
-                    results.append(
-                        f"\n\n --- Error fetching {url}: {str(e)} ---\n\n")
+                    results.append(f"\n\n --- Error fetching {url}: {str(e)} ---\n\n")
                 except Exception as e:
-                    results.append(
-                        f"\n\n--- error fetching {url}: {str(e)} ---\n\n")
+                    results.append(f"\n\n--- error fetching {url}: {str(e)} ---\n\n")
 
         if self.ctx:
             self.ctx.info("all urls processed")
@@ -83,8 +79,7 @@ class Fetcher:
         # Otherwise return the original content
         return content
 
-    async def chunk_by_token_count(
-            text: str, max_tokens: int = 25000) -> List[str]:
+    async def chunk_by_token_count(text: str, max_tokens: int = 25000) -> List[str]:
         """
         Split text into chunks that are each under the specified token count.
 
@@ -110,7 +105,8 @@ class Fetcher:
 
         for paragraph in paragraphs:
             paragraph_tokens = await anthropic_mcp.count_tokens(
-                paragraph + "\n\n", None)
+                paragraph + "\n\n", None
+            )
 
             # If adding this paragraph would exceed the limit,
             # start a new chunk
@@ -121,7 +117,8 @@ class Fetcher:
                     sentences = paragraph.split(". ")
                     for sentence in sentences:
                         sentence_tokens = await anthropic_mcp.count_tokens(
-                            sentence + ". ", None)
+                            sentence + ". ", None
+                        )
                         if current_chunk_tokens + sentence_tokens > max_tokens:
                             if current_chunk:
                                 chunks.append("".join(current_chunk))

@@ -17,15 +17,11 @@ class OpenAIMCP:
 
     def get_model_list(self) -> list:
         try:
-            openai_key = self.secret_mgr.get_secret(
-                self.config.openai_api_key_path)
+            openai_key = self.secret_mgr.get_secret(self.config.openai_api_key_path)
 
-            headers = {
-                "Authorization": f"Bearer {openai_key}"
-            }
+            headers = {"Authorization": f"Bearer {openai_key}"}
 
-            response = requests.get(
-                "https://api.openai.com/v1/models", headers=headers)
+            response = requests.get("https://api.openai.com/v1/models", headers=headers)
             response.raise_for_status()
 
             model_data = response.json()
@@ -34,8 +30,7 @@ class OpenAIMCP:
             return name_list
 
         except requests.exceptions.RequestException as e:
-            raise RuntimeError(
-                f"Failed to get model list from OpenAI API: {e}")
+            raise RuntimeError(f"Failed to get model list from OpenAI API: {e}")
         except KeyError as e:
             raise ValueError(f"Missing required configuration or secret: {e}")
         except Exception as e:
@@ -55,18 +50,14 @@ class OpenAIMCP:
         return str(response)
 
     def send_message(
-        self,
-        message: str,
-        max_tokens: int = 1024,
-        model: str = None
+        self, message: str, max_tokens: int = 1024, model: str = None
     ) -> dict:
         try:
-            openai_key = self.secret_mgr.get_secret(
-                self.config.openai_api_key_path)
+            openai_key = self.secret_mgr.get_secret(self.config.openai_api_key_path)
 
             headers = {
                 "Content-Type": "application/json",
-                "Authorization": f"Bearer {openai_key}"
+                "Authorization": f"Bearer {openai_key}",
             }
 
             # Use provided model or default
@@ -78,23 +69,13 @@ class OpenAIMCP:
                 data = {
                     "model": model,
                     "max_completion_tokens": max_tokens,
-                    "messages": [
-                        {
-                            "role": "user",
-                            "content": message
-                        }
-                    ]
+                    "messages": [{"role": "user", "content": message}],
                 }
             else:
                 data = {
                     "model": model,
                     "max_tokens": max_tokens,
-                    "messages": [
-                        {
-                            "role": "user",
-                            "content": message
-                        }
-                    ]
+                    "messages": [{"role": "user", "content": message}],
                 }
 
             url = "https://api.openai.com/v1/chat/completions"

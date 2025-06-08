@@ -20,8 +20,7 @@ class AnthropicMCP:
         self.headers = self.build_headers()
 
     def build_headers(self) -> dict:
-        anthropic_key = self.secret_mgr.get_secret(
-            self.config.anthropic_key_path)
+        anthropic_key = self.secret_mgr.get_secret(self.config.anthropic_key_path)
 
         return {
             "x-api-key": anthropic_key,
@@ -31,8 +30,8 @@ class AnthropicMCP:
 
     def get_model_list(self):
         response = requests.get(
-            "https://api.anthropic.com/v1/models",
-            headers=self.headers)
+            "https://api.anthropic.com/v1/models", headers=self.headers
+        )
         response.raise_for_status()
 
         model_data = response.json()
@@ -54,10 +53,7 @@ class AnthropicMCP:
         return str(ai_response)
 
     def send_message(
-        self,
-        message: str,
-        max_tokens: int = 1024,
-        model: str = None
+        self, message: str, max_tokens: int = 1024, model: str = None
     ) -> dict:
         try:
             # Use provided model or default to config model
@@ -67,9 +63,7 @@ class AnthropicMCP:
             data = {
                 "model": model,
                 "max_tokens": max_tokens,
-                "messages": [
-                    {"role": "user", "content": message}
-                ]
+                "messages": [{"role": "user", "content": message}],
             }
 
             url = "https://api.anthropic.com/v1/messages"
@@ -90,12 +84,7 @@ class AnthropicMCP:
         if model is None:
             model = self.config.anthropic_model_sonnet
 
-        data = {
-            "model": model,
-            "messages": [
-                {"role": "user", "content": message}
-            ]
-        }
+        data = {"model": model, "messages": [{"role": "user", "content": message}]}
 
         url = "https://api.anthropic.com/v1/messages/count_tokens"
         response = requests.post(url, headers=self.headers, json=data)
@@ -159,8 +148,7 @@ class AnthropicMCP:
             return PromptGenerateResponse(**response.json())
 
         except requests.exceptions.RequestException as e:
-            raise RuntimeError(
-                f"Failed to generate prompt from Anthropic API: {e}")
+            raise RuntimeError(f"Failed to generate prompt from Anthropic API: {e}")
         except KeyError as e:
             raise ValueError(f"Missing required configuration or secret: {e}")
         except Exception as e:
@@ -174,13 +162,12 @@ class AnthropicMCP:
             response.raise_for_status()
             result = response.json()
             # Handle usage being returned as dict instead of list
-            if isinstance(result.get('usage'), dict):
-                result['usage'] = [result['usage']]
+            if isinstance(result.get("usage"), dict):
+                result["usage"] = [result["usage"]]
             return PromptImproveResponse(**result)
 
         except requests.exceptions.RequestException as e:
-            raise RuntimeError(
-                f"Failed to generate prompt from Anthropic API: {e}")
+            raise RuntimeError(f"Failed to generate prompt from Anthropic API: {e}")
         except KeyError as e:
             raise ValueError(f"Missing required configuration or secret: {e}")
         except Exception as e:
@@ -194,13 +181,12 @@ class AnthropicMCP:
             response.raise_for_status()
             result = response.json()
             # Handle usage being returned as dict instead of list
-            if isinstance(result.get('usage'), dict):
-                result['usage'] = [result['usage']]
+            if isinstance(result.get("usage"), dict):
+                result["usage"] = [result["usage"]]
             return PromptTemplatizeResponse(**result)
 
         except requests.exceptions.RequestException as e:
-            raise RuntimeError(
-                f"Failed to templatize prompt from Anthropic API: {e}")
+            raise RuntimeError(f"Failed to templatize prompt from Anthropic API: {e}")
         except KeyError as e:
             raise ValueError(f"Missing required configuration or secret: {e}")
         except Exception as e:

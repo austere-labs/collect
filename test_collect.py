@@ -1,8 +1,6 @@
 import pytest
 
 from collect import (
-    fetch_urls,
-    to_markdown,
     count_anthropic_tokens,
     count_gemini_tokens,
     count_openai_tokens,

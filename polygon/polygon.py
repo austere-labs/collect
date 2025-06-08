@@ -30,8 +30,7 @@ class Polygon:
         else:
             # Otherwise, subtract one day to get the previous day
             # in the current month
-            previous_date = (current_date - timedelta(days=1)
-                             ).strftime("%Y-%m-%d")
+            previous_date = (current_date - timedelta(days=1)).strftime("%Y-%m-%d")
 
         return previous_date
 
@@ -50,9 +49,7 @@ class Polygon:
         self,
         symbol: str,
         mult: int,
-        span: Literal[
-            "year", "month", "week", "day", "hour", "minute", "second"
-        ],
+        span: Literal["year", "month", "week", "day", "hour", "minute", "second"],
         dfrom: Union[str, datetime],
         dto: Union[str, datetime],
         adjusted: bool = False,
@@ -95,11 +92,7 @@ class Polygon:
         endpoint = f"/v2/aggs/ticker/{fsym}/range/{mult}/{span}/{dfrom}/{dto}"
 
         # Build query parameters
-        params = [
-            f"adjusted={str(adjusted).lower()}",
-            f"sort={sort}",
-            f"limit={limit}"
-        ]
+        params = [f"adjusted={str(adjusted).lower()}", f"sort={sort}", f"limit={limit}"]
 
         query_string = "&".join(params)
         url = f"{self.baseurl}{endpoint}?{query_string}"
@@ -122,7 +115,7 @@ class Polygon:
             >>> polygon.parse_polygon_url("https://api.polygon.io/v2/aggs/ticker/X:BTCUSD/range/1/day/2025-01-01/2025-01-31")
             {'symbol': 'BTC', 'mult': '1', 'span': 'day', 'from': '2025-01-01', 'to': '2025-01-31'}
         """
-        pattern = r'/ticker/X:(?P<symbol>\w+)USD/range/(?P<mult>\d+)/(?P<span>\w+)/(?P<from>\d{4}-\d{2}-\d{2})/(?P<to>\d{4}-\d{2}-\d{2})'
+        pattern = r"/ticker/X:(?P<symbol>\w+)USD/range/(?P<mult>\d+)/(?P<span>\w+)/(?P<from>\d{4}-\d{2}-\d{2})/(?P<to>\d{4}-\d{2}-\d{2})"
         match = re.search(pattern, url)
         if match:
             return match.groupdict()
@@ -151,9 +144,7 @@ class Polygon:
         async with aiohttp.ClientSession() as session:
             try:
                 async with session.get(
-                    url,
-                    headers=self.headers,
-                    timeout=aiohttp.ClientTimeout(total=30)
+                    url, headers=self.headers, timeout=aiohttp.ClientTimeout(total=30)
                 ) as response:
                     response.raise_for_status()
                     data = await response.json()
@@ -161,7 +152,8 @@ class Polygon:
                     # Validate response
                     if "status" in data and data["status"] == "ERROR":
                         raise ValueError(
-                            f"API Error: {data.get('error', 'Unknown error')}")
+                            f"API Error: {data.get('error', 'Unknown error')}"
+                        )
 
                     return data
 
@@ -169,10 +161,7 @@ class Polygon:
                 raise aiohttp.ClientError(f"Request failed: {str(e)}")
 
     def build_bars(
-        self,
-        json_response: dict,
-        asset_name: str,
-        timeframe: TimeFrame
+        self, json_response: dict, asset_name: str, timeframe: TimeFrame
     ) -> List[Bar]:
         # ensure they are sorted by timestamp, THIS IS IMPORTANT
         # as we need the oldest bar first to calculate each new bar from

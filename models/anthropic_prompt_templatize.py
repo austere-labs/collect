@@ -4,18 +4,21 @@ from pydantic import BaseModel
 
 class MessageContent(BaseModel):
     """Content within a message."""
+
     text: str
     type: str = "text"
 
 
 class Message(BaseModel):
     """Message object in the response."""
+
     role: str  # "user" or "assistant"
     content: List[MessageContent]
 
 
 class UsageStats(BaseModel):
     """Token usage statistics."""
+
     input_tokens: int
     output_tokens: int
 
@@ -31,7 +34,7 @@ class PromptTemplatizeResponse(BaseModel):
 
     usage: List[UsageStats]
     """Token usage statistics for the templatization."""
-    
+
     variable_values: Dict[str, str]
     """Dictionary mapping template variable names to their extracted values."""
 
@@ -45,23 +48,15 @@ if __name__ == "__main__":
                 "content": [
                     {
                         "text": "Translate {{WORD_TO_TRANSLATE}} to {{TARGET_LANGUAGE}}",
-                        "type": "text"
+                        "type": "text",
                     }
                 ],
-                "role": "user"
+                "role": "user",
             }
         ],
         "system": "You are a professional English to {{TARGET_LANGUAGE}} translator",
-        "usage": [
-            {
-                "input_tokens": 490,
-                "output_tokens": 661
-            }
-        ],
-        "variable_values": {
-            "TARGET_LANGUAGE": "German",
-            "WORD_TO_TRANSLATE": "hello"
-        }
+        "usage": [{"input_tokens": 490, "output_tokens": 661}],
+        "variable_values": {"TARGET_LANGUAGE": "German", "WORD_TO_TRANSLATE": "hello"},
     }
 
     # Parse into Pydantic model

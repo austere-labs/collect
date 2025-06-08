@@ -3,7 +3,7 @@ import aiohttp
 from datetime import datetime
 from config import Config
 from secret_manager import SecretManager
-from polygon import Polygon
+from polygon.polygon import Polygon
 
 
 @pytest.fixture
@@ -28,7 +28,7 @@ class TestBuildOhlcvUrl:
             dto="2025-01-31",
             adjusted=True,
             sort="asc",
-            limit=120
+            limit=120,
         )
 
         expected = "https://api.polygon.io/v2/aggs/ticker/X:BTCUSD/range/1/day/2025-01-01/2025-01-31?adjusted=true&sort=asc&limit=120"
@@ -43,7 +43,7 @@ class TestBuildOhlcvUrl:
             dto=datetime(2025, 1, 16),
             adjusted=False,
             sort="desc",
-            limit=1000
+            limit=1000,
         )
 
         expected = "https://api.polygon.io/v2/aggs/ticker/X:ETHUSD/range/5/minute/2025-01-15/2025-01-16?adjusted=false&sort=desc&limit=1000"
@@ -51,11 +51,7 @@ class TestBuildOhlcvUrl:
 
     def test_build_ohlcv_url_defaults(self, polygon):
         url = polygon.build_ohlcv_url(
-            symbol="SOL",
-            mult=1,
-            span="hour",
-            dfrom="2025-01-01",
-            dto="2025-01-02"
+            symbol="SOL", mult=1, span="hour", dfrom="2025-01-01", dto="2025-01-02"
         )
 
         expected = "https://api.polygon.io/v2/aggs/ticker/X:SOLUSD/range/1/hour/2025-01-01/2025-01-02?adjusted=false&sort=desc&limit=5000"
@@ -64,11 +60,7 @@ class TestBuildOhlcvUrl:
     def test_build_ohlcv_url_invalid_mult(self, polygon):
         with pytest.raises(ValueError, match="Multiplier must be >= 1"):
             polygon.build_ohlcv_url(
-                symbol="BTC",
-                mult=0,
-                span="day",
-                dfrom="2025-01-01",
-                dto="2025-01-31"
+                symbol="BTC", mult=0, span="day", dfrom="2025-01-01", dto="2025-01-31"
             )
 
     def test_build_ohlcv_url_invalid_limit_too_low(self, polygon):
@@ -79,7 +71,7 @@ class TestBuildOhlcvUrl:
                 span="day",
                 dfrom="2025-01-01",
                 dto="2025-01-31",
-                limit=0
+                limit=0,
             )
 
     def test_build_ohlcv_url_invalid_limit_too_high(self, polygon):
@@ -90,18 +82,14 @@ class TestBuildOhlcvUrl:
                 span="day",
                 dfrom="2025-01-01",
                 dto="2025-01-31",
-                limit=50001
+                limit=50001,
             )
 
     def test_build_ohlcv_url_all_spans(self, polygon):
         spans = ["year", "month", "week", "day", "hour", "minute", "second"]
         for span in spans:
             url = polygon.build_ohlcv_url(
-                symbol="BTC",
-                mult=1,
-                span=span,
-                dfrom="2025-01-01",
-                dto="2025-01-31"
+                symbol="BTC", mult=1, span=span, dfrom="2025-01-01", dto="2025-01-31"
             )
             assert f"/range/1/{span}/" in url
 
@@ -112,11 +100,11 @@ class TestParsePolygonUrl:
         result = polygon.parse_polygon_url(url)
 
         expected = {
-            'symbol': 'BTC',
-            'mult': '1',
-            'span': 'day',
-            'from': '2025-01-01',
-            'to': '2025-01-31'
+            "symbol": "BTC",
+            "mult": "1",
+            "span": "day",
+            "from": "2025-01-01",
+            "to": "2025-01-31",
         }
         assert result == expected
 
@@ -125,11 +113,11 @@ class TestParsePolygonUrl:
         result = polygon.parse_polygon_url(url)
 
         expected = {
-            'symbol': 'BTC',
-            'mult': '1',
-            'span': 'day',
-            'from': '2025-01-01',
-            'to': '2025-01-31'
+            "symbol": "BTC",
+            "mult": "1",
+            "span": "day",
+            "from": "2025-01-01",
+            "to": "2025-01-31",
         }
         assert result == expected
 
@@ -138,11 +126,11 @@ class TestParsePolygonUrl:
         result = polygon.parse_polygon_url(url)
 
         expected = {
-            'symbol': 'ETH',
-            'mult': '5',
-            'span': 'minute',
-            'from': '2025-01-15',
-            'to': '2025-01-16'
+            "symbol": "ETH",
+            "mult": "5",
+            "span": "minute",
+            "from": "2025-01-15",
+            "to": "2025-01-16",
         }
         assert result == expected
 
@@ -151,11 +139,11 @@ class TestParsePolygonUrl:
         result = polygon.parse_polygon_url(url)
 
         expected = {
-            'symbol': 'SOL',
-            'mult': '2',
-            'span': 'hour',
-            'from': '2024-12-01',
-            'to': '2024-12-31'
+            "symbol": "SOL",
+            "mult": "2",
+            "span": "hour",
+            "from": "2024-12-01",
+            "to": "2024-12-31",
         }
         assert result == expected
 
@@ -187,7 +175,7 @@ class TestOhlvcUrlIntegration:
             dto="2025-01-31",
             adjusted=True,
             sort="asc",
-            limit=120
+            limit=120,
         )
 
         result = await polygon.ohlvc_url(url)
@@ -220,7 +208,7 @@ class TestOhlvcUrlIntegration:
             dto="2025-01-02",
             adjusted=False,
             sort="asc",
-            limit=50
+            limit=50,
         )
 
         result = await polygon.ohlvc_url(url)
@@ -245,7 +233,7 @@ class TestOhlvcUrlIntegration:
             mult=1,
             span="day",
             dfrom="2025-01-01",
-            dto="2025-01-31"
+            dto="2025-01-31",
         )
 
         result = await polygon.ohlvc_url(url)
@@ -260,11 +248,7 @@ class TestOhlvcUrlIntegration:
     async def test_ohlvc_url_future_dates(self, polygon):
         """Test fetching data for future dates (should return empty)"""
         url = polygon.build_ohlcv_url(
-            symbol="BTC",
-            mult=1,
-            span="day",
-            dfrom="2030-01-01",
-            dto="2030-12-31"
+            symbol="BTC", mult=1, span="day", dfrom="2030-01-01", dto="2030-12-31"
         )
 
         result = await polygon.ohlvc_url(url)
@@ -283,7 +267,7 @@ class TestOhlvcUrlIntegration:
             span="minute",
             dfrom="2025-01-01",
             dto="2025-01-01",
-            limit=100
+            limit=100,
         )
 
         result = await polygon.ohlvc_url(url)
@@ -303,7 +287,7 @@ class TestOhlvcUrlIntegration:
             span="day",
             dfrom="2024-01-01",
             dto="2024-12-31",
-            limit=500
+            limit=500,
         )
 
         result = await polygon.ohlvc_url(url)
@@ -323,7 +307,7 @@ class TestOhlvcUrlIntegration:
             span="minute",
             dfrom="2020-01-01",
             dto="2024-12-31",
-            limit=50000
+            limit=50000,
         )
 
         # This should either succeed or raise aiohttp.ClientError

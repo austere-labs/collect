@@ -19,12 +19,11 @@ class XaiMCP:
 
         headers = {
             "Authorization": f"Bearer {xai_key}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
         }
 
         try:
-            response = requests.get(
-                "https://api.x.ai/v1/models", headers=headers)
+            response = requests.get("https://api.x.ai/v1/models", headers=headers)
             response.raise_for_status()
             data = response.json()
 
@@ -49,18 +48,14 @@ class XaiMCP:
         return str(response)
 
     def send_message(
-        self,
-        message: str,
-        model: str = None,
-        reasoning_effort: str = "high"
+        self, message: str, model: str = None, reasoning_effort: str = "high"
     ):
         try:
-            xai_key = self.secret_mgr.get_secret(
-                self.config.xai_api_key_path)
+            xai_key = self.secret_mgr.get_secret(self.config.xai_api_key_path)
 
             headers = {
                 "Authorization": f"Bearer {xai_key}",
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
             }
 
             # Use provided model or default to config model
@@ -69,17 +64,11 @@ class XaiMCP:
 
             data = {
                 "messages": [
-                    {
-                        "role": "system",
-                        "content": self.config.grok_system_prompt
-                    },
-                    {
-                        "role": "user",
-                        "content": message
-                    }
+                    {"role": "system", "content": self.config.grok_system_prompt},
+                    {"role": "user", "content": message},
                 ],
                 "reasoning_effort": reasoning_effort,
-                "model": model
+                "model": model,
             }
 
             url = "https://api.x.ai/v1/chat/completions"
@@ -100,17 +89,14 @@ class XaiMCP:
 
         headers = {
             "Authorization": f"Bearer {xai_key}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
         }
 
         # Use provided model or default to config model
         if model is None:
             model = "grok-3-fast-latest"
 
-        data = {
-            "model": model,
-            "text": text
-        }
+        data = {"model": model, "text": text}
 
         url = "https://api.x.ai/v1/tokenize-text"
         response = requests.post(url, headers=headers, json=data)

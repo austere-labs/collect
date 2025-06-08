@@ -14,9 +14,7 @@ from models.xai_mcp import XaiMCP
 
 class ModelsToMCP(BaseModel):
     model_config = {"arbitrary_types_allowed": True}
-    models_to_mcp: Dict[
-        str, Union[GeminiMCP, AnthropicMCP, OpenAIMCP, XaiMCP]
-    ]
+    models_to_mcp: Dict[str, Union[GeminiMCP, AnthropicMCP, OpenAIMCP, XaiMCP]]
 
 
 class ModelResult(BaseModel):
@@ -55,7 +53,7 @@ async def llmrunner(prompt: str, models_to_mcp: ModelsToMCP) -> LLMRunnerResults
                 timestamp=iso_time,
                 duration_seconds=(end_time - start_time).total_seconds(),
                 response=response,
-                success=True
+                success=True,
             )
 
             return result
@@ -65,24 +63,24 @@ async def llmrunner(prompt: str, models_to_mcp: ModelsToMCP) -> LLMRunnerResults
                 success=False,
                 error=str(e),
                 model=model_name,
-                timestamp=datetime.now().isoformat()
+                timestamp=datetime.now().isoformat(),
             )
 
             return error_result
 
-    print(f"starting runner for: {
-          len(models_to_mcp.models_to_mcp.keys())} models ->")
+    print(
+        f"starting runner for: {
+          len(models_to_mcp.models_to_mcp.keys())} models ->"
+    )
     tasks = [call_model(model) for model in models_to_mcp.models_to_mcp.keys()]
     results = await asyncio.gather(*tasks, return_exceptions=True)
 
     successful_results = [
-        r for r in results
-        if isinstance(r, ModelResult) and r.success
+        r for r in results if isinstance(r, ModelResult) and r.success
     ]
 
     failed_results = [
-        r for r in results
-        if isinstance(r, ModelResult) and not r.success
+        r for r in results if isinstance(r, ModelResult) and not r.success
     ]
 
     return LLMRunnerResults(
@@ -90,7 +88,7 @@ async def llmrunner(prompt: str, models_to_mcp: ModelsToMCP) -> LLMRunnerResults
         failed_results=failed_results,
         total_models=len(models_to_mcp.models_to_mcp),
         success_count=len(successful_results),
-        failure_count=len(failed_results)
+        failure_count=len(failed_results),
     )
 
 

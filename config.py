@@ -4,7 +4,7 @@ import os
 
 class Config:
     # Load .env for configuration
-    load_dotenv('.env')
+    load_dotenv(".env")
 
     def __init__(self) -> None:
         self.project_id = os.getenv("GCP_PROJECT_ID")
@@ -17,12 +17,14 @@ class Config:
         self.grok_system_prompt = os.getenv("GROK_SYSTEM_PROMPT")
         self.openai_api_key_path = os.getenv("OPENAI_API_KEY_PATH")
         self.openai_default_code_review_model = os.getenv(
-            "OPENAI_DEFAULT_CODE_REVIEW_MODEL")
+            "OPENAI_DEFAULT_CODE_REVIEW_MODEL"
+        )
         self.gemini_default_code_review_model = os.getenv(
-            "GEMINI_DEFAULT_CODE_REVIEW_MODEL")
+            "GEMINI_DEFAULT_CODE_REVIEW_MODEL"
+        )
         self.anthropic_default_code_review_model = os.getenv(
-            "ANTHROPIC_DEFAULT_CODE_REVIEW_MODEL")
-        self.xai_default_code_review_model = os.getenv(
-            "XAI_DEFAULT_CODE_REVIEW_MODEL")
+            "ANTHROPIC_DEFAULT_CODE_REVIEW_MODEL"
+        )
+        self.xai_default_code_review_model = os.getenv("XAI_DEFAULT_CODE_REVIEW_MODEL")
         self.polygon_api_key_path = os.getenv("POLYGON_API_KEY_PATH")
         self.polygon_base_url = "https://api.polygon.io"

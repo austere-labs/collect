@@ -4,18 +4,21 @@ from pydantic import BaseModel
 
 class MessageContent(BaseModel):
     """Content within a message."""
+
     text: str
     type: str = "text"
 
 
 class Message(BaseModel):
     """Message object in the response."""
+
     role: str  # "user" or "assistant"
     content: List[MessageContent]
 
 
 class UsageStats(BaseModel):
     """Token usage statistics."""
+
     input_tokens: int
     output_tokens: int
 
@@ -41,29 +44,16 @@ if __name__ == "__main__":
     example_json = {
         "messages": [
             {
-                "content": [
-                    {
-                        "text": "<improved prompt>",
-                        "type": "text"
-                    }
-                ],
-                "role": "user"
+                "content": [{"text": "<improved prompt>", "type": "text"}],
+                "role": "user",
             },
             {
-                "content": [
-                    {
-                        "text": "<assistant prefill>",
-                        "type": "text"
-                    }
-                ],
-                "role": "assistant"
-            }
+                "content": [{"text": "<assistant prefill>", "type": "text"}],
+                "role": "assistant",
+            },
         ],
         "system": "",
-        "usage": {
-            "input_tokens": 490,
-            "output_tokens": 661
-        }
+        "usage": {"input_tokens": 490, "output_tokens": 661},
     }
 
     # Parse into Pydantic model

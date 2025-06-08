@@ -64,7 +64,8 @@ class CodeReviewer:
         """
 
     def write_error_file(
-            self, output_dir: str, timestamp: str, failed_results: List) -> str:
+        self, output_dir: str, timestamp: str, failed_results: List
+    ) -> str:
         """Write error file for failed model results."""
         error_filename = f"errors_{timestamp}.md"
         error_filepath = os.path.join(output_dir, error_filename)
@@ -86,7 +87,7 @@ class CodeReviewer:
 
             """
 
-        with open(error_filepath, 'w', encoding='utf-8') as f:
+        with open(error_filepath, "w", encoding="utf-8") as f:
             f.write(error_content)
 
         return error_filename
@@ -94,7 +95,7 @@ class CodeReviewer:
     def read_input_file(self, file_path: str) -> str:
         """Read and return content from input file."""
         try:
-            with open(file_path, 'r', encoding='utf-8') as f:
+            with open(file_path, "r", encoding="utf-8") as f:
                 return f.read()
         except FileNotFoundError:
             raise FileNotFoundError(f"Input file {file_path} not found")
@@ -157,9 +158,8 @@ Use emojis: 🔴 Critical, 🟡 Important, 🟢 Minor
 Be thorough but concise. Focus on actionable feedback that improves code quality, security, and maintainability."""
 
     def create_summary(
-            self,
-            timestamp: str,
-            from_file: str, results: LLMRunnerResults) -> Dict[str, Any]:
+        self, timestamp: str, from_file: str, results: LLMRunnerResults
+    ) -> Dict[str, Any]:
         """Create summary dictionary for the review session."""
         return {
             "timestamp": timestamp,
@@ -167,45 +167,44 @@ Be thorough but concise. Focus on actionable feedback that improves code quality
             "total_models": results.total_models,
             "successful_reviews": results.success_count,
             "failed_reviews": results.failure_count,
-            "output_files": []
+            "output_files": [],
         }
 
-    def write_successful_results(self,
-                                 results: LLMRunnerResults,
-                                 output_dir: str,
-                                 timestamp: str,
-                                 summary: Dict[str, Any]) -> None:
+    def write_successful_results(
+        self,
+        results: LLMRunnerResults,
+        output_dir: str,
+        timestamp: str,
+        summary: Dict[str, Any],
+    ) -> None:
         """Write markdown files for successful model results."""
         for result in results.successful_results:
             filename = f"{result.model}_{timestamp}.md"
             filepath = os.path.join(output_dir, filename)
 
             response_text = self.extract_response_text(result.response)
-            markdown_content = self.create_markdown_content(
-                result, response_text)
+            markdown_content = self.create_markdown_content(result, response_text)
 
-            with open(filepath, 'w', encoding='utf-8') as f:
+            with open(filepath, "w", encoding="utf-8") as f:
                 f.write(markdown_content)
 
             summary["output_files"].append(filename)
 
     def write_summary_file(
-            self,
-            output_dir: str,
-            timestamp: str,
-            summary: Dict[str, Any]) -> str:
+        self, output_dir: str, timestamp: str, summary: Dict[str, Any]
+    ) -> str:
         """Write the summary JSON file."""
         summary_filename = f"summary_{timestamp}.json"
         summary_filepath = os.path.join(output_dir, summary_filename)
 
-        with open(summary_filepath, 'w', encoding='utf-8') as f:
+        with open(summary_filepath, "w", encoding="utf-8") as f:
             json.dump(summary, f, indent=2, ensure_ascii=False)
 
         return summary_filename
 
     async def review_code(
-            self, from_file: str,
-            to_file: Optional[str] = None) -> Dict[str, Any]:
+        self, from_file: str, to_file: Optional[str] = None
+    ) -> Dict[str, Any]:
         """
         Run code review on a diff file using multiple LLM models.
 
@@ -228,7 +227,7 @@ Be thorough but concise. Focus on actionable feedback that improves code quality
 
         # Setup output directory and timestamp
         os.makedirs(output_dir, exist_ok=True)
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
         # Create summary
         summary = self.create_summary(timestamp, from_file, results)
@@ -239,7 +238,8 @@ Be thorough but concise. Focus on actionable feedback that improves code quality
         # Write error file if needed
         if results.failed_results:
             error_filename = self.write_error_file(
-                output_dir, timestamp, results.failed_results)
+                output_dir, timestamp, results.failed_results
+            )
             summary["error_file"] = error_filename
 
         # Write summary file
@@ -249,13 +249,14 @@ Be thorough but concise. Focus on actionable feedback that improves code quality
             "status": "completed",
             "summary": summary,
             "output_directory": output_dir,
-            "files_created": len(summary["output_files"]) + (1 if "error_file" in summary else 0) + 1
+            "files_created": len(summary["output_files"])
+            + (1 if "error_file" in summary else 0)
+            + 1,
         }
 
     async def review_diff_from_git(
-            self,
-            to_file: Optional[str] = None,
-            staged_only: bool = True) -> Dict[str, Any]:
+        self, to_file: Optional[str] = None, staged_only: bool = True
+    ) -> Dict[str, Any]:
         """
         Run code review on git diff output.
 
@@ -273,12 +274,15 @@ Be thorough but concise. Focus on actionable feedback that improves code quality
         try:
             if staged_only:
                 result = subprocess.run(
-                    ['git', 'diff', '--staged'],
-                    capture_output=True, text=True, check=True)
+                    ["git", "diff", "--staged"],
+                    capture_output=True,
+                    text=True,
+                    check=True,
+                )
             else:
                 result = subprocess.run(
-                    ['git', 'diff'],
-                    capture_output=True, text=True, check=True)
+                    ["git", "diff"], capture_output=True, text=True, check=True
+                )
 
             if not result.stdout.strip():
                 raise ValueError("No changes found in git diff")
@@ -288,8 +292,7 @@ Be thorough but concise. Focus on actionable feedback that improves code quality
         except subprocess.CalledProcessError as e:
             raise Exception(f"Git diff failed: {e}")
         except FileNotFoundError:
-            raise Exception(
-                "Git not found. Make sure git is installed and in PATH")
+            raise Exception("Git not found. Make sure git is installed and in PATH")
 
         # Create prompt directly from diff content
         prompt = self.create_code_review_prompt(diff_content)
@@ -301,7 +304,7 @@ Be thorough but concise. Focus on actionable feedback that improves code quality
 
         # Setup output
         os.makedirs(output_dir, exist_ok=True)
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
         # Create summary with git diff info
         summary = self.create_summary(timestamp, "git diff", results)
@@ -312,7 +315,8 @@ Be thorough but concise. Focus on actionable feedback that improves code quality
 
         if results.failed_results:
             error_filename = self.write_error_file(
-                output_dir, timestamp, results.failed_results)
+                output_dir, timestamp, results.failed_results
+            )
             summary["error_file"] = error_filename
 
         self.write_summary_file(output_dir, timestamp, summary)
@@ -321,5 +325,7 @@ Be thorough but concise. Focus on actionable feedback that improves code quality
             "status": "completed",
             "summary": summary,
             "output_directory": output_dir,
-            "files_created": len(summary["output_files"]) + (1 if "error_file" in summary else 0) + 1
+            "files_created": len(summary["output_files"])
+            + (1 if "error_file" in summary else 0)
+            + 1,
         }
