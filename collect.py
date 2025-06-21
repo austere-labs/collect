@@ -14,7 +14,7 @@ from models.gemini_mcp import GeminiMCP
 from fetcher import Fetcher
 import pyperclip
 from reviewer.code_review import CodeReviewer
-from bars import Bar, TimeFrameMatcher
+from bars import TimeFrameMatcher
 from polygon.polygon import Polygon
 
 
@@ -56,6 +56,25 @@ async def run_git_diff_review(to_file: str = "codereview", staged_only: bool = T
 
 @mcp.tool()
 async def fetch_urls(urls: List[str], ctx: Context = None) -> str:
+    """
+    Fetch content from multiple URLs concurrently and merge the responses.
+
+    Use this tool when you need to:
+    - Retrieve content from multiple web pages at once
+    - Compare information across multiple sources
+    - Gather data from several API endpoints simultaneously
+    - Fetch related pages in parallel for efficiency
+
+    Args:
+        urls: List of URLs to fetch content from
+        ctx: MCP context (automatically provided)
+
+    Returns:
+        Merged content from all URLs as a single string
+
+    Example:
+        fetch_urls(["https://api.example.com/users", "https://api.example.com/posts"])
+    """
     fetcher = Fetcher(ctx)
     merged_responses = await fetcher.fetch_urls(urls)
     return merged_responses
@@ -63,6 +82,25 @@ async def fetch_urls(urls: List[str], ctx: Context = None) -> str:
 
 @mcp.tool()
 async def fetch_url(url: str, ctx: Context = None) -> str:
+    """
+    Fetch raw content from a single URL.
+
+    Use this tool when you need to:
+    - Retrieve raw HTML/JSON from a web page or API
+    - Get unprocessed content for custom parsing
+    - Access web resources programmatically
+    - Fetch data before converting to markdown
+
+    Args:
+        url: The URL to fetch content from
+        ctx: MCP context (automatically provided)
+
+    Returns:
+        Raw content from the URL (HTML, JSON, or plain text)
+
+    Note: For documentation extraction, consider using get_docs instead.
+          For markdown conversion, use to_markdown on the result.
+    """
     fetcher = Fetcher(ctx)
     return fetcher.get(url)
 
@@ -70,10 +108,30 @@ async def fetch_url(url: str, ctx: Context = None) -> str:
 @mcp.tool()
 async def get_docs(url: str, extract_value: str = None, ctx: Context = None) -> str:
     """
-    If you provide a extract value, we will run the prompt below to provide
-    a contextual prompt to extract the value that we are looking for in the
-    web page.
-    Otherwise we just go get the webpage.
+    Fetch and extract specific documentation content from web pages.
+
+    Use this tool when users need to:
+    - Extract specific sections from documentation websites
+    - Get targeted information from technical docs
+    - Retrieve API documentation for specific methods/classes
+    - Pull configuration examples from documentation
+    - Find specific topics within large documentation sites
+
+    Args:
+        url: The URL of the documentation page to fetch
+        extract_value: Optional. Specific section/topic to extract (e.g., "authentication",
+                      "API endpoints", "installation guide"). If not provided, returns
+                      the entire page content.
+        ctx: MCP context (automatically provided)
+
+    Returns:
+        Extracted documentation content as markdown. If extract_value is specified,
+        uses Gemini AI to intelligently extract only the relevant section.
+
+    Examples:
+        - get_docs("https://docs.python.org/3/", "datetime module")
+        - get_docs("https://fastapi.tiangolo.com/", "dependency injection")
+        - get_docs("https://react.dev/", "useEffect hook")
     """
     config = Config()
     secret_mgr = SecretManager(config.project_id)
@@ -126,12 +184,43 @@ async def copy_clipboard_prompt(text: str) -> str:
 
 
 @mcp.tool()
-async def copy_clipboard(text: str):
+async def copy_clipboard(text: str) -> str:
+    """
+    Copy text to the system clipboard.
+
+    Use this tool when users need to:
+    - Copy generated code snippets to clipboard
+    - Save formatted text for pasting elsewhere
+    - Copy API keys, URLs, or configuration values
+    - Transfer content between applications
+
+    Args:
+        text: The text content to copy to clipboard
+
+    Note: The text will replace any existing clipboard content.
+    """
     pyperclip.copy(text)
 
 
 @mcp.tool()
 def strip_html(html: str) -> str:
+    """
+    Remove all HTML tags and return plain text content.
+
+    Use this tool when you need to:
+    - Extract plain text from HTML pages
+    - Remove formatting and tags from web content
+    - Clean HTML for text analysis
+    - Prepare content for non-HTML processing
+
+    Args:
+        html: Raw HTML string to process
+
+    Returns:
+        Plain text with all HTML tags removed
+
+    Note: This removes ALL formatting. For readable formatting, use to_markdown instead.
+    """
     soup = BeautifulSoup(html, "lxml")
     return soup.get_text()
 
@@ -179,6 +268,18 @@ def html_to_markdown(html: str) -> str:
 
 @mcp.tool()
 async def get_anthropic_model_list() -> List[str]:
+    """
+    Get the list of available Anthropic Claude models.
+
+    Use this tool when you need to:
+    - Check which Claude models are available
+    - Verify model names before using them
+    - List Anthropic's current model offerings
+    - Help users choose between Claude models
+
+    Returns:
+        List of available Anthropic model names (e.g., ["claude-3-opus", "claude-3-sonnet"])
+    """
     config = Config()
     secret_mgr = SecretManager(config.project_id)
 
@@ -189,6 +290,18 @@ async def get_anthropic_model_list() -> List[str]:
 
 @mcp.tool()
 async def get_openai_model_list() -> List[str]:
+    """
+    Get the list of available OpenAI models.
+
+    Use this tool when you need to:
+    - Check which GPT models are available
+    - Verify OpenAI model names
+    - List current OpenAI offerings
+    - Help users choose between GPT models
+
+    Returns:
+        List of available OpenAI model names (e.g., ["gpt-4", "gpt-3.5-turbo"])
+    """
     config = Config()
     secret_mgr = SecretManager(config.project_id)
 
@@ -198,6 +311,18 @@ async def get_openai_model_list() -> List[str]:
 
 @mcp.tool()
 async def get_xai_model_list() -> List[str]:
+    """
+    Get the list of available XAI (Grok) models.
+
+    Use this tool when you need to:
+    - Check which Grok models are available
+    - Verify XAI model names
+    - List current Grok offerings
+    - Help users choose between Grok models
+
+    Returns:
+        List of available XAI model names (e.g., ["grok-3", "grok-3-mini"])
+    """
     config = Config()
     secret_mgr = SecretManager(config.project_id)
 
@@ -207,6 +332,18 @@ async def get_xai_model_list() -> List[str]:
 
 @mcp.tool()
 async def get_gemini_model_list() -> List[str]:
+    """
+    Get the list of available Google Gemini models.
+
+    Use this tool when you need to:
+    - Check which Gemini models are available
+    - Verify Google AI model names
+    - List current Gemini offerings
+    - Help users choose between Gemini models
+
+    Returns:
+        List of available Gemini model names (e.g., ["gemini-pro", "gemini-pro-vision"])
+    """
     config = Config()
     secret_mgr = SecretManager(config.project_id)
 
@@ -216,12 +353,43 @@ async def get_gemini_model_list() -> List[str]:
 
 @mcp.tool()
 async def count_openai_tokens(text: str, model: str = "gpt-4") -> int:
+    """
+    Count tokens in text using OpenAI's tiktoken tokenizer.
+
+    Use this tool when you need to:
+    - Check if content fits within OpenAI model limits
+    - Estimate API costs for OpenAI models
+    - Split content to fit token windows
+    - Optimize prompts for token efficiency
+
+    Args:
+        text: The text to count tokens for
+        model: OpenAI model name (default: "gpt-4")
+
+    Returns:
+        Number of tokens in the text for the specified model
+    """
     enc = tiktoken.encoding_for_model(model)
     return len(enc.encode(text))
 
 
 @mcp.tool()
 async def count_anthropic_tokens(text: str) -> int:
+    """
+    Count tokens in text using Anthropic's tokenizer.
+
+    Use this tool when you need to:
+    - Check if content fits within Claude model limits
+    - Estimate API costs for Anthropic models
+    - Split content for Claude's context window
+    - Optimize prompts for Claude
+
+    Args:
+        text: The text to count tokens for
+
+    Returns:
+        Number of tokens in the text for Anthropic models
+    """
     config = Config()
     secret_mgr = SecretManager(config.project_id)
     model = config.anthropic_model_sonnet
@@ -231,6 +399,21 @@ async def count_anthropic_tokens(text: str) -> int:
 
 @mcp.tool()
 async def count_gemini_tokens(text: str) -> int:
+    """
+    Count tokens in text using Google Gemini's tokenizer.
+
+    Use this tool when you need to:
+    - Check if content fits within Gemini model limits
+    - Estimate API costs for Google AI models
+    - Split content for Gemini's context window
+    - Optimize prompts for Gemini
+
+    Args:
+        text: The text to count tokens for
+
+    Returns:
+        Number of tokens in the text for Gemini models
+    """
     config = Config()
     secret_mgr = SecretManager(config.project_id)
 
@@ -240,6 +423,21 @@ async def count_gemini_tokens(text: str) -> int:
 
 @mcp.tool()
 async def count_grok_tokens(text: str) -> int:
+    """
+    Count tokens in text using XAI Grok's tokenizer.
+
+    Use this tool when you need to:
+    - Check if content fits within Grok model limits
+    - Estimate API costs for XAI models
+    - Split content for Grok's context window
+    - Optimize prompts for Grok
+
+    Args:
+        text: The text to count tokens for
+
+    Returns:
+        Number of tokens in the text for Grok models
+    """
     config = Config()
     secret_mgr = SecretManager(config.project_id)
 
@@ -249,6 +447,24 @@ async def count_grok_tokens(text: str) -> int:
 
 @mcp.tool()
 async def use_polygon(url: str) -> dict:
+    """
+    Fetch financial market data from Polygon.io API using a URL.
+
+    Use this tool when you need to:
+    - Retrieve stock/crypto price data and OHLCV bars
+    - Get historical market data for analysis
+    - Access financial time series data
+    - Fetch trading volume and price information
+
+    Args:
+        url: Polygon.io URL containing symbol and timeframe information
+
+    Returns:
+        Dictionary containing OHLCV bars with timestamp, open, high, low, close, volume
+
+    Example:
+        use_polygon("https://polygon.io/quote/AAPL/range/1/day")
+    """
     config = Config()
     secret_mgr = SecretManager(config.project_id)
     api_key = secret_mgr.get_secret(config.polygon_api_key_path)
