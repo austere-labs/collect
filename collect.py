@@ -331,18 +331,29 @@ async def get_xai_model_list() -> List[str]:
 
 
 @mcp.tool()
-async def get_gemini_model_list() -> List[str]:
+async def get_gemini_model_list() -> List[dict]:
     """
-    Get the list of available Google Gemini models.
+    Get the list of available Google Gemini models
+    (filtered for 2.0 and 2.5 versions).
 
     Use this tool when you need to:
-    - Check which Gemini models are available
-    - Verify Google AI model names
-    - List current Gemini offerings
-    - Help users choose between Gemini models
+    - Check which Gemini models are available with their token limits
+    - Verify Google AI model names and capabilities
+    - List current Gemini 2.0 and 2.5 offerings
+    - Help users choose between Gemini models based on token capacity
 
     Returns:
-        List of available Gemini model names (e.g., ["gemini-pro", "gemini-pro-vision"])
+        List of model dictionaries sorted by token limit (highest first),
+        each containing:
+        - model_name: The model identifier (e.g., "gemini-2.5-flash")
+        - token_window: Input token limit (e.g., 1048576)
+
+    Example return:
+        [
+            {"model_name": "gemini-2.5-flash", "token_window": 1048576},
+            {"model_name": "gemini-2.0-flash", "token_window": 1048576},
+            {"model_name": "gemini-2.5-pro", "token_window": 1048576}
+        ]
     """
     config = Config()
     secret_mgr = SecretManager(config.project_id)
