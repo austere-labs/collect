@@ -49,9 +49,9 @@ def test_extract_text(anthropic_mcp):
 
 def test_generate_prompt(anthropic_mcp):
     """Test the generate_prompt method with a simple task."""
-    data = {"task": "Write a helpful assistant prompt for answering coding questions"}
+    task = "Write a helpful assistant prompt for answering coding questions"
 
-    response = anthropic_mcp.generate_prompt(data)
+    response = anthropic_mcp.generate_prompt(task)
 
     # Test response structure
     assert hasattr(response, "messages")

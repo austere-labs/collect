@@ -26,16 +26,16 @@ def test_get_model_list(gemini_mcp):
     # Check that results is a list
     assert isinstance(results, list)
     assert len(results) > 0
-    
+
     # Check structure of each model in results
     for model in results:
         assert isinstance(model, dict)
         assert 'model_name' in model
         assert 'token_window' in model
-        
+
         # Verify we only get 2.0 and 2.5 models (as per filter)
         assert '2.0' in model['model_name'] or '2.5' in model['model_name']
-        
+
         print(f"{model['model_name']}: {model['token_window']:,} tokens")
 
 

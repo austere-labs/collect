@@ -18,7 +18,8 @@ from bars import TimeFrameMatcher
 from polygon.polygon import Polygon
 
 
-mcp = FastMCP("URL Collector")
+mcp = FastMCP("Collect")
+
 
 
 @mcp.tool()
@@ -504,14 +505,47 @@ async def use_polygon(url: str) -> dict:
 @mcp.tool()
 async def generate_prompt(prompt: str, target_model: str = None) -> str:
     """
-    Generate an improved prompt using Anthropic's experimental prompt tools API.
+    Generate an optimized AI prompt using Anthropic's experimental prompt engineering API.
+
+    This tool leverages Anthropic's closed research preview API to automatically create
+    high-quality, structured prompts from simple task descriptions. The API analyzes
+    your input and generates professional-grade prompts optimized for Claude models.
+
+    Use this tool when you need to:
+    - Transform simple ideas into comprehensive AI prompts
+    - Create structured prompts for specific tasks or roles
+    - Optimize prompts for better AI responses
+    - Generate consistent prompt templates for repeated use
+    - Improve prompt clarity and effectiveness
 
     Args:
-        prompt: Task description or prompt text to optimize
-        target_model: Optional target model name for optimization
+        prompt: A brief description of what you want the AI to do.
+                Can be as simple as a role description or task summary.
+                Examples:
+                - "a helpful programming assistant"
+                - "a chef for meal planning"
+                - "a technical documentation writer"
+                - "analyze code for security vulnerabilities"
+        target_model: Optional. The specific model to optimize for (e.g., "claude-3-opus").
+                     If not specified, generates a general-purpose prompt.
 
     Returns:
-        Generated prompt text from Anthropic's API
+        A professionally crafted prompt ready for use with Claude or other AI models.
+        The generated prompt includes appropriate context, instructions, and structure
+        to maximize response quality.
+
+    Raises:
+        ValueError: If the prompt is empty or only contains whitespace
+        RuntimeError: If the API call fails or returns an unexpected response
+
+    Example:
+        >>> result = await generate_prompt("a Python code reviewer")
+        >>> print(result)
+        "You are an expert Python code reviewer with deep knowledge..."
+
+    Note:
+        This uses Anthropic's experimental "prompt-tools" API which requires special
+        access. The API is in closed research preview and may change without notice.
     """
     try:
         # Validate input
@@ -525,13 +559,8 @@ async def generate_prompt(prompt: str, target_model: str = None) -> str:
         anthropic_mcp = AnthropicMCP(
             config, secret_mgr, config.anthropic_model_sonnet)
 
-        # Build API request payload
-        data = {"task": task_content}
-        if target_model:
-            data["target_model"] = target_model
-
-        # Call generate_prompt API
-        response = anthropic_mcp.generate_prompt(data)
+        # Call generate_prompt API with new signature
+        response = anthropic_mcp.generate_prompt(task_content, target_model)
 
         # Extract the generated prompt text from the response
         if response.messages and response.messages[0].content:

@@ -95,7 +95,9 @@ class AnthropicMCP:
         result = response.json()
         return result["input_tokens"]
 
-    def generate_prompt(self, data: dict) -> PromptGenerateResponse:
+    def generate_prompt(self,
+                        task: str,
+                        target_model: str = None) -> PromptGenerateResponse:
         """
         Generate an optimized prompt using Anthropic's experimental prompt tools API.
 
@@ -104,11 +106,10 @@ class AnthropicMCP:
         structured prompts suitable for use with Claude models.
 
         Args:
-            data (dict): Request payload containing:
-                - task (str, required): Description of the prompt's purpose
-                  Example: "a chef for a meal prep planning service"
-                - target_model (str, optional): Target model for optimization
-                  Example: "claude-3-7-sonnet-20250219"
+            task (str): Description of the prompt's purpose
+                Example: "a chef for a meal prep planning service"
+            target_model (str, optional): Target model for optimization
+                Example: "claude-3-7-sonnet-20250219"
 
         Returns:
             PromptGenerateResponse: Response object containing:
@@ -124,11 +125,7 @@ class AnthropicMCP:
             requests.HTTPError: If API returns error status codes
 
         Example:
-            >>> data = {
-            ...     "task": "a helpful programming assistant",
-            ...     "target_model": "claude-3-7-sonnet-20250219"
-            ... }
-            >>> response = anthropic_mcp.generate_prompt(data)
+            >>> response = anthropic_mcp.generate_prompt("a helpful programming assistant")
             >>> prompt_text = response.messages[0].content[0].text
             >>> print(f"Generated prompt: {prompt_text}")
 
@@ -143,6 +140,11 @@ class AnthropicMCP:
             https://docs.anthropic.com/en/api/prompt-tools-generate
         """
         url = "https://api.anthropic.com/v1/experimental/generate_prompt"
+
+        # Format the task string as a dict for the API
+        data = {"task": task}
+        if target_model:
+            data["target_model"] = target_model
 
         try:
             response = requests.post(url, headers=self.headers, json=data)
