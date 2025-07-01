@@ -12,7 +12,7 @@ Location: After line 574 in collect.py
 ```python
 @mcp.tool()
 async def improve_prompt(
-    messages: List[dict],
+    messages: str,
     system: str = "",
     feedback: str,
     target_model: str = None
@@ -20,15 +20,13 @@ async def improve_prompt(
 ```
 
 **Parameters:**
-- `messages`: List of message dictionaries with role and content
-  - Each message must have `role` ("user" or "assistant") and `content` fields
-  - Content is a list of dicts with `type` and `text` fields
+- `messages`: The prompt text to improve (as a simple string)
 - `system`: System prompt (optional, defaults to empty string)
 - `feedback`: Improvement instructions (required) - describes how to improve the prompt
 - `target_model`: Target model for optimization (optional)
 
 **Returns:** 
-- Formatted string containing the improved messages (user prompt and assistant prefill)
+- Formatted string containing the improved prompt
 
 ### 2. Tool Structure
 
@@ -36,36 +34,41 @@ async def improve_prompt(
 # Pseudo-code structure
 def improve_prompt(...):
     # 1. Validate input parameters
-    #    - Ensure messages is a list with at least one user message
+    #    - Ensure messages is not empty
     #    - Validate feedback is not empty
     
-    # 2. Create AnthropicMCP client instance
+    # 2. Convert string message to API format
+    formatted_messages = [{
+        "role": "user",
+        "content": [{"type": "text", "text": messages.strip()}]
+    }]
+    
+    # 3. Create AnthropicMCP client instance
     config = Config()
     secret_mgr = SecretManager(config.project_id)
     anthropic_mcp = AnthropicMCP(config, secret_mgr, config.anthropic_model_sonnet)
     
-    # 3. Format data dict matching API requirements
+    # 4. Format data dict matching API requirements
     data = {
-        "messages": messages,
+        "messages": formatted_messages,
         "system": system,
         "feedback": feedback.strip(),
     }
     if target_model:
         data["target_model"] = target_model
     
-    # 4. Call anthropic_mcp.improve_prompt(data)
+    # 5. Call anthropic_mcp.improve_prompt(data)
     response = anthropic_mcp.improve_prompt(data)
     
-    # 5. Extract and return improved messages
-    # Format both user and assistant messages into readable output
+    # 6. Extract and return improved prompt as string
 ```
 
 ### 3. Error Handling
 
 - **Input Validation:**
-  - Check messages structure and content
+  - Check messages is not empty string
   - Ensure feedback is provided and not empty
-  - Validate message format (role, content structure)
+  - Validate messages is a string type
 
 - **API Errors:**
   - Catch `RuntimeError` from API failures
@@ -91,9 +94,8 @@ Use this tool when you need to:
 - Add missing context or constraints
 
 Args:
-    messages: List of message dictionaries representing the conversation.
-              Each message must have 'role' and 'content' fields.
-              Example: [{"role": "user", "content": [{"type": "text", "text": "..."}]}]
+    messages: The prompt text to improve as a simple string.
+              Example: "Tell me about Python"
     system: Optional system prompt to improve (default: "")
     feedback: Instructions on how to improve the prompt.
               Examples:
@@ -103,20 +105,16 @@ Args:
     target_model: Optional model to optimize for (e.g., "claude-3-opus")
 
 Returns:
-    A formatted string containing:
-    - The improved user prompt
-    - The assistant prefill (if provided)
-    - Usage statistics
+    A formatted string containing the improved prompt
 
 Example:
-    >>> messages = [{"role": "user", "content": [{"type": "text", "text": "Tell me about Python"}]}]
     >>> result = await improve_prompt(
-    ...     messages=messages,
+    ...     messages="Tell me about Python",
     ...     system="You are a helpful assistant",
     ...     feedback="Make this more specific for a beginner learning web development"
     ... )
     >>> print(result)
-    "Improved prompt: I'm a beginner learning web development..."
+    "I'm a beginner learning web development. Can you explain Python to me..."
 
 Note:
     This uses Anthropic's experimental "prompt-tools" API which requires special
@@ -126,17 +124,17 @@ Note:
 
 ## Key Features
 
-1. **Accepts existing conversation context** - Can improve prompts with full conversation history
+1. **Simple string input** - Just pass your prompt as a plain string
 2. **Flexible improvement via feedback** - User specifies exactly how to improve the prompt
-3. **Returns comprehensive output** - Includes both improved prompt and assistant prefill
+3. **Returns improved prompt as string** - Easy to use result
 4. **Model-specific optimization** - Can target improvements for specific Claude models
-5. **Preserves conversation structure** - Maintains the role-based message format
+5. **Automatic formatting** - Handles API message structure internally
 
 ## Testing Considerations
 
-- Test with various message structures (single user message, multi-turn conversations)
+- Test with various prompt strings (short, long, multiline)
 - Verify feedback parameter validation
-- Test error handling for malformed messages
+- Test error handling for empty strings
 - Ensure proper formatting of output string
 - Test with and without system prompts
 - Verify target_model parameter functionality
@@ -145,14 +143,23 @@ Note:
 
 ```python
 # Improving a code review prompt
-messages = [{
-    "role": "user", 
-    "content": [{"type": "text", "text": "Review this Python code"}]
-}]
-
 improved = await improve_prompt(
-    messages=messages,
+    messages="Review this Python code",
     system="You are a code reviewer",
     feedback="Make this more specific for security-focused code review with clear checklist items"
+)
+
+# Improving a tutorial prompt
+improved = await improve_prompt(
+    messages="Explain how to use async/await in JavaScript",
+    feedback="Make this more beginner-friendly with practical examples"
+)
+
+# Improving a data analysis prompt
+improved = await improve_prompt(
+    messages="Analyze this dataset and find patterns",
+    system="You are a data scientist",
+    feedback="Add specific statistical methods and visualization requirements",
+    target_model="claude-3-opus"
 )
 ```
