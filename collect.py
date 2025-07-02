@@ -1,3 +1,5 @@
+import sys
+from pathlib import Path
 from typing import List
 from mcp.server.fastmcp import FastMCP, Context
 import tiktoken
@@ -16,7 +18,7 @@ import pyperclip
 from reviewer.code_review import CodeReviewer
 from bars import TimeFrameMatcher
 from polygon.polygon import Polygon
-
+from plans import worktree
 
 mcp = FastMCP("Collect")
 
@@ -38,12 +40,104 @@ async def run_code_review(from_file: str, to_file: str = "codereview"):
 
 
 @mcp.tool()
-async def run_git_diff_review(to_file: str = "codereview", staged_only: bool = True):
+async def build_worktrees() -> dict:
+    """
+    Create git worktrees for approved plans in _docs/plans/approved/.
+
+    Returns:
+        Dictionary with status and summary of worktree creation
+    """
+    try:
+        # Check if we're in a git repository
+        if not worktree.is_git_repo():
+            return {
+                "status": "error",
+                "message": "Not in a git repository"
+            }
+
+        # Check if working directory is clean
+        if not worktree.is_working_directory_clean():
+            return {
+                "status": "warning",
+                "message": """Working directory has uncommitted changes.
+                            Please commit or stash changes first."""
+            }
+
+        # Find the approved plans directory
+        approved_plans_dir = Path("_docs/plans/approved/")
+        if not approved_plans_dir.exists():
+            return {
+                "status": "error",
+                "message": f"Directory '{approved_plans_dir}' does not exist"
+            }
+
+        # Get all markdown files
+        plan_files = list(approved_plans_dir.glob("*.md"))
+        if not plan_files:
+            return {
+                "status": "info",
+                "message": f"No markdown files found in {approved_plans_dir}"
+            }
+
+        # Get parent directory
+        current_dir = Path.cwd()
+        parent_dir = current_dir.parent
+
+        # Create worktrees
+        created = []
+        skipped = []
+        failed = []
+
+        for file in sorted(plan_files):
+            try:
+                result = worktree.create(file, parent_dir)
+                if result.status == worktree.WorktreeStatus.CREATED:
+                    created.append(file.name)
+                elif result.status == worktree.WorktreeStatus.SKIPPED:
+                    skipped.append(file.name)
+                else:  # FAILED
+                    failed.append(f"{file.name}: {result.message}")
+            except Exception as e:
+                failed.append(f"{file.name} (error: {str(e)})")
+
+        # Get worktree list if any were created
+        worktree_list = ""
+        if created:
+            _, stdout, _ = worktree.run_command(["git", "worktree", "list"])
+            worktree_list = stdout
+
+        return {
+            "status": "success",
+            "summary": {
+                "found": len(plan_files),
+                "created": len(created),
+                "skipped": len(skipped),
+                "failed": len(failed)
+            },
+            "details": {
+                "created": created,
+                "skipped": skipped,
+                "failed": failed
+            },
+            "worktree_dir": str(parent_dir),
+            "worktree_list": worktree_list
+        }
+
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Unexpected error: {str(e)}"
+        }
+
+
+@mcp.tool()
+async def run_git_diff_review(
+        to_file: str = "codereview", staged_only: bool = True):
     """
     Run code review on git diff output.
 
     Args:
-        to_file: Directory name to write results to (default: "codereview")
+        to_file: Directory name to write results to(default: "codereview")
         staged_only: If True, review only staged changes;
         if False, review all changes
 
@@ -67,13 +161,14 @@ async def fetch_urls(urls: List[str], ctx: Context = None) -> str:
 
     Args:
         urls: List of URLs to fetch content from
-        ctx: MCP context (automatically provided)
+        ctx: MCP context(automatically provided)
 
     Returns:
         Merged content from all URLs as a single string
 
     Example:
-        fetch_urls(["https://api.example.com/users", "https://api.example.com/posts"])
+        fetch_urls(["https://api.example.com/users",
+                   "https://api.example.com/posts"])
     """
     fetcher = Fetcher(ctx)
     merged_responses = await fetcher.fetch_urls(urls)
@@ -93,10 +188,10 @@ async def fetch_url(url: str, ctx: Context = None) -> str:
 
     Args:
         url: The URL to fetch content from
-        ctx: MCP context (automatically provided)
+        ctx: MCP context(automatically provided)
 
     Returns:
-        Raw content from the URL (HTML, JSON, or plain text)
+        Raw content from the URL(HTML, JSON, or plain text)
 
     Note: For documentation extraction, consider using get_docs instead.
           For markdown conversion, use to_markdown on the result.
@@ -119,10 +214,10 @@ async def get_docs(url: str, extract_value: str = None, ctx: Context = None) -> 
 
     Args:
         url: The URL of the documentation page to fetch
-        extract_value: Optional. Specific section/topic to extract (e.g., "authentication",
+        extract_value: Optional. Specific section/topic to extract(e.g., "authentication",
                       "API endpoints", "installation guide"). If not provided, returns
                       the entire page content.
-        ctx: MCP context (automatically provided)
+        ctx: MCP context(automatically provided)
 
     Returns:
         Extracted documentation content as markdown. If extract_value is specified,
@@ -146,9 +241,9 @@ async def get_docs(url: str, extract_value: str = None, ctx: Context = None) -> 
         prompt_prefatory = f"""
         # Documentation Extraction Task
 
-        Extract and format the documentation for: **{extract_value}**
+        Extract and format the documentation for: **{extract_value} **
 
-        ## Instructions:
+        # Instructions:
         - Focus specifically on the requested section/topic
         - Include code examples, parameters, and usage details if present
         - Maintain original formatting and structure

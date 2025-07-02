@@ -44,7 +44,7 @@ If working directly on the main branch with staged changes:
 3. Push changes with `git push`
 
 #### Option B: Pull Request Creation (when on feature branch)
-If on a feature branch or if staged changes warrant code review:
+If on a feature branch:
 1. Commit the staged changes with a clear commit message
 2. Push branch to remote with `git push -u origin <branch-name>` if needed
 3. Create PR with structured format based on the staged changes:
