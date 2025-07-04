@@ -1,5 +1,7 @@
 from pathlib import Path
 import subprocess
+import asyncio
+import time
 from typing import List, Tuple, Optional, Union
 from enum import Enum
 from pydantic import BaseModel, Field
@@ -239,3 +241,166 @@ def remove_worktree(path: Union[str, Path], force: bool = False) -> WorktreeResu
             message=f"Failed to remove worktree: {stderr}",
             worktree_dir=Path(path)
         )
+
+
+async def process_plans_in_worktrees(
+    created_worktrees: List[str], 
+    plan_files: List[Path], 
+    base_dir: Path
+) -> List[dict]:
+    """
+    Process multiple plan files in parallel using Claude Code SDK.
+    
+    Args:
+        created_worktrees: List of successfully created worktree names
+        plan_files: List of corresponding plan file paths
+        base_dir: Base directory containing worktrees
+    
+    Returns:
+        List of processing results for each plan
+    """
+    tasks = []
+    
+    for worktree_name in created_worktrees:
+        # Find corresponding plan file
+        plan_file = next(
+            (pf for pf in plan_files if pf.stem.replace("_", "-") in worktree_name),
+            None
+        )
+        
+        if plan_file:
+            worktree_dir = base_dir / f"collect-{worktree_name}"
+            task = process_single_plan(plan_file, worktree_dir)
+            tasks.append(task)
+    
+    # Execute all tasks in parallel
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+    
+    # Convert exceptions to error dictionaries
+    processed_results = []
+    for i, result in enumerate(results):
+        if isinstance(result, Exception):
+            processed_results.append({
+                "status": "failed",
+                "error": f"Unexpected error: {str(result)}",
+                "plan_file": created_worktrees[i] if i < len(created_worktrees) else "unknown"
+            })
+        else:
+            processed_results.append(result)
+    
+    return processed_results
+
+
+async def process_single_plan(plan_file: Path, worktree_dir: Path) -> dict:
+    """
+    Process a single plan file using Claude Code SDK in its worktree.
+    
+    Args:
+        plan_file: Path to the markdown plan file
+        worktree_dir: Path to the worktree directory
+    
+    Returns:
+        Dictionary with processing status, output, and metadata
+    """
+    try:
+        # Read and prepare plan content
+        plan_content = plan_file.read_text(encoding='utf-8')
+        processed_content = extract_plan_prompt(plan_content)
+        
+        # Prepare Claude Code command
+        cmd = [
+            "claude", 
+            "-p", processed_content,
+            "--dangerously-skip-permissions"
+        ]
+        
+        # Execute in worktree directory with timeout
+        start_time = time.time()
+        process = await asyncio.create_subprocess_exec(
+            *cmd,
+            cwd=worktree_dir,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            text=True
+        )
+        
+        try:
+            stdout, stderr = await asyncio.wait_for(
+                process.communicate(),
+                timeout=600  # 10 minute timeout
+            )
+        except asyncio.TimeoutError:
+            process.kill()
+            await process.wait()
+            return {
+                "plan_file": plan_file.name,
+                "worktree_dir": str(worktree_dir),
+                "status": "failed",
+                "error": "Process timed out after 10 minutes",
+                "duration": time.time() - start_time
+            }
+        
+        duration = time.time() - start_time
+        
+        if process.returncode == 0:
+            return {
+                "plan_file": plan_file.name,
+                "worktree_dir": str(worktree_dir),
+                "status": "success",
+                "output": stdout,
+                "duration": duration,
+                "exit_code": process.returncode
+            }
+        else:
+            return {
+                "plan_file": plan_file.name,
+                "worktree_dir": str(worktree_dir),
+                "status": "failed",
+                "error": stderr or "Unknown error",
+                "output": stdout,
+                "duration": duration,
+                "exit_code": process.returncode
+            }
+    
+    except Exception as e:
+        return {
+            "plan_file": plan_file.name,
+            "worktree_dir": str(worktree_dir),
+            "status": "failed",
+            "error": f"Exception during processing: {str(e)}"
+        }
+
+
+def extract_plan_prompt(plan_content: str) -> str:
+    """
+    Extract the main plan content from markdown, removing metadata and headers.
+    
+    Args:
+        plan_content: Raw markdown content of the plan file
+    
+    Returns:
+        Cleaned plan content suitable for Claude Code SDK
+    """
+    lines = plan_content.split('\n')
+    
+    # Skip YAML frontmatter if present
+    if lines and lines[0].strip() == '---':
+        end_frontmatter = None
+        for i, line in enumerate(lines[1:], 1):
+            if line.strip() == '---':
+                end_frontmatter = i + 1
+                break
+        if end_frontmatter:
+            lines = lines[end_frontmatter:]
+    
+    # Join and clean up
+    content = '\n'.join(lines).strip()
+    
+    # Add instruction prefix
+    prompt = f"""Please implement the following plan in this codebase:
+
+{content}
+
+Follow the plan step by step and implement all the required changes. Use the available tools to read existing code, make modifications, and test the implementation."""
+    
+    return prompt
