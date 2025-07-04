@@ -1,4 +1,6 @@
 import sys
+import asyncio
+import time
 from pathlib import Path
 from typing import List
 from mcp.server.fastmcp import FastMCP, Context
@@ -40,12 +42,16 @@ async def run_code_review(from_file: str, to_file: str = "codereview"):
 
 
 @mcp.tool()
-async def build_worktrees() -> dict:
+async def build_worktrees(auto_process: bool = False) -> dict:
     """
     Create git worktrees for approved plans in _docs/plans/approved/.
-
+    Optionally process plans automatically using Claude Code SDK.
+    
+    Args:
+        auto_process: If True, automatically process plan files using Claude SDK
+    
     Returns:
-        Dictionary with status and summary of worktree creation
+        Dictionary with status, summary, and optional processing results
     """
     try:
         # Check if we're in a git repository
@@ -106,7 +112,8 @@ async def build_worktrees() -> dict:
             _, stdout, _ = worktree.run_command(["git", "worktree", "list"])
             worktree_list = stdout
 
-        return {
+        # Prepare base result
+        result = {
             "status": "success",
             "summary": {
                 "found": len(plan_files),
@@ -122,6 +129,18 @@ async def build_worktrees() -> dict:
             "worktree_dir": str(parent_dir),
             "worktree_list": worktree_list
         }
+        
+        # Process plans automatically if requested and worktrees were created
+        if auto_process and created:
+            try:
+                processing_results = await worktree.process_plans_in_worktrees(
+                    created, plan_files, parent_dir
+                )
+                result["processing_results"] = processing_results
+            except Exception as e:
+                result["processing_error"] = f"Failed to process plans: {str(e)}"
+        
+        return result
 
     except Exception as e:
         return {
