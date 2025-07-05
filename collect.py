@@ -45,41 +45,27 @@ async def build_worktrees(auto_process: bool = False) -> dict:
     Optionally process plans automatically using Claude Code SDK.
 
     Args:
-        auto_process: If True, automatically process plan files using Claude SDK
+        auto_process: If True, automatically process plan files using
+        Claude SDK
 
     Returns:
         Dictionary with status, summary, and optional processing results
     """
     try:
-        # Check if in a git repository
-        if not worktree.is_git_repo():
-            return {
-                "status": "error",
-                "message": "Not in a git repository"
-            }
-        
-        # Check if working directory is clean
-        if not worktree.is_working_directory_clean():
-            return {
-                "status": "warning",
-                "message": """Working directory has uncommitted changes.
-                            Please commit or stash changes first."""
-            }
+        # Validate the build environment
+        validation_result = worktree.validate_build_environment()
+        if validation_result["status"] != "success":
+            return validation_result
 
         # Find the approved plans directory
         approved_plans_dir = Path("_docs/plans/approved/")
-        if not approved_plans_dir.exists():
-            return {
-                "status": "error",
-                "message": f"Directory '{approved_plans_dir}' does not exist"
-            }
 
         # Get all markdown files
         plan_files = list(approved_plans_dir.glob("*.md"))
         if not plan_files:
             return {
                 "status": "info",
-                "message": f"No markdown files found in {approved_plans_dir}"
+                "message": f"No markdown files found in {approved_plans_dir}",
             }
 
         # Get parent directory
@@ -116,15 +102,11 @@ async def build_worktrees(auto_process: bool = False) -> dict:
                 "found": len(plan_files),
                 "created": len(created),
                 "skipped": len(skipped),
-                "failed": len(failed)
+                "failed": len(failed),
             },
-            "details": {
-                "created": created,
-                "skipped": skipped,
-                "failed": failed
-            },
+            "details": {"created": created, "skipped": skipped, "failed": failed},
             "worktree_dir": str(parent_dir),
-            "worktree_list": worktree_list
+            "worktree_list": worktree_list,
         }
 
         # Process plans automatically if requested and worktrees were created
@@ -135,47 +117,19 @@ async def build_worktrees(auto_process: bool = False) -> dict:
                 )
                 result["processing_results"] = processing_results
             except Exception as e:
-                result["processing_error"] = f"Failed to process plans: {
-                    str(e)}"
+                result["processing_error"] = (
+                    f"Failed to process plans: {
+                        str(e)}"
+                )
 
         return result
 
     except Exception as e:
-        return {
-            "status": "error",
-            "message": f"Unexpected error: {str(e)}"
-        }
+        return {"status": "error", "message": f"Unexpected error: {str(e)}"}
 
 
 @mcp.tool()
-async def finalize_worktree(
-    worktree_path: str,
-    commit_message: str = "Implement plan from worktree",
-    pr_title: str = "",
-    pr_body: str = "",
-    cleanup: bool = True
-) -> dict:
-    """
-    Finalize a worktree by committing changes, pushing to remote, creating a PR, and optionally cleaning up.
-
-    Args:
-        worktree_path: Path to the worktree directory
-        commit_message: Git commit message (default: "Implement plan from worktree")
-        pr_title: Pull request title (auto-generated if empty)
-        pr_body: Pull request description (auto-generated if empty)
-        cleanup: Whether to remove the worktree after successful PR creation
-
-    Returns:
-        Dictionary with status and details of all operations
-    """
-    return await worktree.finalize_worktree(
-        worktree_path, commit_message, pr_title, pr_body, cleanup
-    )
-
-
-@mcp.tool()
-async def run_git_diff_review(
-        to_file: str = "codereview", staged_only: bool = True):
+async def run_git_diff_review(to_file: str = "codereview", staged_only: bool = True):
     """
     Run code review on git diff output.
 
