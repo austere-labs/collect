@@ -9,6 +9,7 @@ from pydantic import BaseModel
 
 class WorktreeStatus(str, Enum):
     """Status of worktree creation operation"""
+
     CREATED = "created"
     SKIPPED = "skipped"
     FAILED = "failed"
@@ -16,27 +17,23 @@ class WorktreeStatus(str, Enum):
 
 class WorktreeResult(BaseModel):
     """Result of worktree creation attempt"""
+
     status: WorktreeStatus
     message: str
     branch_name: Optional[str] = None
     worktree_dir: Optional[Path] = None
 
-    model_config = {
-        "arbitrary_types_allowed": True,
-        "json_encoders": {Path: str}
-    }
+    model_config = {"arbitrary_types_allowed": True, "json_encoders": {Path: str}}
 
 
 class WorktreeInfo(BaseModel):
     """Information about an existing worktree"""
+
     path: Path
     branch: Optional[str] = None
     head: Optional[str] = None
 
-    model_config = {
-        "arbitrary_types_allowed": True,
-        "json_encoders": {Path: str}
-    }
+    model_config = {"arbitrary_types_allowed": True, "json_encoders": {Path: str}}
 
 
 def create(plan_file: Path, base_dir: Path) -> WorktreeResult:
@@ -66,7 +63,7 @@ def create(plan_file: Path, base_dir: Path) -> WorktreeResult:
             status=WorktreeStatus.SKIPPED,
             message=f"Branch '{branch_name}' already exists",
             branch_name=branch_name,
-            worktree_dir=worktree_dir
+            worktree_dir=worktree_dir,
         )
 
     # Check if worktree directory already exists
@@ -75,7 +72,7 @@ def create(plan_file: Path, base_dir: Path) -> WorktreeResult:
             status=WorktreeStatus.SKIPPED,
             message=f"Directory '{worktree_dir}' already exists",
             branch_name=branch_name,
-            worktree_dir=worktree_dir
+            worktree_dir=worktree_dir,
         )
 
     # Create the worktree
@@ -87,14 +84,14 @@ def create(plan_file: Path, base_dir: Path) -> WorktreeResult:
             status=WorktreeStatus.CREATED,
             message="Successfully created worktree",
             branch_name=branch_name,
-            worktree_dir=worktree_dir
+            worktree_dir=worktree_dir,
         )
     else:
         return WorktreeResult(
             status=WorktreeStatus.FAILED,
             message=f"Failed to create worktree: {stderr}",
             branch_name=branch_name,
-            worktree_dir=worktree_dir
+            worktree_dir=worktree_dir,
         )
 
 
@@ -147,13 +144,15 @@ def branch_exists(branch_name: str) -> bool:
     """
     # Check local branches for the exact branch name
     returncode, stdout, _ = run_command(
-        ["git", "branch", "--list", branch_name], check=False)
+        ["git", "branch", "--list", branch_name], check=False
+    )
     if stdout:
         return True
 
     # Check remote branches for the branch name
     returncode, stdout, _ = run_command(
-        ["git", "branch", "-r", "--list", f"*/{branch_name}"], check=False)
+        ["git", "branch", "-r", "--list", f"*/{branch_name}"], check=False
+    )
     return bool(stdout)
 
 
@@ -164,8 +163,7 @@ def is_git_repo() -> bool:
     Returns:
         True if in a git repository, False otherwise
     """
-    returncode, _, _ = run_command(
-        ["git", "rev-parse", "--git-dir"], check=False)
+    returncode, _, _ = run_command(["git", "rev-parse", "--git-dir"], check=False)
     return returncode == 0
 
 
@@ -176,8 +174,7 @@ def is_working_directory_clean() -> bool:
     Returns:
         True if working directory is clean, False otherwise
     """
-    returncode, stdout, _ = run_command(
-        ["git", "status", "--porcelain"], check=False)
+    returncode, stdout, _ = run_command(["git", "status", "--porcelain"], check=False)
     return returncode == 0 and not stdout
 
 
@@ -189,24 +186,25 @@ def list_worktrees() -> List[WorktreeInfo]:
         List of WorktreeInfo objects
     """
     returncode, stdout, _ = run_command(
-        ["git", "worktree", "list", "--porcelain"], check=False)
+        ["git", "worktree", "list", "--porcelain"], check=False
+    )
     if returncode != 0:
         return []
 
     worktrees = []
     current = {}
 
-    for line in stdout.split('\n'):
+    for line in stdout.split("\n"):
         if not line:
             if current:
                 worktrees.append(WorktreeInfo(**current))
                 current = {}
-        elif line.startswith('worktree '):
-            current['path'] = Path(line[9:])
-        elif line.startswith('branch '):
-            current['branch'] = line[7:]
-        elif line.startswith('HEAD '):
-            current['head'] = line[5:]
+        elif line.startswith("worktree "):
+            current["path"] = Path(line[9:])
+        elif line.startswith("branch "):
+            current["branch"] = line[7:]
+        elif line.startswith("HEAD "):
+            current["head"] = line[5:]
 
     if current:
         worktrees.append(WorktreeInfo(**current))
@@ -234,20 +232,18 @@ def remove_worktree(path: Union[str, Path], force: bool = False) -> WorktreeResu
         return WorktreeResult(
             status=WorktreeStatus.CREATED,  # Could add REMOVED status
             message="Worktree removed successfully",
-            worktree_dir=Path(path)
+            worktree_dir=Path(path),
         )
     else:
         return WorktreeResult(
             status=WorktreeStatus.FAILED,
             message=f"Failed to remove worktree: {stderr}",
-            worktree_dir=Path(path)
+            worktree_dir=Path(path),
         )
 
 
 async def process_plans_in_worktrees(
-    created_worktrees: List[str],
-    plan_files: List[Path],
-    base_dir: Path
+    created_worktrees: List[str], plan_files: List[Path], base_dir: Path
 ) -> List[dict]:
     """
     Process multiple plan files in parallel using Claude Code SDK.
@@ -266,7 +262,7 @@ async def process_plans_in_worktrees(
         # Find corresponding plan file
         plan_file = next(
             (pf for pf in plan_files if pf.stem.replace("_", "-") in worktree_name),
-            None
+            None,
         )
 
         if plan_file:
@@ -281,11 +277,17 @@ async def process_plans_in_worktrees(
     processed_results = []
     for i, result in enumerate(results):
         if isinstance(result, Exception):
-            processed_results.append({
-                "status": "failed",
-                "error": f"Unexpected error: {str(result)}",
-                "plan_file": created_worktrees[i] if i < len(created_worktrees) else "unknown"
-            })
+            processed_results.append(
+                {
+                    "status": "failed",
+                    "error": f"Unexpected error: {str(result)}",
+                    "plan_file": (
+                        created_worktrees[i]
+                        if i < len(created_worktrees)
+                        else "unknown"
+                    ),
+                }
+            )
         else:
             processed_results.append(result)
 
@@ -305,15 +307,11 @@ async def process_single_plan(plan_file: Path, worktree_dir: Path) -> dict:
     """
     try:
         # Read and prepare plan content
-        plan_content = plan_file.read_text(encoding='utf-8')
+        plan_content = plan_file.read_text(encoding="utf-8")
         processed_content = extract_plan_prompt(plan_content)
 
         # Prepare Claude Code command
-        cmd = [
-            "claude",
-            "-p", processed_content,
-            "--dangerously-skip-permissions"
-        ]
+        cmd = ["claude", "-p", processed_content, "--dangerously-skip-permissions"]
 
         # Execute in worktree directory with timeout
         start_time = time.time()
@@ -322,13 +320,12 @@ async def process_single_plan(plan_file: Path, worktree_dir: Path) -> dict:
             cwd=worktree_dir,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
-            text=True
+            text=True,
         )
 
         try:
             stdout, stderr = await asyncio.wait_for(
-                process.communicate(),
-                timeout=600  # 10 minute timeout
+                process.communicate(), timeout=600  # 10 minute timeout
             )
         except asyncio.TimeoutError:
             process.kill()
@@ -338,7 +335,7 @@ async def process_single_plan(plan_file: Path, worktree_dir: Path) -> dict:
                 "worktree_dir": str(worktree_dir),
                 "status": "failed",
                 "error": "Process timed out after 10 minutes",
-                "duration": time.time() - start_time
+                "duration": time.time() - start_time,
             }
 
         duration = time.time() - start_time
@@ -350,7 +347,7 @@ async def process_single_plan(plan_file: Path, worktree_dir: Path) -> dict:
                 "status": "success",
                 "output": stdout,
                 "duration": duration,
-                "exit_code": process.returncode
+                "exit_code": process.returncode,
             }
         else:
             return {
@@ -360,7 +357,7 @@ async def process_single_plan(plan_file: Path, worktree_dir: Path) -> dict:
                 "error": stderr or "Unknown error",
                 "output": stdout,
                 "duration": duration,
-                "exit_code": process.returncode
+                "exit_code": process.returncode,
             }
 
     except Exception as e:
@@ -368,7 +365,7 @@ async def process_single_plan(plan_file: Path, worktree_dir: Path) -> dict:
             "plan_file": plan_file.name,
             "worktree_dir": str(worktree_dir),
             "status": "failed",
-            "error": f"Exception during processing: {str(e)}"
+            "error": f"Exception during processing: {str(e)}",
         }
 
 
@@ -382,20 +379,20 @@ def extract_plan_prompt(plan_content: str) -> str:
     Returns:
         Cleaned plan content suitable for Claude Code SDK
     """
-    lines = plan_content.split('\n')
+    lines = plan_content.split("\n")
 
     # Skip YAML frontmatter if present
-    if lines and lines[0].strip() == '---':
+    if lines and lines[0].strip() == "---":
         end_frontmatter = None
         for i, line in enumerate(lines[1:], 1):
-            if line.strip() == '---':
+            if line.strip() == "---":
                 end_frontmatter = i + 1
                 break
         if end_frontmatter:
             lines = lines[end_frontmatter:]
 
     # Join and clean up
-    content = '\n'.join(lines).strip()
+    content = "\n".join(lines).strip()
 
     # Add instruction prefix
     prompt = f"""Please implement the following plan in this codebase:
@@ -423,7 +420,7 @@ async def commit_worktree_changes(worktree_path: Path, commit_message: str) -> d
         if not worktree_path.exists() or not worktree_path.is_dir():
             return {
                 "status": "failed",
-                "error": f"Worktree path does not exist: {worktree_path}"
+                "error": f"Worktree path does not exist: {worktree_path}",
             }
 
         # Check git status
@@ -432,27 +429,16 @@ async def commit_worktree_changes(worktree_path: Path, commit_message: str) -> d
         )
 
         if returncode != 0:
-            return {
-                "status": "failed",
-                "error": "Failed to get git status"
-            }
+            return {"status": "failed", "error": "Failed to get git status"}
 
         if not status_output:
-            return {
-                "status": "no_changes",
-                "message": "No changes to commit"
-            }
+            return {"status": "no_changes", "message": "No changes to commit"}
 
         # Add all changes
-        returncode, _, stderr = run_command(
-            ["git", "add", "."], check=False
-        )
+        returncode, _, stderr = run_command(["git", "add", "."], check=False)
 
         if returncode != 0:
-            return {
-                "status": "failed",
-                "error": f"Failed to add changes: {stderr}"
-            }
+            return {"status": "failed", "error": f"Failed to add changes: {stderr}"}
 
         # Commit changes
         returncode, stdout, stderr = run_command(
@@ -460,10 +446,7 @@ async def commit_worktree_changes(worktree_path: Path, commit_message: str) -> d
         )
 
         if returncode != 0:
-            return {
-                "status": "failed",
-                "error": f"Failed to commit: {stderr}"
-            }
+            return {"status": "failed", "error": f"Failed to commit: {stderr}"}
 
         # Get commit SHA
         returncode, commit_sha, _ = run_command(
@@ -474,14 +457,13 @@ async def commit_worktree_changes(worktree_path: Path, commit_message: str) -> d
             "status": "success",
             "commit_sha": commit_sha,
             "commit_output": stdout,
-            "files_changed": len(status_output.strip().split('\n')) if status_output else 0
+            "files_changed": (
+                len(status_output.strip().split("\n")) if status_output else 0
+            ),
         }
 
     except Exception as e:
-        return {
-            "status": "failed",
-            "error": f"Exception during commit: {str(e)}"
-        }
+        return {"status": "failed", "error": f"Exception during commit: {str(e)}"}
 
 
 async def push_feature_branch(worktree_path: Path) -> dict:
@@ -501,16 +483,10 @@ async def push_feature_branch(worktree_path: Path) -> dict:
         )
 
         if returncode != 0:
-            return {
-                "status": "failed",
-                "error": f"Failed to get branch name: {stderr}"
-            }
+            return {"status": "failed", "error": f"Failed to get branch name: {stderr}"}
 
         if not branch_name:
-            return {
-                "status": "failed",
-                "error": "No current branch found"
-            }
+            return {"status": "failed", "error": "No current branch found"}
 
         # Push with upstream tracking
         returncode, stdout, stderr = run_command(
@@ -521,23 +497,18 @@ async def push_feature_branch(worktree_path: Path) -> dict:
             return {
                 "status": "failed",
                 "error": f"Failed to push branch: {stderr}",
-                "branch_name": branch_name
+                "branch_name": branch_name,
             }
 
-        return {
-            "status": "success",
-            "branch_name": branch_name,
-            "push_output": stdout
-        }
+        return {"status": "success", "branch_name": branch_name, "push_output": stdout}
 
     except Exception as e:
-        return {
-            "status": "failed",
-            "error": f"Exception during push: {str(e)}"
-        }
+        return {"status": "failed", "error": f"Exception during push: {str(e)}"}
 
 
-async def create_pull_request(worktree_path: Path, pr_title: str, pr_body: str = "") -> dict:
+async def create_pull_request(
+    worktree_path: Path, pr_title: str, pr_body: str = ""
+) -> dict:
     """
     Create a pull request using GitHub CLI.
 
@@ -558,7 +529,7 @@ async def create_pull_request(worktree_path: Path, pr_title: str, pr_body: str =
                 "error": """
                 GitHub CLI (gh) is not available. install with cmd:
                 brew install gh
-                """
+                """,
             }
 
         # Prepare command
@@ -569,18 +540,19 @@ async def create_pull_request(worktree_path: Path, pr_title: str, pr_body: str =
         else:
             # Use default body
             cmd.extend(
-                ["--body", f"""
+                [
+                    "--body",
+                    f"""
                 Automated implementation from worktree: {worktree_path.name}
-                """])
+                """,
+                ]
+            )
 
         # Create PR
         returncode, stdout, stderr = run_command(cmd, check=False)
 
         if returncode != 0:
-            return {
-                "status": "failed",
-                "error": f"Failed to create PR: {stderr}"
-            }
+            return {"status": "failed", "error": f"Failed to create PR: {stderr}"}
 
         # Extract PR URL from output
         pr_url = stdout.strip()
@@ -597,14 +569,11 @@ async def create_pull_request(worktree_path: Path, pr_title: str, pr_body: str =
             "status": "success",
             "pr_url": pr_url,
             "pr_number": pr_number,
-            "pr_title": pr_title
+            "pr_title": pr_title,
         }
 
     except Exception as e:
-        return {
-            "status": "failed",
-            "error": f"Exception during PR creation: {str(e)}"
-        }
+        return {"status": "failed", "error": f"Exception during PR creation: {str(e)}"}
 
 
 async def cleanup_worktree_after_pr(worktree_path: Path) -> dict:
@@ -632,21 +601,54 @@ async def cleanup_worktree_after_pr(worktree_path: Path) -> dict:
         else:
             return {
                 "status": "failed",
-                "error": f"Failed to remove worktree: {result.message}"
+                "error": f"Failed to remove worktree: {result.message}",
             }
 
         return {
             "status": "success",
             "actions_taken": actions_taken,
             "removed_path": str(worktree_path),
-            "branch_name": branch_name if returncode == 0 else "unknown"
+            "branch_name": branch_name if returncode == 0 else "unknown",
         }
 
     except Exception as e:
+        return {"status": "failed", "error": f"Exception during cleanup: {str(e)}"}
+
+
+def validate_build_environment() -> dict:
+    """
+    Validate the environment before building worktrees.
+
+    Checks:
+    - Git repository status
+    - Working directory cleanliness
+    - Approved plans directory existence
+
+    Returns:
+        Dictionary with status ("success", "error", or "warning") and any messages
+    """
+    # Check if in a git repository
+    if not is_git_repo():
+        return {"status": "error", "message": "Not in a git repository"}
+
+    # Check if working directory is clean
+    if not is_working_directory_clean():
         return {
-            "status": "failed",
-            "error": f"Exception during cleanup: {str(e)}"
+            "status": "warning",
+            "message": """Working directory has uncommitted changes.
+                        Please commit or stash changes first.""",
         }
+
+    # Find the approved plans directory
+    approved_plans_dir = Path("_docs/plans/approved/")
+    if not approved_plans_dir.exists():
+        return {
+            "status": "error",
+            "message": f"Directory '{approved_plans_dir}' does not exist",
+        }
+
+    # All checks passed
+    return {"status": "success"}
 
 
 def validate_worktree_path(worktree_path: str) -> tuple[bool, str, Path]:
@@ -686,3 +688,119 @@ def validate_worktree_path(worktree_path: str) -> tuple[bool, str, Path]:
 
     except Exception as e:
         return False, f"Error validating path: {str(e)}", Path(worktree_path)
+
+
+async def finalize_worktree(
+    worktree_path: str,
+    commit_message: str = "Implement plan from worktree",
+    pr_title: str = "",
+    pr_body: str = "",
+    cleanup: bool = True,
+) -> dict:
+    """
+    Finalize a worktree by committing changes, pushing to remote, creating a PR, and optionally cleaning up.
+
+    Args:
+        worktree_path: Path to the worktree directory
+        commit_message: Git commit message (default: "Implement plan from worktree")
+        pr_title: Pull request title (auto-generated if empty)
+        pr_body: Pull request description (auto-generated if empty)
+        cleanup: Whether to remove the worktree after successful PR creation
+
+    Returns:
+        Dictionary with status and details of all operations
+    """
+    try:
+        # Validate worktree path
+        is_valid, error_msg, normalized_path = validate_worktree_path(worktree_path)
+        if not is_valid:
+            return {"status": "failed", "error": f"Invalid worktree path: {error_msg}"}
+
+        result = {
+            "status": "success",
+            "worktree_path": str(normalized_path),
+            "operations": [],
+        }
+
+        # Step 1: Commit changes
+        commit_result = await commit_worktree_changes(normalized_path, commit_message)
+        result["operations"].append({"step": "commit", "result": commit_result})
+
+        if commit_result["status"] == "no_changes":
+            result["message"] = "No changes to commit in worktree"
+            return result
+        elif commit_result["status"] != "success":
+            result["status"] = "failed"
+            result["error"] = (
+                f"Failed to commit changes: {commit_result.get('error', 'Unknown error')}"
+            )
+            return result
+
+        # Step 2: Push to remote
+        push_result = await push_feature_branch(normalized_path)
+        result["operations"].append({"step": "push", "result": push_result})
+
+        if push_result["status"] != "success":
+            result["status"] = "failed"
+            result["error"] = (
+                f"Failed to push branch: {push_result.get('error', 'Unknown error')}"
+            )
+            return result
+
+        branch_name = push_result["branch_name"]
+
+        # Step 3: Create PR
+        if not pr_title:
+            pr_title = f"Implement plan from {normalized_path.name}"
+
+        if not pr_body:
+            pr_body = f"""Automated implementation from worktree: {normalized_path.name}
+
+Branch: {branch_name}
+Commit: {commit_result.get('commit_sha', 'unknown')}
+Files changed: {commit_result.get('files_changed', 'unknown')}
+
+🤖 Generated with Claude Code"""
+
+        pr_result = await create_pull_request(normalized_path, pr_title, pr_body)
+        result["operations"].append({"step": "create_pr", "result": pr_result})
+
+        if pr_result["status"] != "success":
+            result["status"] = "failed"
+            result["error"] = (
+                f"Failed to create PR: {pr_result.get('error', 'Unknown error')}"
+            )
+            return result
+
+        result["pr_url"] = pr_result["pr_url"]
+        result["pr_number"] = pr_result.get("pr_number")
+
+        # Step 4: Optional cleanup
+        if cleanup:
+            cleanup_result = await cleanup_worktree_after_pr(normalized_path)
+            result["operations"].append({"step": "cleanup", "result": cleanup_result})
+
+            if cleanup_result["status"] != "success":
+                # Don't fail the whole operation if cleanup fails
+                result["cleanup_warning"] = (
+                    f"Cleanup failed: {cleanup_result.get('error', 'Unknown error')}"
+                )
+            else:
+                result["cleanup_success"] = True
+
+        result["summary"] = {
+            "branch_name": branch_name,
+            "commit_sha": commit_result.get("commit_sha", "unknown"),
+            "files_changed": commit_result.get("files_changed", 0),
+            "pr_url": pr_result["pr_url"],
+            "pr_number": pr_result.get("pr_number"),
+            "cleanup_performed": cleanup,
+        }
+
+        return result
+
+    except Exception as e:
+        return {
+            "status": "failed",
+            "error": f"Unexpected error during finalization: {str(e)}",
+        }

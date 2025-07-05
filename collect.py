@@ -45,34 +45,27 @@ async def build_worktrees(auto_process: bool = False) -> dict:
     Optionally process plans automatically using Claude Code SDK.
 
     Args:
-        auto_process: If True, automatically process plan files using Claude SDK
+        auto_process: If True, automatically process plan files using
+        Claude SDK
 
     Returns:
         Dictionary with status, summary, and optional processing results
     """
     try:
-        # Check if working directory is clean
-        if not worktree.is_working_directory_clean():
-            return {
-                "status": "warning",
-                "message": """Working directory has uncommitted changes.
-                            Please commit or stash changes first."""
-            }
+        # Validate the build environment
+        validation_result = worktree.validate_build_environment()
+        if validation_result["status"] != "success":
+            return validation_result
 
         # Find the approved plans directory
         approved_plans_dir = Path("_docs/plans/approved/")
-        if not approved_plans_dir.exists():
-            return {
-                "status": "error",
-                "message": f"Directory '{approved_plans_dir}' does not exist"
-            }
 
         # Get all markdown files
         plan_files = list(approved_plans_dir.glob("*.md"))
         if not plan_files:
             return {
                 "status": "info",
-                "message": f"No markdown files found in {approved_plans_dir}"
+                "message": f"No markdown files found in {approved_plans_dir}",
             }
 
         # Get parent directory
@@ -109,15 +102,11 @@ async def build_worktrees(auto_process: bool = False) -> dict:
                 "found": len(plan_files),
                 "created": len(created),
                 "skipped": len(skipped),
-                "failed": len(failed)
+                "failed": len(failed),
             },
-            "details": {
-                "created": created,
-                "skipped": skipped,
-                "failed": failed
-            },
+            "details": {"created": created, "skipped": skipped, "failed": failed},
             "worktree_dir": str(parent_dir),
-            "worktree_list": worktree_list
+            "worktree_list": worktree_list,
         }
 
         # Process plans automatically if requested and worktrees were created
@@ -128,145 +117,19 @@ async def build_worktrees(auto_process: bool = False) -> dict:
                 )
                 result["processing_results"] = processing_results
             except Exception as e:
-                result["processing_error"] = f"Failed to process plans: {
-                    str(e)}"
+                result["processing_error"] = (
+                    f"Failed to process plans: {
+                        str(e)}"
+                )
 
         return result
 
     except Exception as e:
-        return {
-            "status": "error",
-            "message": f"Unexpected error: {str(e)}"
-        }
+        return {"status": "error", "message": f"Unexpected error: {str(e)}"}
 
 
 @mcp.tool()
-async def finalize_worktree(
-    worktree_path: str,
-    commit_message: str = "Implement plan from worktree",
-    pr_title: str = "",
-    pr_body: str = "",
-    cleanup: bool = True
-) -> dict:
-    """
-    Finalize a worktree by committing changes,
-    pushing to remote, creating a PR, and optionally cleaning up.
-
-    Args:
-        worktree_path: Path to the worktree directory
-        commit_message: Git commit message (default: "Implement plan-worktree")
-        pr_title: Pull request title (auto-generated if empty)
-        pr_body: Pull request description (auto-generated if empty)
-        cleanup: Whether to remove the worktree after successful PR creation
-
-    Returns:
-        Dictionary with status and details of all operations
-    """
-    try:
-        # Validate worktree path
-        is_valid, error_msg, normalized_path = worktree.validate_worktree_path(
-            worktree_path)
-        if not is_valid:
-            return {
-                "status": "failed",
-                "error": f"Invalid worktree path: {error_msg}"
-            }
-
-        result = {
-            "status": "success",
-            "worktree_path": str(normalized_path),
-            "operations": []
-        }
-
-        # Step 1: Commit changes
-        commit_result = await worktree.commit_worktree_changes(
-            normalized_path, commit_message)
-        result["operations"].append(
-            {"step": "commit", "result": commit_result})
-
-        if commit_result["status"] == "no_changes":
-            result["message"] = "No changes to commit in worktree"
-            return result
-        elif commit_result["status"] != "success":
-            result["status"] = "failed"
-            result["error"] = f"Failed to commit changes: {
-                commit_result.get('error', 'Unknown error')}"
-            return result
-
-        # Step 2: Push to remote
-        push_result = await worktree.push_feature_branch(normalized_path)
-        result["operations"].append({"step": "push", "result": push_result})
-
-        if push_result["status"] != "success":
-            result["status"] = "failed"
-            result["error"] = f"Failed to push branch: {
-                push_result.get('error', 'Unknown error')}"
-            return result
-
-        branch_name = push_result["branch_name"]
-
-        # Step 3: Create PR
-        if not pr_title:
-            pr_title = f"Implement plan from {normalized_path.name}"
-
-        if not pr_body:
-            pr_body = f"""
-            Automated implementation from worktree: {normalized_path.name}
-
-            Branch: {branch_name}
-            Commit: {commit_result.get('commit_sha', 'unknown')}
-            Files changed: {commit_result.get('files_changed', 'unknown')}
-
-            🤖 Generated with Claude Code"""
-
-        pr_result = await worktree.create_pull_request(
-            normalized_path, pr_title, pr_body)
-        result["operations"].append({"step": "create_pr", "result": pr_result})
-
-        if pr_result["status"] != "success":
-            result["status"] = "failed"
-            result["error"] = f"Failed to create PR: {
-                pr_result.get('error', 'Unknown error')}"
-            return result
-
-        result["pr_url"] = pr_result["pr_url"]
-        result["pr_number"] = pr_result.get("pr_number")
-
-        # Step 4: Optional cleanup
-        if cleanup:
-            cleanup_result = await worktree.cleanup_worktree_after_pr(
-                normalized_path)
-            result["operations"].append(
-                {"step": "cleanup", "result": cleanup_result})
-
-            if cleanup_result["status"] != "success":
-                # Don't fail the whole operation if cleanup fails
-                result["cleanup_warning"] = f"Cleanup failed: {
-                    cleanup_result.get('error', 'Unknown error')}"
-            else:
-                result["cleanup_success"] = True
-
-        result["summary"] = {
-            "branch_name": branch_name,
-            "commit_sha": commit_result.get("commit_sha", "unknown"),
-            "files_changed": commit_result.get("files_changed", 0),
-            "pr_url": pr_result["pr_url"],
-            "pr_number": pr_result.get("pr_number"),
-            "cleanup_performed": cleanup
-        }
-
-        return result
-
-    except Exception as e:
-        return {
-            "status": "failed",
-            "error": f"Unexpected error during finalization: {str(e)}"
-        }
-
-
-@mcp.tool()
-async def run_git_diff_review(
-        to_file: str = "codereview", staged_only: bool = True):
+async def run_git_diff_review(to_file: str = "codereview", staged_only: bool = True):
     """
     Run code review on git diff output.
 
