@@ -18,6 +18,16 @@ NC='\033[0m' # No Color
 usage() {
     echo "Usage: $0 <file_or_directory> <function_signature>"
     echo ""
+    echo "Extracts function definitions from source code files"
+    echo ""
+    echo "Arguments:"
+    echo "  file_or_directory    Path to file or directory to search"
+    echo "  function_signature   Function signature to find (quoted string)"
+    echo ""
+    echo "Options:"
+    echo "  --help              Show this help message"
+    echo "  --llm               Show LLM usage documentation"
+    echo ""
     echo "Examples:"
     echo "  $0 file.py \"async def fetch_urls(urls: List[str], ctx: Context = None) -> str:\""
     echo "  $0 . \"function processData(items) {\""
@@ -27,9 +37,63 @@ usage() {
     exit 1
 }
 
+# Function to display LLM usage documentation
+llm_usage() {
+    echo "=== LLM Usage Documentation for extractfunc ==="
+    echo ""
+    echo "PURPOSE:"
+    echo "  Extracts complete function definitions from source code files"
+    echo "  using ripgrep for fast searching and intelligent parsing"
+    echo ""
+    echo "USAGE:"
+    echo "  $0 <file_or_directory> <function_signature>"
+    echo ""
+    echo "PARAMETERS:"
+    echo "  file_or_directory: Path to search (file or directory)"
+    echo "  function_signature: Function signature to find (must be quoted)"
+    echo ""
+    echo "BEHAVIOR:"
+    echo "  - Searches for exact function signature matches"
+    echo "  - Extracts complete function body using language-specific rules:"
+    echo "    * Python: Uses indentation-based extraction"
+    echo "    * JavaScript/Go: Uses brace-matching extraction"
+    echo "  - Handles multiple matches across different files"
+    echo "  - Preserves original formatting and comments"
+    echo ""
+    echo "OUTPUT:"
+    echo "  - File location and line number for each match"
+    echo "  - Complete function definition with proper formatting"
+    echo "  - Language detection for each file"
+    echo ""
+    echo "EXAMPLES:"
+    echo "  # Extract Python async function"
+    echo "  $0 . \"async def fetch_urls(urls: List[str], ctx: Context = None) -> str:\""
+    echo ""
+    echo "  # Extract JavaScript function from specific file"
+    echo "  $0 app.js \"function processData(items) {\""
+    echo ""
+    echo "  # Extract Go function"
+    echo "  $0 main.go \"func handleRequest(w http.ResponseWriter, r *http.Request) {\""
+    echo ""
+    echo "REQUIREMENTS:"
+    echo "  - ripgrep (rg) must be installed at /opt/homebrew/bin/rg"
+    echo "  - Source files must use supported extensions (.py, .js, .go)"
+    echo ""
+    echo "NOTES:"
+    echo "  - Function signatures must be quoted to handle special characters"
+    echo "  - Searches are case-sensitive and whitespace-sensitive"
+    echo "  - Leading whitespace in signatures is automatically trimmed"
+    exit 0
+}
+
+# Check for help flags
+if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+    usage
+fi
+
 # Check for --llm flag
 if [ $# -eq 1 ] && [ "$1" = "--llm" ]; then
-    usage
+    llm_usage
 fi
 
 # Check arguments

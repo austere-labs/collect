@@ -1,9 +1,110 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Function to display usage
+usage() {
+    echo "Usage: $0 <project_name>"
+    echo ""
+    echo "Creates a new UV-based Python project with FastAPI template"
+    echo ""
+    echo "Arguments:"
+    echo "  project_name        Name of the Python project to create"
+    echo ""
+    echo "Options:"
+    echo "  --help             Show this help message"
+    echo "  --llm              Show LLM usage documentation"
+    echo ""
+    echo "Examples:"
+    echo "  $0 my-api-server"
+    echo "  $0 data-processor"
+    echo ""
+    echo "The project will be created in ~/python/<project_name>/"
+}
+
+# Function to display LLM usage documentation
+llm_usage() {
+    echo "=== LLM Usage Documentation for uvcreate ==="
+    echo ""
+    echo "PURPOSE:"
+    echo "  Creates a complete Python project using UV for dependency management"
+    echo "  with FastAPI web framework and development tooling"
+    echo ""
+    echo "USAGE:"
+    echo "  $0 <project_name>"
+    echo ""
+    echo "PARAMETERS:"
+    echo "  project_name: Name for the Python project"
+    echo ""
+    echo "BEHAVIOR:"
+    echo "  - Creates project directory in ~/python/<project_name>/"
+    echo "  - Initializes UV project with virtual environment"
+    echo "  - Installs common dependencies (FastAPI, uvicorn, ruff, black, pytest, etc.)"
+    echo "  - Creates main.py with FastAPI server template"
+    echo "  - Creates config.py with dotenv configuration"
+    echo "  - Generates Makefile with development commands"
+    echo "  - Creates Dockerfile for containerization"
+    echo "  - Sets up .env and .env.local files"
+    echo "  - Creates .gitignore with Python/UV-specific exclusions"
+    echo "  - Creates .mcp.json configuration file"
+    echo "  - Creates .claude/commands directory"
+    echo "  - Automatically launches Claude Code in the new project"
+    echo ""
+    echo "GENERATED FILES:"
+    echo "  - main.py: FastAPI server entry point"
+    echo "  - config.py: Environment configuration with dotenv"
+    echo "  - Makefile: Development commands"
+    echo "  - Dockerfile: Container configuration"
+    echo "  - .env/.env.local: Environment variables"
+    echo "  - .gitignore: Git exclusions"
+    echo "  - .mcp.json: MCP server configuration"
+    echo "  - pyproject.toml: UV project configuration"
+    echo ""
+    echo "INSTALLED DEPENDENCIES:"
+    echo "  - fastapi: Modern web framework"
+    echo "  - uvicorn: ASGI server"
+    echo "  - ruff: Fast Python linter"
+    echo "  - black: Code formatter"
+    echo "  - pytest: Testing framework"
+    echo "  - python-dotenv: Environment variable management"
+    echo "  - requests: HTTP library"
+    echo "  - pydantic: Data validation"
+    echo ""
+    echo "MAKEFILE COMMANDS:"
+    echo "  - make lint: Run ruff check"
+    echo "  - make format: Run black formatter"
+    echo "  - make test: Run pytest"
+    echo "  - make check: Run all quality checks"
+    echo "  - make start: Start the FastAPI server"
+    echo "  - make docker-build: Build Docker image"
+    echo "  - make docker-run: Run Docker container"
+    echo ""
+    echo "REQUIREMENTS:"
+    echo "  - UV must be installed and available in PATH"
+    echo "  - Python 3.11+ recommended"
+    echo "  - Write permissions in ~/python/ directory"
+    echo ""
+    echo "POST-CREATION:"
+    echo "  - Automatically activates virtual environment"
+    echo "  - Launches Claude Code in the project directory"
+    echo "  - Ready for FastAPI development"
+    exit 0
+}
+
+# Check for help flags
+if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+    usage
+    exit 0
+fi
+
+# Check for LLM flag
+if [ "$1" = "--llm" ]; then
+    llm_usage
+fi
+
 if [[ $# -lt 1 ]]; then
-  echo "Usage: $(basename "$0") <project_name>"
-  exit 1
+    echo "Error: Please provide a project name"
+    usage
+    exit 1
 fi
 
 proj="$1"

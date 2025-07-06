@@ -1,47 +1,100 @@
 #!/bin/bash
 
-# Create database script
-# Usage: ./create_db.sh [database_name]
-
 # Function to display usage
 usage() {
-    echo "Usage: $0 [database_name]"
+    echo "Usage: $0 <database_name>"
     echo ""
-    echo "Creates a SQLite database in the data/ directory with an initial metadata table."
+    echo "Creates a new SQLite database in the data/ directory"
     echo ""
     echo "Arguments:"
-    echo "  database_name    Optional. Name of the database file (default: database.db)"
+    echo "  database_name    Name of the database to create (without .db extension)"
     echo ""
     echo "Options:"
-    echo "  --llm           Display this usage information"
+    echo "  --help          Show this help message"
+    echo "  --llm           Show LLM usage documentation"
     echo ""
     echo "Examples:"
-    echo "  $0                    # Creates data/database.db"
-    echo "  $0 myapp.db           # Creates data/myapp.db"
-    echo "  $0 --llm              # Shows this help message"
-    exit 0
+    echo "  $0 myapp"
+    echo "  $0 users"
+    echo ""
+    echo "The database will be created as data/<database_name>.db"
 }
 
-# Check for --llm flag
-if [ $# -eq 1 ] && [ "$1" = "--llm" ]; then
+# Function to display LLM usage documentation
+llm_usage() {
+    echo "=== LLM Usage Documentation for createdb ==="
+    echo ""
+    echo "PURPOSE:"
+    echo "  Creates a new SQLite database file in the data/ directory"
+    echo ""
+    echo "USAGE:"
+    echo "  $0 <database_name>"
+    echo ""
+    echo "PARAMETERS:"
+    echo "  database_name: Name for the database (without .db extension)"
+    echo ""
+    echo "BEHAVIOR:"
+    echo "  - Creates data/ directory if it doesn't exist"
+    echo "  - Creates empty SQLite database with specified name"
+    echo "  - Adds .db extension automatically"
+    echo "  - Sets appropriate file permissions (644)"
+    echo "  - Fails if database already exists"
+    echo ""
+    echo "OUTPUT:"
+    echo "  - Success: Confirms database creation with full path"
+    echo "  - Error: Shows error message and exits with code 1"
+    echo ""
+    echo "EXAMPLES:"
+    echo "  $0 myapp     # Creates data/myapp.db"
+    echo "  $0 users     # Creates data/users.db"
+    echo ""
+    echo "REQUIREMENTS:"
+    echo "  - sqlite3 command must be available"
+    echo "  - Write permissions in current directory"
+}
+
+# Check for help flags
+if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
     usage
+    exit 0
 fi
 
-# Set default database name
-DB_NAME=${1:-database.db}
-DB_PATH="data/$DB_NAME"
+# Check for LLM flag
+if [ "$1" = "--llm" ]; then
+    llm_usage
+    exit 0
+fi
+
+# Check if a database name was provided
+if [ -z "$1" ]; then
+    echo "Error: Please provide a database name"
+    usage
+    exit 1
+fi
+
+# Check if sqlite3 is installed
+if ! command -v sqlite3 &> /dev/null; then
+    echo "Error: sqlite3 is not installed"
+    exit 1
+fi
 
 # Create data directory if it doesn't exist
 mkdir -p data
 
-# Create the SQLite database with an initial table
-sqlite3 "$DB_PATH" <<EOF
-CREATE TABLE IF NOT EXISTS metadata (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    version TEXT DEFAULT '1.0'
-);
-INSERT INTO metadata (version) VALUES ('1.0');
-EOF
+# Database name with .db extension
+DB_NAME="$1.db"
+DB_PATH="data/$DB_NAME"
 
-echo "Database created at: $DB_PATH"
+# Check if database already exists
+if [ -f "$DB_PATH" ]; then
+    echo "Error: Database $DB_NAME already exists in data/"
+    exit 1
+fi
+
+# Create the SQLite database with sqlite3
+sqlite3 "$DB_PATH" "VACUUM;"
+echo "Created SQLite database: $DB_PATH"
+
+# Set appropriate permissions
+chmod 644 "$DB_PATH"
+echo "Set permissions for database file"

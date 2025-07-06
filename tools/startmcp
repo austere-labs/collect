@@ -1,9 +1,98 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Function to display usage
+usage() {
+    echo "Usage: $0 <project_name>"
+    echo ""
+    echo "Creates a new UV-based MCP (Model Context Protocol) server project"
+    echo ""
+    echo "Arguments:"
+    echo "  project_name        Name of the MCP project to create"
+    echo ""
+    echo "Options:"
+    echo "  --help             Show this help message"
+    echo "  --llm              Show LLM usage documentation"
+    echo ""
+    echo "Examples:"
+    echo "  $0 my-mcp-server"
+    echo "  $0 data-processor"
+    echo ""
+    echo "The project will be created in ~/python/<project_name>/"
+}
+
+# Function to display LLM usage documentation
+llm_usage() {
+    echo "=== LLM Usage Documentation for startmcp ==="
+    echo ""
+    echo "PURPOSE:"
+    echo "  Creates a complete MCP (Model Context Protocol) server project"
+    echo "  using UV for Python dependency management and FastMCP framework"
+    echo ""
+    echo "USAGE:"
+    echo "  $0 <project_name>"
+    echo ""
+    echo "PARAMETERS:"
+    echo "  project_name: Name for the MCP server project"
+    echo ""
+    echo "BEHAVIOR:"
+    echo "  - Creates project directory in ~/python/<project_name>/"
+    echo "  - Initializes UV project with virtual environment"
+    echo "  - Installs MCP server dependencies (mcp, pytest-asyncio, pytest, etc.)"
+    echo "  - Creates main.py with FastMCP server template"
+    echo "  - Creates config.py with dotenv configuration"
+    echo "  - Generates Makefile with common development commands"
+    echo "  - Sets up .env and .env.local files"
+    echo "  - Creates .gitignore with Python/UV-specific exclusions"
+    echo "  - Creates .mcp.json configuration file"
+    echo "  - Creates .claude/commands directory"
+    echo "  - Automatically launches Claude Code in the new project"
+    echo ""
+    echo "GENERATED FILES:"
+    echo "  - main.py: FastMCP server entry point"
+    echo "  - config.py: Environment configuration"
+    echo "  - Makefile: Development commands (lint, format, test, etc.)"
+    echo "  - .env/.env.local: Environment variables"
+    echo "  - .gitignore: Git exclusions"
+    echo "  - .mcp.json: MCP server configuration"
+    echo "  - pyproject.toml: UV project configuration"
+    echo ""
+    echo "MAKEFILE COMMANDS:"
+    echo "  - make lint: Run ruff check"
+    echo "  - make format: Run black formatter"
+    echo "  - make test: Run pytest with auto parallelization"
+    echo "  - make test-fast: Run non-slow tests"
+    echo "  - make test-slow: Run slow tests only"
+    echo "  - make check: Run all quality checks"
+    echo "  - make start: Start the MCP server"
+    echo ""
+    echo "REQUIREMENTS:"
+    echo "  - UV must be installed and available in PATH"
+    echo "  - Python 3.11+ recommended"
+    echo "  - Write permissions in ~/python/ directory"
+    echo ""
+    echo "POST-CREATION:"
+    echo "  - Automatically activates virtual environment"
+    echo "  - Launches Claude Code in the project directory"
+    echo "  - Ready for MCP server development"
+    exit 0
+}
+
+# Check for help flags
+if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+    usage
+    exit 0
+fi
+
+# Check for LLM flag
+if [ "$1" = "--llm" ]; then
+    llm_usage
+fi
+
 if [[ $# -lt 1 ]]; then
-  echo "Usage: $(basename "$0") <project_name>"
-  exit 1
+    echo "Error: Please provide a project name"
+    usage
+    exit 1
 fi
 
 proj="$1"
