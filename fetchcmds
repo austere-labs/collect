@@ -1,0 +1,243 @@
+#!/bin/bash
+
+# GitHub repository details
+REPO="austere-labs/collect"
+REMOTE_DIR=".claude/commands"
+
+# Colors for output
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Default options
+FORCE_OVERWRITE=false
+
+# Function to print colored output
+print_success() {
+    echo -e "${GREEN}✓${NC} $1"
+}
+
+print_error() {
+    echo -e "${RED}✗${NC} $1"
+}
+
+print_info() {
+    echo -e "${YELLOW}→${NC} $1"
+}
+
+print_header() {
+    echo -e "${BLUE}═══════════════════════════════════════════${NC}"
+    echo -e "${BLUE}  GitHub Command Fetcher${NC}"
+    echo -e "${BLUE}═══════════════════════════════════════════${NC}"
+}
+
+# Function to show usage
+show_usage() {
+    echo "Usage: $0 [options]"
+    echo ""
+    echo "Options:"
+    echo "  --force    Overwrite existing files"
+    echo "  --help     Show this help message"
+    echo "  --llm      Show LLM-formatted usage"
+    echo ""
+    echo "This script downloads command templates from:"
+    echo "  https://github.com/$REPO/$REMOTE_DIR"
+    echo ""
+    echo "Files will be saved to:"
+    echo "  $(pwd)/.claude/commands/"
+    exit 0
+}
+
+# Function to show LLM-formatted usage
+show_llm_usage() {
+    echo "# fetch-commands.sh Usage Guide"
+    echo ""
+    echo "This script downloads .claude/commands/ files from the austere-labs/collect GitHub repository to the current directory."
+    echo ""
+    echo "## Usage"
+    echo "\`\`\`bash"
+    echo "./fetch-commands.sh [options]"
+    echo "\`\`\`"
+    echo ""
+    echo "## Options"
+    echo "- \`--force\` - Overwrite existing files in the destination directory"
+    echo "- \`--help\` - Show basic usage information"
+    echo "- \`--llm\` - Show this LLM-formatted usage guide"
+    echo ""
+    echo "## Repository Details"
+    echo "- **Source Repository**: https://github.com/$REPO"
+    echo "- **Remote Directory**: \`$REMOTE_DIR\`"
+    echo "- **Local Destination**: \`$(pwd)/.claude/commands/\`"
+    echo ""
+    echo "## Examples"
+    echo "\`\`\`bash"
+    echo "# Download all command files (skip existing)"
+    echo "./fetch-commands.sh"
+    echo ""
+    echo "# Download and overwrite existing files"
+    echo "./fetch-commands.sh --force"
+    echo ""
+    echo "# Show help information"
+    echo "./fetch-commands.sh --help"
+    echo "\`\`\`"
+    echo ""
+    echo "## Features"
+    echo "- Downloads all .md files from the remote repository"
+    echo "- Creates local .claude/commands/ directory if it doesn't exist"
+    echo "- Shows progress for each file downloaded"
+    echo "- Skips existing files by default (use --force to overwrite)"
+    echo "- Provides detailed summary of operation results"
+    echo "- Uses GitHub CLI (gh) for secure API access"
+    echo ""
+    echo "## Requirements"
+    echo "- GitHub CLI (\`gh\`) must be installed and authenticated"
+    echo "- \`jq\` command-line JSON processor"
+    echo "- \`base64\` command for content decoding"
+    echo ""
+    echo "## Error Handling"
+    echo "The script handles common errors gracefully:"
+    echo "- Missing GitHub CLI installation"
+    echo "- Network connectivity issues"
+    echo "- Repository access problems"
+    echo "- File system permission errors"
+    exit 0
+}
+
+# Parse command line arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --force)
+            FORCE_OVERWRITE=true
+            shift
+            ;;
+        --help)
+            show_usage
+            ;;
+        --llm)
+            show_llm_usage
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo "Use --help for usage information"
+            exit 1
+            ;;
+    esac
+done
+
+print_header
+echo ""
+
+# Check if gh CLI is installed
+if ! command -v gh &> /dev/null; then
+    print_error "GitHub CLI (gh) is not installed"
+    echo "Please install it from: https://cli.github.com/"
+    exit 1
+fi
+
+# Get destination directory
+DEST_DIR="$(pwd)/.claude/commands"
+
+# Create destination directory if it doesn't exist
+if [ ! -d "$DEST_DIR" ]; then
+    print_info "Creating destination directory..."
+    mkdir -p "$DEST_DIR"
+    if [ $? -ne 0 ]; then
+        print_error "Failed to create destination directory"
+        exit 1
+    fi
+    print_success "Created $DEST_DIR"
+fi
+
+echo ""
+print_info "Fetching file list from GitHub..."
+
+# Get list of files from GitHub
+FILES_JSON=$(gh api repos/$REPO/contents/$REMOTE_DIR 2>/dev/null)
+
+if [ $? -ne 0 ]; then
+    print_error "Failed to fetch file list from GitHub"
+    echo "Repository: https://github.com/$REPO"
+    exit 1
+fi
+
+# Extract .md files
+MD_FILES=$(echo "$FILES_JSON" | jq -r '.[] | select(.name | endswith(".md")) | .name')
+
+if [ -z "$MD_FILES" ]; then
+    print_error "No .md files found in $REPO/$REMOTE_DIR"
+    exit 1
+fi
+
+# Count files
+FILE_COUNT=$(echo "$MD_FILES" | wc -l | tr -d ' ')
+print_success "Found $FILE_COUNT command files"
+
+echo ""
+print_info "Downloading files..."
+echo ""
+
+# Download counters
+DOWNLOADED=0
+SKIPPED=0
+FAILED=0
+
+# Download each file
+while IFS= read -r filename; do
+    dest_file="$DEST_DIR/$filename"
+    
+    # Check if file exists and handle accordingly
+    if [ -f "$dest_file" ] && [ "$FORCE_OVERWRITE" = false ]; then
+        echo -n "  $filename (exists, skipping)... "
+        echo -e "${YELLOW}→${NC}"
+        ((SKIPPED++))
+        continue
+    fi
+    
+    if [ -f "$dest_file" ]; then
+        echo -n "  $filename (overwriting)... "
+    else
+        echo -n "  $filename... "
+    fi
+    
+    # Download the file using gh api
+    CONTENT=$(gh api repos/$REPO/contents/$REMOTE_DIR/$filename --jq '.content' 2>/dev/null)
+    
+    if [ $? -eq 0 ] && [ -n "$CONTENT" ]; then
+        # Decode base64 content and save to file
+        echo "$CONTENT" | base64 -d > "$dest_file" 2>/dev/null
+        
+        if [ $? -eq 0 ]; then
+            echo -e "${GREEN}✓${NC}"
+            ((DOWNLOADED++))
+        else
+            echo -e "${RED}✗${NC} (decode error)"
+            ((FAILED++))
+        fi
+    else
+        echo -e "${RED}✗${NC} (download error)"
+        ((FAILED++))
+    fi
+done <<< "$MD_FILES"
+
+# Print summary
+echo ""
+echo "Summary:"
+print_success "$DOWNLOADED files downloaded successfully"
+
+if [ $SKIPPED -gt 0 ]; then
+    print_info "$SKIPPED files skipped (already exist)"
+fi
+
+if [ $FAILED -gt 0 ]; then
+    print_error "$FAILED files failed to download"
+fi
+
+echo ""
+if [ $DOWNLOADED -gt 0 ] || [ $SKIPPED -gt 0 ]; then
+    print_success "Commands available in: $DEST_DIR"
+else
+    print_error "No files were downloaded"
+    exit 1
+fi

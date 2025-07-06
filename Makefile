@@ -1,5 +1,9 @@
 PROJECT_NAME := collect
 
+.PHONY: setup
+setup:
+	./setup
+
 lint:
 	ruff check .
 
