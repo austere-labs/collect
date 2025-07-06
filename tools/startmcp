@@ -1,0 +1,188 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -lt 1 ]]; then
+  echo "Usage: $(basename "$0") <project_name>"
+  exit 1
+fi
+
+proj="$1"
+# replace with your preferred location of python projects
+BASE="$HOME/python"
+
+# 1. ensure python directory exists, then scaffold
+mkdir -p "$BASE"
+cd "$BASE"
+uv init "$proj"
+
+# 2. enter project, create a standard .venv, activate it
+cd "$proj"
+uv venv
+source .venv/bin/activate
+
+# 3. install MCP server dependencies and testing tools
+for pkg in mcp pytest-asyncio pytest pytest-xdist python-dotenv; do
+  uv pip install "$pkg"
+done
+
+rm main.py
+
+# create .claude/commands directory
+mkdir -p .claude/commands
+
+cat > config.py <<EOF
+from dotenv import load_dotenv
+import os
+
+
+class Config:
+    # Load .env first, then .env.local (which will override .env values)
+    load_dotenv()  # Load .env
+    load_dotenv('.env.local', override=True)  # Load .env.local with override
+
+    def __init__(self) -> None:
+        self.port = os.getenv("PORT")
+EOF
+
+cat > main.py <<EOF
+import mcp
+from mcp.server.fastmcp import FastMCP, Context
+
+mcp = FastMCP("$proj")
+
+def main():
+    mcp.run(transport="stdio")
+
+
+if __name__ == "__main__":
+    main()
+EOF
+
+# 4. create a Makefile in the project dir
+echo "-> creating Makefile"
+
+cat > .mcp.json <<EOF
+{
+	"mcpServers": {
+		"collect": {
+			"command": "/Users/benjaminmetz/.local/bin/uv",
+			"args": [
+				"--directory",
+				"/Users/benjaminmetz/python/collect",
+				"run",
+				"collect.py"
+			]
+		}
+	}
+}
+EOF
+
+
+cat > Makefile <<EOF
+PROJECT_NAME := $proj
+
+lint:
+	ruff check .
+
+format:
+	black .
+
+test: 
+	uv run pytest -v -s -n auto
+
+test-fast:
+	uv run pytest -v -n auto -m "not slow"
+
+test-slow:
+	uv run pytest -v -s -m slow
+
+export-pip:
+	uv pip freeze > requirements.txt
+
+check:
+	make lint
+	make format
+	make test
+	make export-pip
+
+start:
+	python main.py
+
+create-kernal:
+	python -m ipykernel install --user --name \$(PROJECT_NAME) --display-name "Python 3.11 (\$(PROJECT_NAME))"
+
+setup:
+	pip install -r requirements.txt
+EOF
+
+cat > .env <<EOF
+PORT=8081
+GCP_PROJECT_ID=YOURGCPPROJECTIDHERE
+EOF
+
+cat > .env.local <<EOF
+# Local environment variables - this file is typically gitignored
+# Override any .env values here for local development
+# PORT=8082
+EOF
+
+cat > .gitignore <<EOF
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+venv/
+env/
+
+# Environment variables
+.env.local
+.env.*.local
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Test coverage
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
+
+# Temporary files
+:w
+*.tmp
+*.temp
+
+# Python version management
+.python-version
+
+# UV lock file (optional - some prefer to track this)
+# uv.lock
+EOF
+
+echo
+echo "✅  UV MCP project '$proj' created in '$BASE/$proj'"
+echo "✅  Makefile generated"
+echo
+echo "→ launching Claude Code…"
+
+# 5. launch claude in the project dir
+claude

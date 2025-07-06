@@ -1,0 +1,94 @@
+#!/bin/bash
+
+# Setup script to copy tools to user bin directory
+# This script should be run from the collect project home directory
+
+# Set default target directory (configurable)
+TARGET_DIR=${1:-~/bin}
+
+# Expand tilde to home directory
+TARGET_DIR="${TARGET_DIR/#\~/$HOME}"
+
+# Get the directory where this script is located (project home)
+PROJECT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+TOOLS_DIR="$PROJECT_DIR/tools"
+
+# Function to display usage
+usage() {
+    echo "Usage: $0 [target_directory]"
+    echo ""
+    echo "Copies all tools from the tools/ directory to the specified target directory"
+    echo "and makes them executable."
+    echo ""
+    echo "Arguments:"
+    echo "  target_directory    Optional. Directory to copy tools to (default: ~/bin)"
+    echo ""
+    echo "Options:"
+    echo "  --llm              Display this usage information"
+    echo ""
+    echo "Examples:"
+    echo "  $0                 # Copies to ~/bin"
+    echo "  $0 ~/.local/bin    # Copies to ~/.local/bin"
+    echo "  $0 --llm           # Shows this help message"
+    exit 0
+}
+
+# Check for --llm flag
+if [ $# -eq 1 ] && [ "$1" = "--llm" ]; then
+    usage
+fi
+
+echo "Setting up tools..."
+echo "Project directory: $PROJECT_DIR"
+echo "Tools directory: $TOOLS_DIR"
+echo "Target directory: $TARGET_DIR"
+
+# Check if tools directory exists
+if [ ! -d "$TOOLS_DIR" ]; then
+    echo "Error: tools directory not found at $TOOLS_DIR"
+    exit 1
+fi
+
+# Create target directory if it doesn't exist
+mkdir -p "$TARGET_DIR"
+
+# Copy all files from @tools directory
+echo ""
+echo "Copying tools..."
+tool_count=0
+for tool in "$TOOLS_DIR"/*; do
+    if [ -f "$tool" ]; then
+        tool_name=$(basename "$tool")
+        echo "  - Copying $tool_name"
+        cp "$tool" "$TARGET_DIR/"
+        ((tool_count++))
+    fi
+done
+
+if [ $tool_count -eq 0 ]; then
+    echo "No tools found in $TOOLS_DIR"
+    exit 0
+fi
+
+# Make all tools in target directory executable
+echo ""
+echo "Making tools executable..."
+for tool in "$TARGET_DIR"/*; do
+    if [ -f "$tool" ]; then
+        tool_name=$(basename "$tool")
+        chmod u+x "$tool"
+        echo "  - Made $tool_name executable"
+    fi
+done
+
+echo ""
+echo "Setup complete! $tool_count tools copied."
+echo "Tools are now available in: $TARGET_DIR"
+
+# Check if target directory is in PATH
+if [[ ":$PATH:" != *":$TARGET_DIR:"* ]]; then
+    echo ""
+    echo "Note: $TARGET_DIR is not in your PATH."
+    echo "To use these tools from anywhere, add this line to your ~/.bashrc or ~/.zshrc:"
+    echo "  export PATH=\"$TARGET_DIR:\$PATH\""
+fi

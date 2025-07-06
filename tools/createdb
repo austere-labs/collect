@@ -1,0 +1,47 @@
+#!/bin/bash
+
+# Create database script
+# Usage: ./create_db.sh [database_name]
+
+# Function to display usage
+usage() {
+    echo "Usage: $0 [database_name]"
+    echo ""
+    echo "Creates a SQLite database in the data/ directory with an initial metadata table."
+    echo ""
+    echo "Arguments:"
+    echo "  database_name    Optional. Name of the database file (default: database.db)"
+    echo ""
+    echo "Options:"
+    echo "  --llm           Display this usage information"
+    echo ""
+    echo "Examples:"
+    echo "  $0                    # Creates data/database.db"
+    echo "  $0 myapp.db           # Creates data/myapp.db"
+    echo "  $0 --llm              # Shows this help message"
+    exit 0
+}
+
+# Check for --llm flag
+if [ $# -eq 1 ] && [ "$1" = "--llm" ]; then
+    usage
+fi
+
+# Set default database name
+DB_NAME=${1:-database.db}
+DB_PATH="data/$DB_NAME"
+
+# Create data directory if it doesn't exist
+mkdir -p data
+
+# Create the SQLite database with an initial table
+sqlite3 "$DB_PATH" <<EOF
+CREATE TABLE IF NOT EXISTS metadata (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    version TEXT DEFAULT '1.0'
+);
+INSERT INTO metadata (version) VALUES ('1.0');
+EOF
+
+echo "Database created at: $DB_PATH"
