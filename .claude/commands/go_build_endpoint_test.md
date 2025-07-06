@@ -1,0 +1,73 @@
+# Create a test for the following endpoint func $ARGUMENTS in the file $ARGUMENTS
+
+## Context
+
+You are a senior software engineer with extensive experience in golang and you are using fasthttp for http requests. You are given a file with a http endpoint and you are asked to create a test for it.
+
+## Tasks:
+
+* Please do not use any external libraries or packages for the actual testing.
+* Use pkg/assert/assert.go for assertions. Do not try to use any other packages for assertions.
+* Use the following function in pkg/assert/assert.go to serve the request and response:
+```go
+assert.Serve(app.BuildRoutes(), req, resp)
+```
+to serve the request and response.
+* Please use the test examples above to create the test.
+* Please verify the status code just like the examples above.
+* Please verify the expected body just like the examples above.
+
+## Test 1
+
+Please use the following test examples to create a test for the http endpoint:
+
+```go
+// go test -v '-run=^TestIndex$'
+func TestIndex(t *testing.T) {
+	url := "http://localhost:80" + HomeURL
+	req := fasthttp.AcquireRequest()
+	defer fasthttp.ReleaseRequest(req)
+
+	req.SetRequestURI(url)
+	req.Header.SetMethod("GET")
+
+	resp := fasthttp.AcquireResponse()
+	defer fasthttp.ReleaseResponse(resp)
+
+	err := assert.Serve(app.BuildRoutes(), req, resp)
+	if err != nil {
+		t.Errorf("error serving request %v", err)
+	}
+
+	body := string(resp.Body())
+
+	assert.Equal(t, "blonk blonk ... Mandelstam is my lawyer ... blonk blonk", body)
+	assert.Equal(t, 200, resp.StatusCode())
+}
+```
+
+## Test 2
+
+```go
+// go test -v '-run=^TestHello$'
+func TestHello(t *testing.T) {
+	url := "http://localhost" + "/api/v1/user/ben"
+	req := fasthttp.AcquireRequest()
+	defer fasthttp.ReleaseRequest(req)
+
+	req.SetRequestURI(url)
+	req.Header.SetMethod("GET")
+	res := fasthttp.AcquireResponse()
+	defer fasthttp.ReleaseResponse(res)
+
+	err := assert.Serve(app.BuildRoutes(), req, res)
+	if err != nil {
+		t.Errorf("error serving request %v", err)
+	}
+	body := string(res.Body())
+
+	assert.Equal(t, "Hello ben!", body)
+	assert.Equal(t, 200, res.StatusCode())
+}
+```
+
