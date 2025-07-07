@@ -67,7 +67,15 @@ class PromptService:
             if version is not None:
                 cursor = conn.execute(
                     """
-                    SELECT id, prompt_uuid, version, content, metadata, created_at, updated_at, is_active
+                    SELECT
+                    id,
+                    prompt_uuid,
+                    version,
+                    content,
+                    metadata,
+                    created_at,
+                    updated_at, is_active
+
                     FROM prompts
                     WHERE prompt_uuid = ? AND version = ?
                     """,
@@ -76,7 +84,16 @@ class PromptService:
             else:
                 cursor = conn.execute(
                     """
-                    SELECT id, prompt_uuid, version, content, metadata, created_at, updated_at, is_active
+                    SELECT
+                    id,
+                    prompt_uuid,
+                    version,
+                    content,
+                    metadata,
+                    created_at,
+                    updated_at,
+                    is_active
+
                     FROM prompts
                     WHERE prompt_uuid = ? AND is_active = 1
                     ORDER BY version DESC
@@ -95,7 +112,16 @@ class PromptService:
         with self.db.get_connection(read_only=True) as conn:
             cursor = conn.execute(
                 """
-                SELECT id, prompt_uuid, version, content, metadata, created_at, updated_at, is_active
+                SELECT
+                id,
+                prompt_uuid,
+                version,
+                content,
+                metadata,
+                created_at,
+                updated_at,
+                is_active
+
                 FROM prompts
                 WHERE is_active = 1
                 ORDER BY created_at DESC
@@ -105,7 +131,9 @@ class PromptService:
 
             return [self._row_to_model(row) for row in rows]
 
-    def deactivate_prompt(self, prompt_uuid: str, version: Optional[int] = None) -> bool:
+    def deactivate_prompt(
+            self, prompt_uuid: str, version: Optional[int] = None) -> bool:
+
         with self.db.get_connection() as conn:
             if version is not None:
                 cursor = conn.execute(
