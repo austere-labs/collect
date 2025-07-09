@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 from pydantic import BaseModel, Field
 
 
@@ -29,3 +29,14 @@ class PromptResponseModel(BaseModel):
     created_at: datetime
     updated_at: datetime
     is_active: bool
+
+
+class FileError(BaseModel):
+    filename: str
+    error_message: str
+    error_type: str
+
+
+class LoadResult(BaseModel):
+    files: Dict[str, str]
+    errors: Optional[List[FileError]] = None  # (filename, error_message)

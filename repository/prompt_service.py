@@ -5,7 +5,8 @@ from pathlib import Path
 from datetime import datetime
 
 from repository.database import SQLite3Database
-from repository.prompt_model import PromptCreateModel, PromptResponseModel
+from repository.prompt_model import (
+    PromptCreateModel, PromptResponseModel, LoadResult, FileError)
 
 
 class PromptService:
@@ -14,11 +15,71 @@ class PromptService:
             db_path = str(Path(__file__).parent.parent / "data" / "collect.db")
         self.db = SQLite3Database(db_path=db_path)
 
+    # This will load all of the prompts from .claude/commands
+    def load_claude_commands_from_disk(self) -> LoadResult:
+        # __file__ is a ref to the this file: repository/prompt_service.py
+        # this should render: collect/.claude/commands
+        prompts_dir = Path(__file__).parent.parent / ".claude" / "commands"
+        files_dict = {}
+        errors = []
+        for file in prompts_dir.iterdir():
+            if file.is_file():
+                try:
+                    content = file.read_text()
+                    name = file.name  # file.name includes the file extension
+                    files_dict[name] = content
+                except Exception as e:
+                    errors.append(
+                        FileError(
+                            filename=str(file),
+                            error_message=str(e),
+                            error_type=type(e).__name__
+                        )
+                    )
+
+        return LoadResult(files=files_dict, errors=errors)
+
+    def persist_load_results(
+            self,
+            load_result: LoadResult,
+            initial_load: bool = False) -> List[str]:
+
+        files = load_result.files
+        persisted_prompt_uuids = []
+        for filename, prompt in files.items():
+            prompt_data = PromptCreateModel(
+                name=filename,
+                content=prompt
+            )
+            # if this is an initial load then we load all prompts in as v1
+            if initial_load is True:
+                uuid = self.add_prompt(prompt_data)
+                persisted_prompt_uuids.append(uuid)
+            else:
+                self.compare_disk_to_db()
+
+        return persisted_prompt_uuids
+
+    def compare_disk_to_db() -> str:
+        return """
+        TODO: compare prompts on disk to prompts in db, if changes on disk
+        increment version in database and update the prompt in the database
+        IF: there are new prompts on disk, then we persist them with version 1
+        using add_prompt
+        """
+
+    def update_prompt_increment_version():
+        return """
+        TODO: take prompt model ->
+        CREATE a new prompt with same UUID and incremental version
+        """
+
     def add_prompt(self, prompt_data: PromptCreateModel) -> str:
         prompt_uuid = str(uuid.uuid4())
 
         metadata = prompt_data.metadata.copy()
         metadata["name"] = prompt_data.name
+        print("TODO: add prompt description, use llm to create")
         metadata_json = json.dumps(metadata)
 
         with self.db.get_connection() as conn:
