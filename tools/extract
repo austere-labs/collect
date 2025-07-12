@@ -5,7 +5,7 @@
 
 set -euo pipefail
 
-RG = "/opt/homebrew/bin/rg"
+RG="/opt/homebrew/bin/rg"
 
 # Color codes for output
 RED='\033[0;31m'

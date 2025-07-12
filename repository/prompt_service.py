@@ -6,7 +6,11 @@ from datetime import datetime
 
 from repository.database import SQLite3Database
 from repository.prompt_model import (
-    PromptCreateModel, PromptResponseModel, LoadResult, FileError)
+    PromptCreateModel,
+    PromptResponseModel,
+    LoadResult,
+    FileError
+)
 
 
 class PromptService:
@@ -52,6 +56,7 @@ class PromptService:
                 content=prompt
             )
             # if this is an initial load then we load all prompts in as v1
+            # v1 is defaulted for a new insert in the prompts table
             if initial_load is True:
                 uuid = self.add_prompt(prompt_data)
                 persisted_prompt_uuids.append(uuid)
@@ -60,7 +65,7 @@ class PromptService:
 
         return persisted_prompt_uuids
 
-    def compare_disk_to_db() -> str:
+    def compare_disk_to_db(self) -> str:
         return """
         TODO: compare prompts on disk to prompts in db, if changes on disk
         increment version in database and update the prompt in the database
@@ -68,7 +73,7 @@ class PromptService:
         using add_prompt
         """
 
-    def update_prompt_increment_version():
+    def update_prompt_increment_version(self):
         return """
         TODO: take prompt model ->
         CREATE a new prompt with same UUID and incremental version
