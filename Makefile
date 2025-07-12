@@ -1,8 +1,8 @@
 PROJECT_NAME := collect
 
-.PHONY: setup
-setup:
-	./setup
+.PHONY: movetools
+movetools:
+	./movetools
 
 lint:
 	ruff check .
