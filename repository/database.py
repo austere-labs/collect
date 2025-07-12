@@ -5,7 +5,7 @@ from typing import Generator
 
 
 class SQLite3Database:
-    def __init__(self, db_path: str = "../data/collect.db"):
+    def __init__(self, db_path: str = "../data/prompts.db"):
         self.db_path = db_path
 
     @contextmanager

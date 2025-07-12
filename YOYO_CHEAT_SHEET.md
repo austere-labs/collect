@@ -72,7 +72,7 @@ yoyo break-lock
 ```ini
 [DEFAULT]
 sources = migrations
-database = sqlite:///data/collect.db
+database = sqlite:///data/prompts.db
 batch_mode = on
 verbosity = 0
 ```

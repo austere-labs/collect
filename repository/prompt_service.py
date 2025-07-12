@@ -16,7 +16,7 @@ from repository.prompt_model import (
 class PromptService:
     def __init__(self, db_path: str = None):
         if db_path is None:
-            db_path = str(Path(__file__).parent.parent / "data" / "collect.db")
+            db_path = str(Path(__file__).parent.parent / "data" / "prompts.db")
         self.db = SQLite3Database(db_path=db_path)
 
     # This will load all of the prompts from .claude/commands

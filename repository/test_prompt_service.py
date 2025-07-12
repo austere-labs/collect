@@ -284,7 +284,7 @@ def test_get_prompt_by_name_excludes_inactive(test_prompt_service):
 def test_database_path_default():
     # Test that default database path is constructed correctly
     service = PromptService()
-    expected_path = str(Path(__file__).parent.parent / "data" / "collect.db")
+    expected_path = str(Path(__file__).parent.parent / "data" / "prompts.db")
     assert service.db.db_path == expected_path
 
 

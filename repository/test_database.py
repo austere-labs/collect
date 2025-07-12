@@ -102,7 +102,7 @@ def test_database_error_handling():
 def test_database_with_actual_db_file():
     """Test connection with the actual database file"""
     # Use the actual database path from the project
-    actual_db_path = Path(__file__).parent.parent / "data" / "collect.db"
+    actual_db_path = Path(__file__).parent.parent / "data" / "prompts.db"
 
     if actual_db_path.exists():
         # Adjust path to be relative to repository directory
