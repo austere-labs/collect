@@ -16,6 +16,15 @@ uv sync
 uv run pytest test_collect.py::test_function_name -v -s
 # Run specific test: pytest test_collect.py::test_function_name -v -s
 ```
+### When running all tests, use the Makefile and run test-fast:
+### here is an example
+```bash
+make test-fast
+```
+### OR use the following bash command:
+```bash
+uv run pytest -v -n auto -m "not slow"
+```
 
 **Code Quality:**
 ```bash
@@ -85,8 +94,7 @@ Environment variables are loaded from `.env` file:
 - Code review model configurations
 
 ### Testing Strategy
-Each model has dedicated test files in `models/test_*.py`. Tests cover API integrations, token counting, and async functionality. Main functionality is tested in `test_collect.py` and `test_llmrunner.py`.
-- **IMPORTANT**:  We only want live direct integration tests. Please only create live direct integration testing. Please do not use mocks. 
+- **IMPORTANT**:  When writing and designing tests, we only want live direct integration tests. Please only create live direct integration testing. Please do not use mocks. 
 
 ## Rules
 - **IMPORTANT**: YOU MUST always use `uv run` to run tests.

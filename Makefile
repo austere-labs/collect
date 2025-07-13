@@ -25,6 +25,6 @@ test-single:
 check: 
 	make lint
 	make format
-	make test
+	make test-fast
 
 

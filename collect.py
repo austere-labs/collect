@@ -15,8 +15,6 @@ from models.gemini_mcp import GeminiMCP
 from fetcher import Fetcher
 import pyperclip
 from reviewer.code_review import CodeReviewer
-from bars import TimeFrameMatcher
-from polygon.polygon import Polygon
 from plans import worktree
 
 mcp = FastMCP("Collect")
@@ -546,51 +544,6 @@ async def count_grok_tokens(text: str) -> int:
 
     xai_mcp = XaiMCP(config, secret_mgr, model="grok-3-fast-latest")
     return xai_mcp.count_tokens(text)
-
-
-@mcp.tool()
-async def use_polygon(url: str) -> dict:
-    """
-    Fetch financial market data from Polygon.io API using a URL.
-
-    Use this tool when you need to:
-    - Retrieve stock/crypto price data and OHLCV bars
-    - Get historical market data for analysis
-    - Access financial time series data
-    - Fetch trading volume and price information
-
-    Args:
-        url: Polygon.io URL containing symbol and timeframe information
-
-    Returns:
-        Dictionary containing OHLCV bars with timestamp, open, high, low, close, volume
-
-    Example:
-        use_polygon("https://polygon.io/quote/AAPL/range/1/day")
-    """
-    config = Config()
-    secret_mgr = SecretManager(config.project_id)
-    api_key = secret_mgr.get_secret(config.polygon_api_key_path)
-
-    pg = Polygon(config.polygon_base_url, api_key)
-
-    # Parse URL first to validate format before making API call
-    parsed_url = pg.parse_polygon_url(url)
-
-    # Validate timeframe before making API call
-    matcher = TimeFrameMatcher()
-    timeframe = matcher.match(parsed_url["span"])
-
-    # Make API call
-    json_response = await pg.ohlvc_url(url)
-
-    # Build bars
-    symbol = parsed_url["symbol"]
-    bars = pg.build_bars(json_response, symbol, timeframe)
-
-    # Convert to JSON string for serialization
-    bars_dict = [bar.model_dump() for bar in bars]
-    return bars_dict
 
 
 @mcp.tool()
