@@ -8,16 +8,11 @@ class SQLite3Database:
     def __init__(self, db_path: str = "../data/prompts.db"):
         self.db_path = db_path
 
+    # Decorator that converts this generator function into a context manager
     @contextmanager
-    def get_connection(
-            self,
-            read_only: bool = False
-    ) -> Generator[sqlite3.Connection, None, None]:
-        """Context manager for database connections
-
-        Args:
-            read_only: If True, creates a read-only connection
-        """
+    def get_connection(self) -> Generator[sqlite3.Connection, None, None]:
+        """Context manager for database connections"""
+        # Setup phase: runs when entering 'with' block
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row  # enables column access by name
         # Connection optimizations
@@ -29,16 +24,13 @@ class SQLite3Database:
         conn.execute("PRAGMA temp_store = MEMORY")
         conn.execute("PRAGMA mmap_size = 268435456")  # 256MB memory-mapped I/O
 
-        if read_only:
-            conn.execute("PRAGMA query_only = ON")  # For read-only connections
-
         try:
-            yield conn
-            if not read_only:
-                conn.commit()
+            yield conn  # Pauses here, returns conn to 'with' statement
+            # Code inside 'with' block runs here
+            conn.commit()
         except Exception:
-            if not read_only:
-                conn.rollback()
+            conn.rollback()
             raise
         finally:
+            # Cleanup phase: always runs when exiting 'with' block
             conn.close()
