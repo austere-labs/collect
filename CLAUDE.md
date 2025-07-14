@@ -46,11 +46,22 @@ uv run collect.py
 # Sync plans from filesystem to database
 uv run -m repository.plan_service
 
-# Test plan service functionality
+# Test plan service functionality (uses separate test database)
 uv run pytest repository/test_plan_service.py -v -s
 
 # Test plan database operations
 uv run pytest repository/test_plan_service.py::test_sync_plans -v -s
+
+# Set up test database manually (optional - done automatically by tests)
+uv run yoyo apply --config yoyo-test-plans.ini --batch
+
+# Reset test database to clean state
+rm data/test_plans.db && uv run yoyo apply --config yoyo-test-plans.ini --batch
+
+# Test database management utilities
+uv run python repository/test_database_setup.py setup
+uv run python repository/test_database_setup.py reset
+uv run python repository/test_database_setup.py cleanup
 ```
 
 ## Planning System

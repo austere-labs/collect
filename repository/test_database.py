@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 
 from repository.database import SQLite3Database
+from repository.test_database_setup import setup_test_prompts_database
 
 
 @pytest.fixture
@@ -100,17 +101,14 @@ def test_database_error_handling():
 
 
 def test_database_with_actual_db_file():
-    """Test connection with the actual database file"""
-    # Use the actual database path from the project
-    actual_db_path = Path(__file__).parent.parent / "data" / "prompts.db"
+    """Test connection with the test database file"""
+    # Use the test database instead of actual database
+    test_db_path = setup_test_prompts_database()
+    db = SQLite3Database(db_path=test_db_path)
 
-    if actual_db_path.exists():
-        # Adjust path to be relative to repository directory
-        db = SQLite3Database(db_path=str(actual_db_path))
-
-        with db.get_connection(read_only=True) as conn:
-            assert conn is not None
-            # Test basic query
-            cursor = conn.execute("SELECT 1")
-            result = cursor.fetchone()
-            assert result[0] == 1
+    with db.get_connection(read_only=True) as conn:
+        assert conn is not None
+        # Test basic query
+        cursor = conn.execute("SELECT 1")
+        result = cursor.fetchone()
+        assert result[0] == 1

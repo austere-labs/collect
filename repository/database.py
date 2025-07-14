@@ -13,16 +13,18 @@ class SQLite3Database:
 
     # Decorator that converts this generator function into a context manager
     @contextmanager
-    def get_connection(self) -> Generator[sqlite3.Connection, None, None]:
+    def get_connection(self, read_only: bool = False) -> Generator[sqlite3.Connection, None, None]:
         """Context manager for database connections"""
         # Setup phase: runs when entering 'with' block
         # Enable PARSE_DECLTYPES to use our custom datetime converters
         conn = sqlite3.connect(self.db_path, detect_types=sqlite3.PARSE_DECLTYPES)
         conn.row_factory = sqlite3.Row  # enables column access by name
+        
         # Connection optimizations
         conn.execute("PRAGMA foreign_keys = ON")  # enables foreign key support
-        conn.execute("PRAGMA journal_mode = WAL")  # enables better concurrency
-        conn.execute("PRAGMA synchronous = NORMAL")  # Faster writes
+        if not read_only:
+            conn.execute("PRAGMA journal_mode = WAL")  # enables better concurrency
+            conn.execute("PRAGMA synchronous = NORMAL")  # Faster writes
         conn.execute("PRAGMA cache_size = -64000")  # 64MB cache
         # Use memory for temp tables
         conn.execute("PRAGMA temp_store = MEMORY")
@@ -31,7 +33,8 @@ class SQLite3Database:
         try:
             yield conn  # Pauses here, returns conn to 'with' statement
             # Code inside 'with' block runs here
-            conn.commit()
+            if not read_only:
+                conn.commit()
         except Exception:
             conn.rollback()
             raise

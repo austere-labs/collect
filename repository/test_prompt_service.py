@@ -5,37 +5,22 @@ from pathlib import Path
 
 from repository.prompt_service import PromptService
 from repository.prompt_model import PromptCreateModel
+from repository.test_database_setup import setup_test_prompts_database
+
+
+@pytest.fixture(scope="function")
+def test_prompts_database():
+    """Set up test prompts database for each test function."""
+    db_path = setup_test_prompts_database()
+    yield db_path
+    # Note: We don't clean up the test database here to allow inspection after tests
 
 
 @pytest.fixture
-def test_prompt_service():
-    test_db_path = "test_prompt_service.db"
-
-    # Create service with test database
-    service = PromptService(db_path=test_db_path)
-
-    # Create the prompts table for testing
-    with service.db.get_connection() as conn:
-        conn.execute("""
-            CREATE TABLE IF NOT EXISTS prompts (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                prompt_uuid TEXT NOT NULL,
-                version INTEGER NOT NULL DEFAULT 1,
-                content TEXT NOT NULL,
-                metadata JSON,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                is_active BOOLEAN DEFAULT TRUE,
-                UNIQUE(prompt_uuid, version)
-            )
-        """)
-
+def test_prompt_service(test_prompts_database):
+    """Create a PromptService instance using the test database."""
+    service = PromptService(db_path=test_prompts_database)
     yield service
-
-    # everything after yield runs when the tests complete
-    # this will run after all tests complete, regardless of pass or failure
-    if os.path.exists(test_db_path):
-        os.remove(test_db_path)
 
 
 def test_initial_load(test_prompt_service):

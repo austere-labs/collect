@@ -229,9 +229,7 @@ class PromptService:
             version=row["version"],
             content=row["content"],
             metadata=json.loads(row["metadata"]) if row["metadata"] else {},
-            created_at=datetime.fromisoformat(
-                row["created_at"]) if row["created_at"] else datetime.now(),
-            updated_at=datetime.fromisoformat(
-                row["updated_at"]) if row["updated_at"] else datetime.now(),
+            created_at=row["created_at"] if row["created_at"] else datetime.now(),
+            updated_at=row["updated_at"] if row["updated_at"] else datetime.now(),
             is_active=bool(row["is_active"])
         )
