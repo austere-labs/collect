@@ -1,6 +1,8 @@
 import pytest
+from datetime import datetime
 from repository.database import SQLite3Database
 from repository.plan_service import PlanService
+from repository.plan_models import Plan, PlanData, PlanStatus
 
 
 @pytest.fixture
@@ -145,3 +147,275 @@ def test_database_connection(test_plan_service):
 
     # Rollback to keep test database clean
     conn.rollback()
+
+
+def test_check_exists(test_plan_service):
+    """Test the check_exists function"""
+    # Test non-existent plan
+    assert test_plan_service.check_exists("non_existent_plan") is False
+    
+    # Create a test plan
+    current_time = datetime.now()
+    test_plan = Plan(
+        id="test_check_exists_plan",
+        name="Test Check Exists Plan",
+        data=PlanData(
+            status=PlanStatus.DRAFT,
+            markdown_content="# Test Plan\n\nThis is a test plan for check_exists.",
+            description="A test plan for check_exists function",
+            tags=["test", "draft"]
+        ),
+        version=1,
+        content_hash="check_exists_hash",
+        created_at=current_time,
+        updated_at=current_time
+    )
+    
+    # Before creating the plan, it should not exist
+    assert test_plan_service.check_exists(test_plan.id) is False
+    
+    # Create the plan
+    result = test_plan_service.create_new_plan(test_plan, "Test creation for check_exists")
+    assert result.success is True
+    
+    # After creating the plan, it should exist
+    assert test_plan_service.check_exists(test_plan.id) is True
+    
+    # Test with different casing (should not exist)
+    assert test_plan_service.check_exists("TEST_CHECK_EXISTS_PLAN") is False
+    
+    # Test with similar but different ID (should not exist)
+    assert test_plan_service.check_exists("test_check_exists_plan_2") is False
+    
+    # Cleanup
+    conn = test_plan_service.conn
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM plans WHERE id = ?", (test_plan.id,))
+    cursor.execute("DELETE FROM plan_history WHERE id = ?", (test_plan.id,))
+    conn.commit()
+
+
+def test_create_new_plan_success(test_plan_service):
+    """Test successful creation of a new plan"""
+    # Create a test plan
+    current_time = datetime.now()
+    test_plan = Plan(
+        id="test_create_new_plan",
+        name="Test Create New Plan",
+        data=PlanData(
+            status=PlanStatus.DRAFT,
+            markdown_content="# Test Plan\n\nThis is a test plan.",
+            description="A test plan for create_new_plan function",
+            tags=["test", "draft"],
+            metadata={"test": True}
+        ),
+        version=1,
+        content_hash="abc123test",
+        created_at=current_time,
+        updated_at=current_time
+    )
+
+    # Create the plan
+    result = test_plan_service.create_new_plan(test_plan, "Test creation")
+
+    # Verify success
+    assert result.success is True
+    assert result.plan_id == "test_create_new_plan"
+    assert result.version == 1
+    assert result.error_message is None
+    assert result.error_type is None
+
+    # Verify plan exists in plans table
+    conn = test_plan_service.conn
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM plans WHERE id = ?", (test_plan.id,))
+    plan_row = cursor.fetchone()
+
+    assert plan_row is not None
+    assert plan_row['id'] == test_plan.id
+    assert plan_row['name'] == test_plan.name
+    assert plan_row['version'] == 1
+    assert plan_row['content_hash'] == test_plan.content_hash
+
+    # Verify history entry exists
+    cursor.execute("SELECT * FROM plan_history WHERE id = ? AND version = ?",
+                   (test_plan.id, 1))
+    history_row = cursor.fetchone()
+
+    assert history_row is not None
+    assert history_row['id'] == test_plan.id
+    assert history_row['version'] == 1
+    assert history_row['content_hash'] == test_plan.content_hash
+    assert history_row['change_summary'] == "Test creation"
+    assert history_row['created_at'] == current_time
+    assert history_row['archived_at'] is not None
+
+    # Cleanup
+    cursor.execute("DELETE FROM plans WHERE id = ?", (test_plan.id,))
+    cursor.execute("DELETE FROM plan_history WHERE id = ?", (test_plan.id,))
+    conn.commit()
+
+
+def test_create_new_plan_duplicate_id(test_plan_service):
+    """Test creating a plan with duplicate ID"""
+    # Create a test plan
+    current_time = datetime.now()
+    test_plan = Plan(
+        id="test_duplicate_plan",
+        name="Test Duplicate Plan",
+        data=PlanData(
+            status=PlanStatus.DRAFT,
+            markdown_content="# Test Plan\n\nThis is a test plan.",
+            description="A test plan for duplicate testing",
+            tags=["test", "draft"]
+        ),
+        version=1,
+        content_hash="abc123duplicate",
+        created_at=current_time,
+        updated_at=current_time
+    )
+
+    # Create the plan first time (should succeed)
+    result1 = test_plan_service.create_new_plan(test_plan, "First creation")
+    assert result1.success is True
+
+    # Try to create the same plan again (should fail)
+    result2 = test_plan_service.create_new_plan(test_plan, "Second creation")
+
+    # Verify failure
+    assert result2.success is False
+    assert result2.plan_id == "test_duplicate_plan"
+    assert result2.version == 1
+    assert "already exists" in result2.error_message
+    assert result2.error_type == "DuplicateError"
+
+    # Cleanup
+    conn = test_plan_service.conn
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM plans WHERE id = ?", (test_plan.id,))
+    cursor.execute("DELETE FROM plan_history WHERE id = ?", (test_plan.id,))
+    conn.commit()
+
+
+def test_create_new_plan_transaction_rollback(test_plan_service):
+    """Test that database errors trigger transaction rollback"""
+    # Create a test plan with invalid content hash to trigger constraint violation
+    current_time = datetime.now()
+    test_plan = Plan(
+        id="test_rollback_plan",
+        name="Test Rollback Plan",
+        data=PlanData(
+            status=PlanStatus.DRAFT,
+            markdown_content="# Test Plan\n\nThis is a test plan.",
+            description="A test plan for rollback testing",
+            tags=["test", "draft"]
+        ),
+        version=1,
+        content_hash="abc123rollback",
+        created_at=current_time,
+        updated_at=current_time
+    )
+
+    # First, create the plan normally
+    result1 = test_plan_service.create_new_plan(test_plan, "First creation")
+    assert result1.success is True
+
+    # Now try to create a plan with the same ID but different content
+    # This should trigger the duplicate ID error and rollback
+    test_plan.content_hash = "different_hash"
+    test_plan.data.description = "Modified description"
+
+    result2 = test_plan_service.create_new_plan(test_plan, "Second creation")
+
+    # Verify failure due to duplicate ID
+    assert result2.success is False
+    assert result2.plan_id == "test_rollback_plan"
+    assert "already exists" in result2.error_message
+    assert result2.error_type == "DuplicateError"
+
+    # Verify the original plan is still there unchanged
+    conn = test_plan_service.conn
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM plans WHERE id = ?", (test_plan.id,))
+    plan_row = cursor.fetchone()
+    assert plan_row is not None
+    assert plan_row['content_hash'] == "abc123rollback"  # Original hash
+
+    # Verify only one history entry exists
+    cursor.execute(
+        "SELECT COUNT(*) FROM plan_history WHERE id = ?", (test_plan.id,))
+    count = cursor.fetchone()[0]
+    assert count == 1
+
+    # Cleanup
+    cursor.execute("DELETE FROM plans WHERE id = ?", (test_plan.id,))
+    cursor.execute("DELETE FROM plan_history WHERE id = ?", (test_plan.id,))
+    conn.commit()
+
+
+def test_create_new_plan_version_history_details(test_plan_service):
+    """Test that version history is created with correct details"""
+    # Create a test plan
+    current_time = datetime.now()
+    test_plan = Plan(
+        id="test_history_details_unique",
+        name="Test History Details",
+        data=PlanData(
+            status=PlanStatus.APPROVED,
+            markdown_content="# History Test\n\nTesting version history details.",
+            description="Testing version history creation",
+            tags=["test", "approved", "history"],
+            metadata={"version": 1, "test_data": "history_test"}
+        ),
+        version=1,
+        content_hash="history123test",
+        created_at=current_time,
+        updated_at=current_time
+    )
+
+    custom_summary = "Created via automated test with custom summary"
+
+    # Create the plan
+    result = test_plan_service.create_new_plan(test_plan, custom_summary)
+    assert result.success is True
+
+    # Verify detailed history entry
+    conn = test_plan_service.conn
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT id, version, data, content_hash, created_at, archived_at, change_summary
+        FROM plan_history WHERE id = ? AND version = ?
+    """, (test_plan.id, 1))
+    history_row = cursor.fetchone()
+
+    assert history_row is not None
+    assert history_row['id'] == test_plan.id
+    assert history_row['version'] == 1
+    assert history_row['content_hash'] == test_plan.content_hash
+    assert history_row['change_summary'] == custom_summary
+    assert history_row['created_at'] == current_time
+
+    # Verify archived_at is after created_at (should be current time)
+    archived_at = history_row['archived_at']
+    assert archived_at >= current_time
+
+    # Verify JSONB data is stored correctly
+    # SQLite JSONB returns binary data, so we need to extract as text
+    cursor.execute("""
+        SELECT json_extract(data, '$.status') as status,
+               json_extract(data, '$.description') as description,
+               json_extract(data, '$.tags') as tags,
+               json_extract(data, '$.metadata.test_data') as test_data
+        FROM plan_history WHERE id = ? AND version = ?
+    """, (test_plan.id, 1))
+    json_data = cursor.fetchone()
+
+    assert json_data['status'] == 'approved'
+    assert json_data['description'] == 'Testing version history creation'
+    assert 'history' in json_data['tags']
+    assert json_data['test_data'] == 'history_test'
+
+    # Cleanup
+    cursor.execute("DELETE FROM plans WHERE id = ?", (test_plan.id,))
+    cursor.execute("DELETE FROM plan_history WHERE id = ?", (test_plan.id,))
+    conn.commit()

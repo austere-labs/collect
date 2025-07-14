@@ -3,10 +3,11 @@ import hashlib
 from datetime import datetime
 from pathlib import Path
 from typing import List
-from .plan_models import PlanStatus, Plan, PlanData, PlanLoadResult, LoadError
+from .plan_models import (
+    PlanStatus, Plan, PlanData, PlanLoadResult, LoadError, PlanCreateResult)
 
 # Import datetime adapters to ensure they're registered
-from . import datetime_adapters
+from . import datetime_adapters  # noqa: F401
 
 
 class PlanService:
@@ -60,6 +61,108 @@ class PlanService:
             print("✅ All required plan directories exist")
 
         return True
+
+    def check_exists(self, plan_id: str) -> bool:
+        """Check if a plan with the given ID already exists
+
+        Args:
+            plan_id: The plan ID to check
+
+        Returns:
+            bool: True if plan exists, False otherwise
+        """
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT id FROM plans WHERE id = ?", (plan_id,))
+        return cursor.fetchone() is not None
+
+    def create_new_plan(
+            self,
+            plan: Plan,
+            change_summary: str = "Initial plan creation") -> PlanCreateResult:
+        """Create a new plan and initialize version history
+
+        Args:
+            plan: Plan object to create
+            change_summary: Description of this change
+            (default: "Initial plan creation")
+
+        Returns:
+            PlanCreateResult: Success/failure with details
+        """
+        cursor = self.conn.cursor()
+
+        try:
+            # Check if plan ID already exists
+            if self.check_exists(plan.id):
+                return PlanCreateResult(
+                    success=False,
+                    plan_id=plan.id,
+                    version=plan.version,
+                    error_message=f"Plan with ID '{plan.id}' already exists",
+                    error_type="DuplicateError"
+                )
+
+            # Serialize PlanData to JSON for JSONB storage
+            plan_data_json = plan.data.model_dump_json()
+
+            # Insert new plan into plans table
+            cursor.execute("""
+                INSERT INTO plans (
+                id, name, data, version, content_hash, created_at, updated_at
+                )
+                VALUES (?, ?, jsonb(?), ?, ?, ?, ?)
+            """, (
+                plan.id,
+                plan.name,
+                plan_data_json,
+                plan.version,
+                plan.content_hash,
+                plan.created_at,
+                plan.updated_at
+            ))
+
+            # Insert initial version into plan_history table
+            cursor.execute("""
+                INSERT INTO plan_history (
+                    id,
+                    version,
+                    data,
+                    content_hash,
+                    created_at,
+                    archived_at,
+                    change_summary
+                )
+                VALUES (?, ?, jsonb(?), ?, ?, ?, ?)
+            """, (
+                plan.id,
+                plan.version,
+                plan_data_json,
+                plan.content_hash,
+                plan.created_at,
+                datetime.now(),  # archived_at is current time for new plans
+                change_summary
+            ))
+
+            # Commit the transaction
+            self.conn.commit()
+
+            return PlanCreateResult(
+                success=True,
+                plan_id=plan.id,
+                version=plan.version
+            )
+
+        except Exception as e:
+            # Rollback transaction on any error
+            self.conn.rollback()
+
+            return PlanCreateResult(
+                success=False,
+                plan_id=plan.id,
+                version=plan.version,
+                error_message=str(e),
+                error_type=type(e).__name__
+            )
 
     def files_to_plans(self, plans_data: dict) -> List[Plan]:
         """Convert raw plans data to List[Plan] objects
@@ -159,8 +262,7 @@ class PlanService:
                     continue
 
                 # Check if plan exists with different content (update scenario)
-                cursor.execute("SELECT id FROM plans WHERE id = ?", (plan.id,))
-                needs_update = cursor.fetchone() is not None
+                needs_update = self.check_exists(plan.id)
 
                 # Serialize PlanData to JSON for JSONB storage
                 plan_data_json = plan.data.model_dump_json()

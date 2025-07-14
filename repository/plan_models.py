@@ -44,6 +44,15 @@ class LoadError(BaseModel):
     error_type: str
 
 
+class PlanCreateResult(BaseModel):
+    """Result of creating a new plan"""
+    success: bool
+    plan_id: str
+    version: int
+    error_message: Optional[str] = None
+    error_type: Optional[str] = None
+
+
 class PlanLoadResult(BaseModel):
     """Result of loading plans into database"""
     loaded_count: int
