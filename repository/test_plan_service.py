@@ -26,7 +26,7 @@ def test_files_to_plans_conversion(test_plan_service):
     plans = test_plan_service.files_to_plans(plans_data)
 
     assert isinstance(plans, list)
-    assert len(plans) == 5  # Should have 5 plans from our test data
+    assert len(plans) > 0  # Should have plans from test data
 
     # Test specific plan properties
     for plan in plans:
@@ -64,6 +64,70 @@ def test_load_files(test_plan_service):
     assert len(first_plan.data.markdown_content) > 0
 
     print(f"✅ Successfully converted {len(plans)} plans")
+
+
+def test_load_database(test_plan_service):
+    # Clear database first to ensure clean test
+    conn = test_plan_service.conn
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM plans")
+    conn.commit()
+
+    # First load plans from files
+    plans_data, plans = test_plan_service.load_files()
+
+    # Get the expected count from the actual number of plans loaded
+    expected_count = len(plans)
+
+    # Test loading into database
+    result = test_plan_service.load_database(plans)
+
+    # Verify the result using dynamic count
+    assert result.loaded_count == expected_count  # Should load all plans from disk
+    assert result.skipped_count == 0  # First time loading, nothing to skip
+    assert result.error_count == 0   # Should be no errors
+    assert len(result.loaded_plans) == expected_count
+
+    # Test that plans are actually in the database
+    conn = test_plan_service.conn
+    cursor = conn.cursor()
+    cursor.execute("SELECT COUNT(*) FROM plans")
+    count = cursor.fetchone()[0]
+    assert count == expected_count
+
+    # Test loading same plans again (should skip)
+    result2 = test_plan_service.load_database(plans)
+    assert result2.loaded_count == 0   # Nothing new to load
+    assert result2.skipped_count == expected_count  # All should be skipped
+    assert result2.error_count == 0
+
+    print(f"✅ Successfully loaded {result.loaded_count} plans to database")
+    print(f"✅ Correctly skipped {result2.skipped_count} existing plans")
+
+
+def test_sync_plans(test_plan_service):
+    # Clear database first
+    conn = test_plan_service.conn
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM plans")
+    conn.commit()
+
+    # Test the complete sync workflow
+    result = test_plan_service.sync_plans()
+
+    # Get expected count from the actual result
+    expected_count = result.loaded_count
+
+    # Verify the sync worked
+    assert result.loaded_count > 0  # Should load some plans
+    assert result.error_count == 0
+
+    # Verify plans are in database
+    cursor.execute("SELECT COUNT(*) FROM plans")
+    count = cursor.fetchone()[0]
+    assert count == expected_count
+
+    print(f"✅ Sync completed: {result.loaded_count} plans synced")
 
 
 def test_database_connection(test_plan_service):

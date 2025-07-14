@@ -3,7 +3,7 @@ import hashlib
 from datetime import datetime
 from pathlib import Path
 from typing import List
-from .plan_models import PlanStatus, Plan, PlanData
+from .plan_models import PlanStatus, Plan, PlanData, PlanLoadResult, LoadError
 
 
 class PlanService:
@@ -125,6 +125,104 @@ class PlanService:
 
         return plans
 
+    def load_database(self, plans: List[Plan]) -> PlanLoadResult:
+        """Load plans into the database
+
+        Args:
+            plans: List of Plan objects to load into database
+
+        Returns:
+            PlanLoadResult: Summary of the loading operation
+        """
+        loaded_plans = []
+        skipped_plans = []
+        errors = []
+
+        cursor = self.conn.cursor()
+
+        for plan in plans:
+            try:
+                # Check if plan already exists (by ID and content hash)
+                cursor.execute("""
+                    SELECT id, content_hash FROM plans 
+                    WHERE id = ? AND content_hash = ?
+                """, (plan.id, plan.content_hash))
+
+                existing = cursor.fetchone()
+
+                if existing:
+                    # Plan already exists with same content, skip
+                    skipped_plans.append(plan.id)
+                    continue
+
+                # Check if plan exists with different content (update scenario)
+                cursor.execute("SELECT id FROM plans WHERE id = ?", (plan.id,))
+                needs_update = cursor.fetchone() is not None
+
+                # Serialize PlanData to JSON for JSONB storage
+                plan_data_json = plan.data.model_dump_json()
+
+                if needs_update:
+                    # Update existing plan
+                    cursor.execute("""
+                        UPDATE plans 
+                        SET name = ?, data = jsonb(?), version = version + 1, 
+                            content_hash = ?, updated_at = ?
+                        WHERE id = ?
+                    """, (
+                        plan.name,
+                        plan_data_json,
+                        plan.content_hash,
+                        plan.updated_at,
+                        plan.id
+                    ))
+                else:
+                    # Insert new plan
+                    cursor.execute("""
+                        INSERT INTO plans (id, name, data, version, content_hash, created_at, updated_at)
+                        VALUES (?, ?, jsonb(?), ?, ?, ?, ?)
+                    """, (
+                        plan.id,
+                        plan.name,
+                        plan_data_json,
+                        plan.version,
+                        plan.content_hash,
+                        plan.created_at,
+                        plan.updated_at
+                    ))
+
+                loaded_plans.append(plan.id)
+
+            except Exception as e:
+                error = LoadError(
+                    filename=plan.id,
+                    error_message=str(e),
+                    error_type=type(e).__name__
+                )
+                errors.append(error)
+
+        # Commit all changes
+        try:
+            self.conn.commit()
+        except Exception as e:
+            self.conn.rollback()
+            # Add a general commit error
+            error = LoadError(
+                filename="database_commit",
+                error_message=f"Failed to commit changes: {str(e)}",
+                error_type=type(e).__name__
+            )
+            errors.append(error)
+
+        return PlanLoadResult(
+            loaded_count=len(loaded_plans),
+            skipped_count=len(skipped_plans),
+            error_count=len(errors),
+            loaded_plans=loaded_plans,
+            skipped_plans=skipped_plans,
+            errors=errors if errors else None
+        )
+
     def load_files(self):
         """Read and display all plans from _docs/plans directory structure"""
 
@@ -190,6 +288,37 @@ class PlanService:
 
         return plans_data, plans
 
+    def sync_plans(self) -> PlanLoadResult:
+        """Load plans from files and sync them to database
+
+        Returns:
+            PlanLoadResult: Summary of the database loading operation
+        """
+        print("🔄 Syncing plans from files to database...")
+
+        # Load files and convert to Plan objects
+        plans_data, plans = self.load_files()
+
+        # Load plans into database
+        result = self.load_database(plans)
+
+        # Print summary
+        print("=" * 50)
+        print("📊 SYNC SUMMARY:")
+        print(f"   ✅ Loaded: {result.loaded_count} plans")
+        print(f"   ⏭️  Skipped: {
+              result.skipped_count} plans (already up-to-date)")
+        print(f"   ❌ Errors: {result.error_count} plans")
+
+        if result.errors:
+            print("\n❌ ERRORS:")
+            for error in result.errors:
+                print(f"   - {error.filename}: {error.error_message}")
+
+        print("=" * 50)
+
+        return result
+
     def pretty_print(self, plans_data, total_files):
         """Pretty print the plans data to console"""
 
@@ -225,4 +354,4 @@ class PlanService:
 
         print("=" * 50)
         print(f"Total plans found: {total_files}")
-        print("TODO: build PlanLoadResult and save to database")
+        print("💡 Use sync_plans() to load these plans into the database")

@@ -38,12 +38,18 @@ class PlanCreate(BaseModel):
     version: Optional[int] = 1
 
 
-class FileError(BaseModel):
+class LoadError(BaseModel):
     filename: str
     error_message: str
     error_type: str
 
 
 class PlanLoadResult(BaseModel):
-    files: dict[str, str]
-    errors: Optional[List[FileError]] = None  # (filename, error_message)
+    """Result of loading plans into database"""
+    loaded_count: int
+    skipped_count: int
+    error_count: int
+    loaded_plans: List[str] = Field(default_factory=list)  # List of plan IDs
+    # List of plan IDs that already exist
+    skipped_plans: List[str] = Field(default_factory=list)
+    errors: Optional[List[LoadError]] = None
