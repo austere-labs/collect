@@ -3,6 +3,9 @@ import sqlite3
 from contextlib import contextmanager
 from typing import Generator
 
+# Import and register custom datetime adapters for Python 3.12+ compatibility
+from . import datetime_adapters
+
 
 class SQLite3Database:
     def __init__(self, db_path: str = "../data/prompts.db"):
@@ -13,7 +16,8 @@ class SQLite3Database:
     def get_connection(self) -> Generator[sqlite3.Connection, None, None]:
         """Context manager for database connections"""
         # Setup phase: runs when entering 'with' block
-        conn = sqlite3.connect(self.db_path)
+        # Enable PARSE_DECLTYPES to use our custom datetime converters
+        conn = sqlite3.connect(self.db_path, detect_types=sqlite3.PARSE_DECLTYPES)
         conn.row_factory = sqlite3.Row  # enables column access by name
         # Connection optimizations
         conn.execute("PRAGMA foreign_keys = ON")  # enables foreign key support

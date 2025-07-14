@@ -5,6 +5,9 @@ from pathlib import Path
 from typing import List
 from .plan_models import PlanStatus, Plan, PlanData, PlanLoadResult, LoadError
 
+# Import datetime adapters to ensure they're registered
+from . import datetime_adapters
+
 
 class PlanService:
     def __init__(self, conn: sqlite3.Connection):
@@ -144,7 +147,7 @@ class PlanService:
             try:
                 # Check if plan already exists (by ID and content hash)
                 cursor.execute("""
-                    SELECT id, content_hash FROM plans 
+                    SELECT id, content_hash FROM plans
                     WHERE id = ? AND content_hash = ?
                 """, (plan.id, plan.content_hash))
 
@@ -165,8 +168,8 @@ class PlanService:
                 if needs_update:
                     # Update existing plan
                     cursor.execute("""
-                        UPDATE plans 
-                        SET name = ?, data = jsonb(?), version = version + 1, 
+                        UPDATE plans
+                        SET name = ?, data = jsonb(?), version = version + 1,
                             content_hash = ?, updated_at = ?
                         WHERE id = ?
                     """, (
@@ -178,18 +181,26 @@ class PlanService:
                     ))
                 else:
                     # Insert new plan
-                    cursor.execute("""
-                        INSERT INTO plans (id, name, data, version, content_hash, created_at, updated_at)
-                        VALUES (?, ?, jsonb(?), ?, ?, ?, ?)
-                    """, (
-                        plan.id,
-                        plan.name,
-                        plan_data_json,
-                        plan.version,
-                        plan.content_hash,
-                        plan.created_at,
-                        plan.updated_at
-                    ))
+                    cursor.execute(
+                        """
+                            INSERT INTO plans (
+                            id,
+                            name,
+                            data,
+                            version,
+                            content_hash,
+                            created_at,
+                            updated_at)
+                            VALUES (?, ?, jsonb(?), ?, ?, ?, ?)
+                        """, (
+                            plan.id,
+                            plan.name,
+                            plan_data_json,
+                            plan.version,
+                            plan.content_hash,
+                            plan.created_at,
+                            plan.updated_at
+                        ))
 
                 loaded_plans.append(plan.id)
 
