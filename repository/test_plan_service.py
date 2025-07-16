@@ -128,7 +128,8 @@ def test_sync_plans(test_plan_service):
     count = cursor.fetchone()[0]
     assert count >= expected_total  # Should have at least the synced plans
 
-    print(f"✅ Sync completed: {result.loaded_count} plans loaded, {result.skipped_count} plans skipped")
+    print(f"✅ Sync completed: {result.loaded_count} plans loaded, {
+          result.skipped_count} plans skipped")
 
 
 def test_database_connection(test_plan_service):
@@ -152,7 +153,7 @@ def test_check_exists(test_plan_service):
     """Test the check_exists function"""
     # Test non-existent plan
     assert test_plan_service.check_exists("non_existent_plan") is False
-    
+
     # Create a test plan
     current_time = datetime.now()
     test_plan = Plan(
@@ -169,23 +170,24 @@ def test_check_exists(test_plan_service):
         created_at=current_time,
         updated_at=current_time
     )
-    
+
     # Before creating the plan, it should not exist
     assert test_plan_service.check_exists(test_plan.id) is False
-    
+
     # Create the plan
-    result = test_plan_service.create_new_plan(test_plan, "Test creation for check_exists")
+    result = test_plan_service.create_new_plan(
+        test_plan, "Test creation for check_exists")
     assert result.success is True
-    
+
     # After creating the plan, it should exist
     assert test_plan_service.check_exists(test_plan.id) is True
-    
+
     # Test with different casing (should not exist)
     assert test_plan_service.check_exists("TEST_CHECK_EXISTS_PLAN") is False
-    
+
     # Test with similar but different ID (should not exist)
     assert test_plan_service.check_exists("test_check_exists_plan_2") is False
-    
+
     # No cleanup needed - using separate test database
 
 

@@ -8,12 +8,12 @@ import tempfile
 
 def setup_test_database():
     """Set up test database with migrations for plans.
-    
+
     This function:
     1. Removes existing test database if it exists
     2. Runs yoyo migrations to create fresh test database
     3. Raises RuntimeError if migration fails
-    
+
     Returns:
         str: Path to the test database file
     """
@@ -36,16 +36,16 @@ def setup_test_prompts_database():
 
 def _setup_database(db_type: str):
     """Generic function to set up test databases.
-    
+
     Args:
         db_type: Either "plans" or "prompts"
-        
+
     Returns:
         str: Path to the test database file
     """
     # Get project root directory
     project_root = Path(__file__).parent.parent
-    
+
     # Use fixed database names for tests
     if db_type == "plans":
         test_db_path = project_root / "data" / "test_plans.db"
@@ -55,52 +55,54 @@ def _setup_database(db_type: str):
         yoyo_config_template = project_root / "yoyo-test-prompts.ini"
     else:
         raise ValueError(f"Unknown database type: {db_type}")
-    
+
     # Ensure data directory exists
     test_db_path.parent.mkdir(exist_ok=True)
-    
+
     # Remove existing test database
     if test_db_path.exists():
         os.remove(test_db_path)
-    
+
     # Create temporary yoyo config with database path
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.ini', delete=False) as temp_config:
+    with tempfile.NamedTemporaryFile(
+            mode='w', suffix='.ini', delete=False) as temp_config:
         # Read template config
         with open(yoyo_config_template, 'r') as template:
             config_content = template.read()
-        
+
         # Replace database path with fixed one
         if db_type == "plans":
             config_content = config_content.replace(
-                "sqlite:///data/test_plans.db", 
+                "sqlite:///data/test_plans.db",
                 f"sqlite:///{test_db_path}"
             )
         else:  # prompts
             config_content = config_content.replace(
-                "sqlite:///data/test_prompts.db", 
+                "sqlite:///data/test_prompts.db",
                 f"sqlite:///{test_db_path}"
             )
-        
+
         temp_config.write(config_content)
         temp_config_path = temp_config.name
-    
+
     # Run migrations using yoyo
     try:
         result = subprocess.run([
-            "uv", "run", "yoyo", "apply", 
-            "--config", temp_config_path, 
+            "uv", "run", "yoyo", "apply",
+            "--config", temp_config_path,
             "--batch"
-        ], 
-        capture_output=True, 
-        text=True, 
-        cwd=str(project_root),
-        check=True
+        ],
+            capture_output=True,
+            text=True,
+            cwd=str(project_root),
+            check=True
         )
-        
-        print(f"✅ Test {db_type} database created successfully: {test_db_path}")
+
+        print(f"✅ Test {db_type} database created successfully: {
+              test_db_path}")
         if result.stdout:
             print(f"Migration output: {result.stdout}")
-            
+
     except subprocess.CalledProcessError as e:
         error_msg = f"Failed to set up test {db_type} database: {e.stderr}"
         print(f"❌ {error_msg}")
@@ -109,7 +111,7 @@ def _setup_database(db_type: str):
         # Clean up temporary config file
         if os.path.exists(temp_config_path):
             os.remove(temp_config_path)
-    
+
     return str(test_db_path)
 
 
