@@ -84,8 +84,9 @@ show_llm_usage() {
     echo "\`\`\`"
     echo ""
     echo "## Features"
-    echo "- Downloads all .md files from the remote repository"
-    echo "- Creates local .claude/commands/ directory if it doesn't exist"
+    echo "- Downloads all .md files from the remote repository recursively"
+    echo "- Preserves subdirectory structure (e.g., go/, python/, mcp/, tools/, archive/)"
+    echo "- Creates local .claude/commands/ directory structure if it doesn't exist"
     echo "- Shows progress for each file downloaded"
     echo "- Skips existing files by default (use --force to overwrite)"
     echo "- Provides detailed summary of operation results"
@@ -136,6 +137,13 @@ if ! command -v gh &> /dev/null; then
     exit 1
 fi
 
+# Check if jq is installed
+if ! command -v jq &> /dev/null; then
+    print_error "jq is not installed"
+    echo "Please install jq from: https://stedolan.github.io/jq/download/"
+    exit 1
+fi
+
 # Get destination directory
 DEST_DIR="$(pwd)/.claude/commands"
 
@@ -153,25 +161,50 @@ fi
 echo ""
 print_info "Fetching file list from GitHub..."
 
-# Get list of files from GitHub
-FILES_JSON=$(gh api repos/$REPO/contents/$REMOTE_DIR 2>/dev/null)
+# Process files and directories
+process_directory() {
+    local path="$1"
+    local local_path="$2"
+    
+    # Get contents of current directory
+    local contents=$(gh api repos/$REPO/contents/$path 2>/dev/null)
+    if [ $? -ne 0 ]; then
+        print_error "Failed to fetch contents from $path"
+        return 1
+    fi
+    
+    # Process each item
+    echo "$contents" | jq -c '.[]' | while IFS= read -r item; do
+        local name=$(echo "$item" | jq -r '.name')
+        local type=$(echo "$item" | jq -r '.type')
+        local download_url=$(echo "$item" | jq -r '.download_url // empty')
+        
+        if [ "$type" = "dir" ]; then
+            # Create local directory if it doesn't exist
+            local new_local_path="$local_path/$name"
+            if [ ! -d "$DEST_DIR/$new_local_path" ]; then
+                mkdir -p "$DEST_DIR/$new_local_path"
+            fi
+            # Recursively process subdirectory
+            process_directory "$path/$name" "$new_local_path"
+        elif [ "$type" = "file" ] && [[ "$name" == *.md ]]; then
+            # Add to file list for processing
+            echo "$local_path/$name|$path/$name"
+        fi
+    done
+}
 
-if [ $? -ne 0 ]; then
-    print_error "Failed to fetch file list from GitHub"
-    echo "Repository: https://github.com/$REPO"
-    exit 1
-fi
+# Collect all .md files recursively
+print_info "Scanning for command files..."
+FILE_LIST=$(process_directory "$REMOTE_DIR" "")
 
-# Extract .md files
-MD_FILES=$(echo "$FILES_JSON" | jq -r '.[] | select(.name | endswith(".md")) | .name')
-
-if [ -z "$MD_FILES" ]; then
+if [ -z "$FILE_LIST" ]; then
     print_error "No .md files found in $REPO/$REMOTE_DIR"
     exit 1
 fi
 
 # Count files
-FILE_COUNT=$(echo "$MD_FILES" | wc -l | tr -d ' ')
+FILE_COUNT=$(echo "$FILE_LIST" | wc -l | tr -d ' ')
 print_success "Found $FILE_COUNT command files"
 
 echo ""
@@ -184,29 +217,36 @@ SKIPPED=0
 FAILED=0
 
 # Download each file
-while IFS= read -r filename; do
-    dest_file="$DEST_DIR/$filename"
+while IFS='|' read -r local_path remote_path; do
+    # Skip empty lines
+    [ -z "$local_path" ] && continue
+    
+    dest_file="$DEST_DIR$local_path"
     
     # Check if file exists and handle accordingly
     if [ -f "$dest_file" ] && [ "$FORCE_OVERWRITE" = false ]; then
-        echo -n "  $filename (exists, skipping)... "
+        echo -n "  $local_path (exists, skipping)... "
         echo -e "${YELLOW}→${NC}"
         ((SKIPPED++))
         continue
     fi
     
     if [ -f "$dest_file" ]; then
-        echo -n "  $filename (overwriting)... "
+        echo -n "  $local_path (overwriting)... "
     else
-        echo -n "  $filename... "
+        echo -n "  $local_path... "
     fi
     
     # Download the file using gh api
-    CONTENT=$(gh api repos/$REPO/contents/$REMOTE_DIR/$filename --jq '.content' 2>/dev/null)
+    CONTENT=$(gh api repos/$REPO/contents/$remote_path --jq '.content' 2>/dev/null)
     
     if [ $? -eq 0 ] && [ -n "$CONTENT" ]; then
-        # Decode base64 content and save to file
-        echo "$CONTENT" | base64 -d > "$dest_file" 2>/dev/null
+        # Decode base64 content and save to file (handle macOS and Linux)
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            echo "$CONTENT" | base64 -D > "$dest_file" 2>/dev/null
+        else
+            echo "$CONTENT" | base64 -d > "$dest_file" 2>/dev/null
+        fi
         
         if [ $? -eq 0 ]; then
             echo -e "${GREEN}✓${NC}"
@@ -219,7 +259,7 @@ while IFS= read -r filename; do
         echo -e "${RED}✗${NC} (download error)"
         ((FAILED++))
     fi
-done <<< "$MD_FILES"
+done <<< "$FILE_LIST"
 
 # Print summary
 echo ""

@@ -3,7 +3,7 @@ import hashlib
 import re
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import List, Optional
 from .plan_models import (
     PlanStatus, Plan, PlanData, PlanLoadResult, LoadError, PlanCreateResult)
 
@@ -167,17 +167,17 @@ class PlanService:
 
     def extract_description(self, content: str) -> Optional[str]:
         """Extract description from markdown content
-        
+
         Looks for:
         1. ## Overview or ## Description section
         2. First paragraph after # title
         """
         lines = content.split('\n')
-        
+
         # Look for Overview or Description section
         in_overview = False
         description_lines = []
-        
+
         for i, line in enumerate(lines):
             if re.match(r'^##\s+(Overview|Description)', line, re.IGNORECASE):
                 in_overview = True
@@ -187,31 +187,31 @@ class PlanService:
                 break
             elif in_overview and line.strip():
                 description_lines.append(line.strip())
-        
+
         if description_lines:
             return ' '.join(description_lines[:3])  # First 3 lines max
-        
+
         # Fallback: get first non-title paragraph
         for i, line in enumerate(lines):
             if line.strip() and not line.startswith('#'):
                 return line.strip()[:200]  # Max 200 chars
-        
+
         return None
-    
+
     def extract_tags(self, content: str, status: PlanStatus) -> List[str]:
         """Extract tags from markdown content
-        
+
         Looks for:
         1. Tags in frontmatter
         2. ## Tags section
         3. Keywords from content
         """
         tags = [status.value]  # Always include status as a tag
-        
+
         # Look for tags section
         lines = content.split('\n')
         in_tags = False
-        
+
         for line in lines:
             if re.match(r'^##\s+Tags', line, re.IGNORECASE):
                 in_tags = True
@@ -227,7 +227,7 @@ class PlanService:
                         tag = tag.strip().lower()
                         if tag and tag not in tags:
                             tags.append(tag)
-        
+
         # Extract some keywords from title
         title_match = re.search(r'^#\s+(.+)$', content, re.MULTILINE)
         if title_match:
@@ -236,7 +236,7 @@ class PlanService:
             for word in ['add', 'fix', 'implement', 'create', 'update', 'improve']:
                 if word in title and word not in tags:
                     tags.append(word)
-        
+
         return tags[:10]  # Limit to 10 tags
 
     def files_to_plans(self, plans_data: dict) -> List[Plan]:
@@ -277,7 +277,7 @@ class PlanService:
                     content = file_info["content"]
                     description = self.extract_description(content)
                     tags = self.extract_tags(content, status)
-                    
+
                     # Create PlanData object
                     plan_data = PlanData(
                         status=status,
