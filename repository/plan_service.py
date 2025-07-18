@@ -1,8 +1,9 @@
 import sqlite3
 import hashlib
+import re
 from datetime import datetime
 from pathlib import Path
-from typing import List
+from typing import List, Optional, Tuple
 from .plan_models import (
     PlanStatus, Plan, PlanData, PlanLoadResult, LoadError, PlanCreateResult)
 
@@ -164,6 +165,80 @@ class PlanService:
                 error_type=type(e).__name__
             )
 
+    def extract_description(self, content: str) -> Optional[str]:
+        """Extract description from markdown content
+        
+        Looks for:
+        1. ## Overview or ## Description section
+        2. First paragraph after # title
+        """
+        lines = content.split('\n')
+        
+        # Look for Overview or Description section
+        in_overview = False
+        description_lines = []
+        
+        for i, line in enumerate(lines):
+            if re.match(r'^##\s+(Overview|Description)', line, re.IGNORECASE):
+                in_overview = True
+                continue
+            elif in_overview and line.strip().startswith('#'):
+                # Hit another section
+                break
+            elif in_overview and line.strip():
+                description_lines.append(line.strip())
+        
+        if description_lines:
+            return ' '.join(description_lines[:3])  # First 3 lines max
+        
+        # Fallback: get first non-title paragraph
+        for i, line in enumerate(lines):
+            if line.strip() and not line.startswith('#'):
+                return line.strip()[:200]  # Max 200 chars
+        
+        return None
+    
+    def extract_tags(self, content: str, status: PlanStatus) -> List[str]:
+        """Extract tags from markdown content
+        
+        Looks for:
+        1. Tags in frontmatter
+        2. ## Tags section
+        3. Keywords from content
+        """
+        tags = [status.value]  # Always include status as a tag
+        
+        # Look for tags section
+        lines = content.split('\n')
+        in_tags = False
+        
+        for line in lines:
+            if re.match(r'^##\s+Tags', line, re.IGNORECASE):
+                in_tags = True
+                continue
+            elif in_tags and line.strip().startswith('#'):
+                break
+            elif in_tags and line.strip():
+                # Parse comma or bullet-separated tags
+                if line.strip().startswith('-'):
+                    tags.append(line.strip()[1:].strip().lower())
+                else:
+                    for tag in re.split(r'[,;]', line):
+                        tag = tag.strip().lower()
+                        if tag and tag not in tags:
+                            tags.append(tag)
+        
+        # Extract some keywords from title
+        title_match = re.search(r'^#\s+(.+)$', content, re.MULTILINE)
+        if title_match:
+            title = title_match.group(1).lower()
+            # Extract action words
+            for word in ['add', 'fix', 'implement', 'create', 'update', 'improve']:
+                if word in title and word not in tags:
+                    tags.append(word)
+        
+        return tags[:10]  # Limit to 10 tags
+
     def files_to_plans(self, plans_data: dict) -> List[Plan]:
         """Convert raw plans data to List[Plan] objects
 
@@ -198,15 +273,21 @@ class PlanService:
                         file_info["content"].encode('utf-8')
                     ).hexdigest()
 
+                    # Extract metadata from content
+                    content = file_info["content"]
+                    description = self.extract_description(content)
+                    tags = self.extract_tags(content, status)
+                    
                     # Create PlanData object
                     plan_data = PlanData(
                         status=status,
-                        markdown_content=file_info["content"],
-                        description=f"Plan loaded from {file_info['path']}",
-                        tags=[status.value],  # Add status as a tag
+                        markdown_content=content,
+                        description=description,
+                        tags=tags,
                         metadata={
                             "file_size": file_info["file_size"],
-                            "original_path": str(file_info["path"])
+                            "original_path": str(file_info["path"]),
+                            "filename": file_info["name"]
                         }
                     )
 
@@ -336,8 +417,17 @@ class PlanService:
             errors=errors if errors else None
         )
 
-    def load_files(self):
-        """Read and display all plans from _docs/plans directory structure"""
+    def load_files(self) -> tuple[dict[PlanStatus, dict],
+                                  List[Plan],
+                                  List[LoadError]]:
+        """Read and display all plans from _docs/plans directory structure
+
+        Returns:
+            tuple[dict[PlanStatus, dict], List[Plan], List[LoadError]]:
+                - Plans data organized by status
+                - List of Plan objects
+                - List of LoadError objects for any errors encountered
+        """
 
         project_dir = Path(__file__).parent.parent
         plans_dir = project_dir / "_docs" / "plans"
@@ -350,8 +440,9 @@ class PlanService:
         }
 
         # Collect plan data
-        plans_data = {}
-        total_files = 0
+        plans_data: dict[PlanStatus, dict] = {}
+        total_files: int = 0
+        errors: List[LoadError] = []
 
         # Iterate through each status directory
         for dir_name, status in status_mapping.items():
@@ -360,6 +451,11 @@ class PlanService:
             if not status_dir.exists():
                 plans_data[status] = {
                     "error": f"Directory not found: {status_dir}", "files": []}
+                errors.append(LoadError(
+                    filename=str(status_dir),
+                    error_message=f"Directory not found: {status_dir}",
+                    error_type="DirectoryNotFound"
+                ))
                 continue
 
             # Find all .md files in this status directory
@@ -390,6 +486,11 @@ class PlanService:
                         "path": md_file.relative_to(project_dir)
                     }
                     plans_data[status]["files"].append(plan_info)
+                    errors.append(LoadError(
+                        filename=md_file.name,
+                        error_message=str(e),
+                        error_type=type(e).__name__
+                    ))
 
         # Convert to Plan objects
         plans = self.files_to_plans(plans_data)
@@ -399,7 +500,7 @@ class PlanService:
 
         print(f"✅ Converted {len(plans)} files to Plan objects")
 
-        return plans_data, plans
+        return plans_data, plans, errors
 
     def sync_plans(self) -> PlanLoadResult:
         """Load plans from files and sync them to database
@@ -410,10 +511,18 @@ class PlanService:
         print("🔄 Syncing plans from files to database...")
 
         # Load files and convert to Plan objects
-        plans_data, plans = self.load_files()
+        plans_data, plans, file_errors = self.load_files()
 
         # Load plans into database
         result = self.load_database(plans)
+
+        # Merge file loading errors with database errors
+        if file_errors:
+            if result.errors:
+                result.errors.extend(file_errors)
+            else:
+                result.errors = file_errors
+            result.error_count += len(file_errors)
 
         # Print summary
         print("=" * 50)
@@ -426,7 +535,8 @@ class PlanService:
         if result.errors:
             print("\n❌ ERRORS:")
             for error in result.errors:
-                print(f"   - {error.filename}: {error.error_message}")
+                print(
+                    f"   - {error.filename}: {error.error_message} ({error.error_type})")
 
         print("=" * 50)
 

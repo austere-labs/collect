@@ -31,7 +31,7 @@ def test_check_dirs(test_plan_service):
 
 def test_files_to_plans_conversion(test_plan_service):
     # Get raw plans data first
-    plans_data, _ = test_plan_service.load_files()
+    plans_data, _, _ = test_plan_service.load_files()
 
     # Test the conversion method directly
     plans = test_plan_service.files_to_plans(plans_data)
@@ -53,11 +53,14 @@ def test_files_to_plans_conversion(test_plan_service):
 
 def test_load_files(test_plan_service):
     # Test the load_files method that reads from _docs/plans
-    plans_data, plans = test_plan_service.load_files()
+    plans_data, plans, errors = test_plan_service.load_files()
 
     # Test that we get Plan objects
     assert isinstance(plans, list)
     assert len(plans) > 0
+    
+    # Test that errors list is returned (may be empty)
+    assert isinstance(errors, list)
 
     # Test first plan object structure
     first_plan = plans[0]
@@ -79,7 +82,7 @@ def test_load_files(test_plan_service):
 
 def test_load_database(test_plan_service):
     # First load plans from files
-    plans_data, plans = test_plan_service.load_files()
+    plans_data, plans, _ = test_plan_service.load_files()
 
     # Get the expected count from the actual number of plans loaded
     expected_count = len(plans)
