@@ -1,3 +1,8 @@
+---
+allowed-tools: Bash(extract:*)
+description: Extract complete function or method definitions from source code
+---
+
 # Extract Function
 
 Extract a complete function or method from source code using the `extract` command.
