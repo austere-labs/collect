@@ -10,7 +10,7 @@ uv sync
 ```
 
 **Testing:**
-
+### Use `pytest` for all testing in this project.
 ### When running all tests, use the Makefile and run test-fast:
 ### here is an example
 
