@@ -94,23 +94,11 @@ def create_test_prompt(prompt_service: PromptService) -> Prompt:
     )
 
 
-def test_cmd_loading(prompt_service: PromptService):
+def test_prompt_loading(prompt_service: PromptService):
     cmds = prompt_service.load_cmds_from_disk()
     print(f"\nTotal commands loaded: {len(cmds.loaded_prompts)}")
     assert len(cmds.errors) == 0
 
-    for cmd in cmds.loaded_prompts:
-        print(f"Full name in DB: {cmd.name}")
-        print(f"  Category: {cmd.data.cmd_category}")
-        # Extract just filename from the db_name
-        # db_name format is: category_filename.md
-        filename_only = cmd.name.split(
-            '_', 1)[1] if '_' in cmd.name else cmd.name
-        print(f"  Filename only: {filename_only}")
-        print("---")
-
     plans = prompt_service.load_plans_from_disk()
     print(f"\nTotal plans loaded: {len(plans.loaded_prompts)}")
     assert len(plans.errors) == 0
-
-    for plan in plans.loaded_prompts:
