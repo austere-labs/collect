@@ -24,7 +24,18 @@ CREATE TABLE plan_history (
     PRIMARY KEY (id, version)
 );
 
--- Metrics time-series table (optimized for plan tracking)
+/* 
+The `plan_metrics` table is designed to track numerical metrics for different versions of plans over time. It serves as a time-series database for monitoring plan execution progress and performance.
+
+ Key features:
+- **Multi-version tracking**: Tracks metrics across different plan versions
+- **Step-based measurements**: Records values at specific execution steps
+- **Flexible metric types**: Can store any named metric (execution time, resource usage, success rates, etc.)
+- **Time-series data**: Timestamps enable trend analysis and performance monitoring
+- **Composite primary key**: Ensures unique entries per plan/version/metric/step combination
+
+This allows tracking things like build times, test pass rates, or custom KPIs as plans evolve through their lifecycle.
+*/
 CREATE TABLE plan_metrics (
     plan_id TEXT,
     version INTEGER,

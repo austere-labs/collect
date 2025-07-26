@@ -8,22 +8,27 @@ from . import datetime_adapters
 
 
 class SQLite3Database:
-    def __init__(self, db_path: str = "../data/prompts.db"):
+    def __init__(self, db_path: str = "../data/collect.db"):
         self.db_path = db_path
 
     # Decorator that converts this generator function into a context manager
     @contextmanager
-    def get_connection(self, read_only: bool = False) -> Generator[sqlite3.Connection, None, None]:
+    def get_connection(
+            self,
+            read_only: bool = False
+    ) -> Generator[sqlite3.Connection, None, None]:
         """Context manager for database connections"""
         # Setup phase: runs when entering 'with' block
         # Enable PARSE_DECLTYPES to use our custom datetime converters
-        conn = sqlite3.connect(self.db_path, detect_types=sqlite3.PARSE_DECLTYPES)
+        conn = sqlite3.connect(
+            self.db_path, detect_types=sqlite3.PARSE_DECLTYPES)
         conn.row_factory = sqlite3.Row  # enables column access by name
-        
+
         # Connection optimizations
         conn.execute("PRAGMA foreign_keys = ON")  # enables foreign key support
         if not read_only:
-            conn.execute("PRAGMA journal_mode = WAL")  # enables better concurrency
+            # enables better concurrency
+            conn.execute("PRAGMA journal_mode = WAL")
             conn.execute("PRAGMA synchronous = NORMAL")  # Faster writes
         conn.execute("PRAGMA cache_size = -64000")  # 64MB cache
         # Use memory for temp tables

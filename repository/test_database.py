@@ -1,10 +1,8 @@
 import pytest
 import sqlite3
 import os
-from pathlib import Path
 
 from repository.database import SQLite3Database
-from repository.test_database_setup import setup_test_prompts_database
 
 
 @pytest.fixture
@@ -98,17 +96,3 @@ def test_database_error_handling():
     finally:
         if os.path.exists(test_db_path):
             os.remove(test_db_path)
-
-
-def test_database_with_actual_db_file():
-    """Test connection with the test database file"""
-    # Use the test database instead of actual database
-    test_db_path = setup_test_prompts_database()
-    db = SQLite3Database(db_path=test_db_path)
-
-    with db.get_connection(read_only=True) as conn:
-        assert conn is not None
-        # Test basic query
-        cursor = conn.execute("SELECT 1")
-        result = cursor.fetchone()
-        assert result[0] == 1

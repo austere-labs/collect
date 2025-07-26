@@ -1,5 +1,8 @@
 PROJECT_NAME := collect
 
+marimo:
+	uv run marimo edit
+
 .PHONY: movetools
 movetools:
 	./movetools
@@ -26,5 +29,8 @@ check:
 	make lint
 	make format
 	make test-fast
+
+migrate:
+	uv run yoyo apply --config yoyo.ini --batch
 
 

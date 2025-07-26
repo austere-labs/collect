@@ -1,307 +1,116 @@
 import pytest
-import json
-import os
-from pathlib import Path
-
+from repository.database import SQLite3Database
 from repository.prompt_service import PromptService
-from repository.prompt_model import PromptCreateModel
-from repository.test_database_setup import setup_test_prompts_database
-
-
-@pytest.fixture(scope="function")
-def test_prompts_database():
-    """Set up test prompts database for each test function."""
-    db_path = setup_test_prompts_database()
-    yield db_path
-    # Note: We don't clean up the test database here to allow inspection after tests
+from repository.prompt_models import (
+    Prompt,
+    PromptType,
+    PromptPlanStatus,
+    CmdCategory
+)
 
 
 @pytest.fixture
-def test_prompt_service(test_prompts_database):
-    """Create a PromptService instance using the test database."""
-    service = PromptService(db_path=test_prompts_database)
-    yield service
+def prompt_service():
+    """
+    ## How It Works
+
+    1. **`with db.get_connection() as conn:`**
+       - Opens a database connection using a context manager
+       - The `as conn` assigns the connection to the variable
+       - When the `with` block exits, `conn.close()` is automatically called
+
+    2. **`cmd_service = CmdsService(conn)`**
+       - Creates the service object with the database connection
+       - The service can now execute database operations
+
+    3. **`yield cmd_service`**
+       - This is pytest fixture syntax that provides the service to the test
+       - `yield` pauses execution here while the test runs
+       - After the test completes, execution resumes after the `yield`
+
+    4. **Automatic cleanup**
+       - When the test finishes, the `with` block exits
+       - Database connection is automatically closed
+       - Resources are freed
+
+    This pattern ensures **deterministic cleanup** -
+    the database connection will always be properly closed regardless of
+    whether the test passes or fails.
+    """
+    db = SQLite3Database(db_path="data/collect.db")
+    with db.get_connection() as conn:
+        cmd_service = PromptService(conn)
+
+        yield cmd_service
+
+
+def test_check_dirs(prompt_service: PromptService):
+    result = prompt_service.cmd_check_dirs()
+    assert result is True
+
+
+def test_load_cmds_from_disk(prompt_service: PromptService):
+    load_results = prompt_service.load_cmds_from_disk()
+    # Assert no errors occurred during loading
+    assert load_results.errors is None or len(load_results.errors) == 0, \
+        f"Expected no errors, but found {
+            len(load_results.errors) if load_results.errors else 0} errors"
+
+
+def test_load_plans_from_disk(prompt_service: PromptService):
+    load_results = prompt_service.load_plans_from_disk()
+
+    print(f"\nTotal plans loaded: {len(load_results.loaded_prompts)}")
+    # Assert no errors occurred during loading
+    assert load_results.errors is None or len(load_results.errors) == 0, \
+        f"Expected no errors, but found {
+            len(load_results.errors) if load_results.errors else 0} errors"
+
+
+def create_test_prompt(prompt_service: PromptService) -> Prompt:
+    """Create a simple prompt example for testing using
+    cmd_service.new_prompt_model
+
+    Args:
+        cmd_service: CmdsService instance to use for creating the prompt
+
+    Returns:
+        Prompt: A test prompt with basic data
+    """
+    prompt_content = """
+        # Test Prompt
+        This is a simple test prompt for validation.
+    """
+
+    return prompt_service.new_prompt_model(
+        prompt_content=prompt_content,
+        name="test_prompt.md",
+        prompt_type=PromptType.CMD,
+        cmd_category=CmdCategory.PYTHON,
+        status=PromptPlanStatus.DRAFT,
+        project="collect",
+        description="A basic test prompt",
+        tags=["test", "python", "cmd"]
+    )
+
+
+def test_cmd_loading(prompt_service: PromptService):
+    cmds = prompt_service.load_cmds_from_disk()
+    print(f"\nTotal commands loaded: {len(cmds.loaded_prompts)}")
+    assert len(cmds.errors) == 0
+
+    for cmd in cmds.loaded_prompts:
+        print(f"Full name in DB: {cmd.name}")
+        print(f"  Category: {cmd.data.cmd_category}")
+        # Extract just filename from the db_name
+        # db_name format is: category_filename.md
+        filename_only = cmd.name.split(
+            '_', 1)[1] if '_' in cmd.name else cmd.name
+        print(f"  Filename only: {filename_only}")
+        print("---")
+
+    plans = prompt_service.load_plans_from_disk()
+    print(f"\nTotal plans loaded: {len(plans.loaded_prompts)}")
+    assert len(plans.errors) == 0
 
-
-def test_initial_load(test_prompt_service):
-    load_result = test_prompt_service.load_claude_commands_from_disk()
-    prompts = test_prompt_service.persist_load_results(load_result)
-    for prompt in prompts:
-        print(prompt.name)
-
-
-def test_add_prompt_basic(test_prompt_service):
-    service = test_prompt_service
-
-    # Add a basic prompt
-    prompt_data = PromptCreateModel(
-        name="test_prompt", content="This is a test prompt")
-    prompt_uuid = service.add_prompt(prompt_data)
-
-    assert prompt_uuid is not None
-    assert len(prompt_uuid) == 36  # UUID length
-
-    # Verify it was stored correctly
-    with service.db.get_connection(read_only=True) as conn:
-        cursor = conn.execute(
-            "SELECT prompt_uuid, content, metadata FROM prompts WHERE prompt_uuid = ?",
-            (prompt_uuid,)
-        )
-        row = cursor.fetchone()
-
-        assert row is not None
-        assert row["prompt_uuid"] == prompt_uuid
-        assert row["content"] == "This is a test prompt"
-        metadata = json.loads(row["metadata"])
-        assert metadata["name"] == "test_prompt"
-
-
-def test_add_prompt_with_metadata(test_prompt_service):
-    service = test_prompt_service
-
-    # Add prompt with custom metadata
-    custom_metadata = {"author": "test_user", "category": "testing"}
-    prompt_data = PromptCreateModel(
-        name="test_with_meta", content="Test content", metadata=custom_metadata)
-    prompt_uuid = service.add_prompt(prompt_data)
-
-    # Verify metadata was merged correctly
-    with service.db.get_connection(read_only=True) as conn:
-        cursor = conn.execute(
-            "SELECT metadata FROM prompts WHERE prompt_uuid = ?",
-            (prompt_uuid,)
-        )
-        row = cursor.fetchone()
-
-        metadata = json.loads(row["metadata"])
-        assert metadata["name"] == "test_with_meta"
-        assert metadata["author"] == "test_user"
-        assert metadata["category"] == "testing"
-
-
-def test_get_prompt_by_name_exists(test_prompt_service):
-    service = test_prompt_service
-
-    # Add a prompt
-    prompt_data = PromptCreateModel(name="find_me", content="Content to find")
-    prompt_uuid = service.add_prompt(prompt_data)
-
-    # Get by name
-    result = service.get_prompt_by_name("find_me")
-
-    assert result is not None
-    assert result.prompt_uuid == prompt_uuid
-    assert result.content == "Content to find"
-    assert result.metadata["name"] == "find_me"
-    assert result.version == 1
-    assert result.is_active is True
-
-
-def test_get_prompt_by_name_not_exists(test_prompt_service):
-    service = test_prompt_service
-
-    # Try to get non-existent prompt
-    result = service.get_prompt_by_name("nonexistent")
-
-    assert result is None
-
-
-def test_get_prompt_by_uuid_exists(test_prompt_service):
-    service = test_prompt_service
-
-    # Add a prompt
-    prompt_data = PromptCreateModel(
-        name="uuid_test", content="UUID test content")
-    prompt_uuid = service.add_prompt(prompt_data)
-
-    # Get by UUID
-    result = service.get_prompt_by_uuid(prompt_uuid)
-
-    assert result is not None
-    assert result.prompt_uuid == prompt_uuid
-    assert result.content == "UUID test content"
-    assert result.version == 1
-
-
-def test_get_prompt_by_uuid_with_version(test_prompt_service):
-    service = test_prompt_service
-
-    # Add a prompt
-    prompt_data = PromptCreateModel(
-        name="version_test", content="Version test content")
-    prompt_uuid = service.add_prompt(prompt_data)
-
-    # Get by UUID and version
-    result = service.get_prompt_by_uuid(prompt_uuid, version=1)
-
-    assert result is not None
-    assert result.prompt_uuid == prompt_uuid
-    assert result.version == 1
-
-
-def test_get_prompt_by_uuid_not_exists(test_prompt_service):
-    service = test_prompt_service
-
-    # Try to get non-existent UUID
-    result = service.get_prompt_by_uuid("00000000-0000-0000-0000-000000000000")
-
-    assert result is None
-
-
-def test_list_prompts_empty(test_prompt_service):
-    service = test_prompt_service
-
-    # List when no prompts exist
-    prompts = service.list_prompts()
-
-    assert prompts == []
-
-
-def test_list_prompts_with_data(test_prompt_service):
-    service = test_prompt_service
-
-    # Add multiple prompts
-    prompt_data1 = PromptCreateModel(name="prompt1", content="Content 1")
-    prompt_data2 = PromptCreateModel(name="prompt2", content="Content 2")
-    uuid1 = service.add_prompt(prompt_data1)
-    uuid2 = service.add_prompt(prompt_data2)
-
-    # List prompts
-    prompts = service.list_prompts()
-
-    assert len(prompts) == 2
-
-    # Check that both prompts are present
-    prompt_uuids = [p.prompt_uuid for p in prompts]
-    assert uuid1 in prompt_uuids
-    assert uuid2 in prompt_uuids
-
-
-def test_deactivate_prompt_by_uuid(test_prompt_service):
-    service = test_prompt_service
-
-    # Add a prompt
-    prompt_data = PromptCreateModel(
-        name="to_deactivate", content="Will be deactivated")
-    prompt_uuid = service.add_prompt(prompt_data)
-
-    # Verify it's active
-    result = service.get_prompt_by_uuid(prompt_uuid)
-    assert result.is_active is True
-
-    # Deactivate it
-    success = service.deactivate_prompt(prompt_uuid)
-    assert success is True
-
-    # Verify it's deactivated
-    result = service.get_prompt_by_uuid(prompt_uuid)
-    assert result is None  # Should not return inactive prompts
-
-    # But should still exist in database
-    with service.db.get_connection(read_only=True) as conn:
-        cursor = conn.execute(
-            "SELECT is_active FROM prompts WHERE prompt_uuid = ?",
-            (prompt_uuid,)
-        )
-        row = cursor.fetchone()
-        assert row["is_active"] == 0
-
-
-def test_deactivate_prompt_by_uuid_and_version(test_prompt_service):
-    service = test_prompt_service
-
-    # Add a prompt
-    prompt_data = PromptCreateModel(
-        name="version_deactivate", content="Version deactivate test")
-    prompt_uuid = service.add_prompt(prompt_data)
-
-    # Deactivate specific version
-    success = service.deactivate_prompt(prompt_uuid, version=1)
-    assert success is True
-
-    # Verify it's deactivated
-    result = service.get_prompt_by_uuid(prompt_uuid, version=1)
-    assert result is not None
-    assert result.is_active is False
-
-
-def test_deactivate_nonexistent_prompt(test_prompt_service):
-    service = test_prompt_service
-
-    # Try to deactivate non-existent prompt
-    success = service.deactivate_prompt("00000000-0000-0000-0000-000000000000")
-    assert success is False
-
-
-def test_list_prompts_excludes_inactive(test_prompt_service):
-    service = test_prompt_service
-
-    # Add prompts
-    prompt_data1 = PromptCreateModel(name="active", content="Active content")
-    prompt_data2 = PromptCreateModel(
-        name="inactive", content="Inactive content")
-    uuid1 = service.add_prompt(prompt_data1)
-    uuid2 = service.add_prompt(prompt_data2)
-
-    # Deactivate one
-    service.deactivate_prompt(uuid2)
-
-    # List should only include active
-    prompts = service.list_prompts()
-    assert len(prompts) == 1
-    assert prompts[0].prompt_uuid == uuid1
-
-
-def test_get_prompt_by_name_excludes_inactive(test_prompt_service):
-    service = test_prompt_service
-
-    # Add and deactivate a prompt
-    prompt_data = PromptCreateModel(
-        name="inactive_test", content="Inactive test content")
-    prompt_uuid = service.add_prompt(prompt_data)
-    service.deactivate_prompt(prompt_uuid)
-
-    # Should not find inactive prompt
-    result = service.get_prompt_by_name("inactive_test")
-    assert result is None
-
-
-def test_database_path_default():
-    # Test that default database path is constructed correctly
-    service = PromptService()
-    expected_path = str(Path(__file__).parent.parent / "data" / "prompts.db")
-    assert service.db.db_path == expected_path
-
-
-def test_database_path_custom():
-    # Test custom database path
-    custom_path = "custom_test.db"
-    service = PromptService(db_path=custom_path)
-    assert service.db.db_path == custom_path
-
-    # Cleanup
-    if os.path.exists(custom_path):
-        os.remove(custom_path)
-
-
-def test_json_extraction_in_query(test_prompt_service):
-    service = test_prompt_service
-
-    # Add prompts with different names
-    prompt_data1 = PromptCreateModel(name="test_name_1", content="Content 1")
-    prompt_data2 = PromptCreateModel(name="test_name_2", content="Content 2")
-    service.add_prompt(prompt_data1)
-    service.add_prompt(prompt_data2)
-
-    # Should only find exact name match
-    result = service.get_prompt_by_name("test_name_1")
-    assert result is not None
-    assert result.content == "Content 1"
-
-    result = service.get_prompt_by_name("test_name_2")
-    assert result is not None
-    assert result.content == "Content 2"
-
-    # Should not find partial matches
-    result = service.get_prompt_by_name("test_name")
-    assert result is None
+    for plan in plans.loaded_prompts:
