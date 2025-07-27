@@ -1,4 +1,5 @@
 import pytest
+from typing import List
 from repository.database import SQLite3Database
 from repository.prompt_service import PromptService
 from repository.prompt_models import (
@@ -67,31 +68,48 @@ def test_load_plans_from_disk(prompt_service: PromptService):
             len(load_results.errors) if load_results.errors else 0} errors"
 
 
-def create_test_prompt(prompt_service: PromptService) -> Prompt:
-    """Create a simple prompt example for testing using
-    cmd_service.new_prompt_model
-
-    Args:
-        cmd_service: CmdsService instance to use for creating the prompt
-
-    Returns:
-        Prompt: A test prompt with basic data
-    """
+def create_test_prompt(prompt_service: PromptService) -> List[Prompt]:
     prompt_content = """
-        # Test Prompt
-        This is a simple test prompt for validation.
+    this is a test prompt for testing database persistence... blah blah
     """
 
-    return prompt_service.new_prompt_model(
-        prompt_content=prompt_content,
-        name="test_prompt.md",
-        prompt_type=PromptType.CMD,
-        cmd_category=CmdCategory.PYTHON,
-        status=PromptPlanStatus.DRAFT,
-        project="collect",
-        description="A basic test prompt",
-        tags=["test", "python", "cmd"]
-    )
+    def new_cmd_prompt(prompt_content: str) -> Prompt:
+        return prompt_service.new_prompt_model(
+            prompt_content=prompt_content,
+            name="test_prompt.md",
+            prompt_type=PromptType.CMD,
+            cmd_category=CmdCategory.PYTHON,
+            status=PromptPlanStatus.DRAFT,
+            project="collect",
+            description="A basic test prompt",
+            tags=["test", "python", "cmd"]
+        )
+
+    def new_plan_prompt(prompt_content: str) -> Prompt:
+        return prompt_service.new_prompt_model(
+            prompt_content=prompt_content,
+            name="test_prompt.md",
+            prompt_type=PromptType.PLAN,
+            cmd_category=None,
+            status=PromptPlanStatus.APPROVED,
+            project="collect",
+            description="A basic prd prompt",
+            tags=["test", "python", "plan"]
+        )
+    return [new_cmd_prompt(prompt_content), new_plan_prompt(prompt_content)]
+
+
+def test_save_prompt_in_db(prompt_service: PromptService):
+    pls = create_test_prompt(prompt_service)
+    cmd_prompt = pls[0]
+    plan_prompt = pls[1]
+
+    cmd_result = prompt_service.save_prompt_in_db(cmd_prompt)
+    plan_result = prompt_service.save_prompt_in_db(plan_prompt)
+
+    print(cmd_result)
+    print("---------------\n")
+    print(plan_result)
 
 
 def test_prompt_loading(prompt_service: PromptService):

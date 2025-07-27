@@ -10,7 +10,14 @@ def _():
     from repository.database import SQLite3Database
     from repository.prompt_service import PromptService
     from repository.prompt_models import(Prompt, PromptType, PromptPlanStatus, CmdCategory)
-    return PromptService, PromptType, SQLite3Database
+    return (
+        CmdCategory,
+        Prompt,
+        PromptPlanStatus,
+        PromptService,
+        PromptType,
+        SQLite3Database,
+    )
 
 
 @app.cell
@@ -127,6 +134,34 @@ def _(PromptType, db_name, parse_db_name):
 @app.cell
 def _(PromptType, parse_db_name):
     parse_db_name('tools_create_database.md', PromptType.CMD)
+    return
+
+
+@app.cell
+def _(CmdCategory, Prompt, PromptPlanStatus, PromptType, ps):
+    def new_cmd_prompt(prompt_content: str) -> Prompt:
+        return ps.new_prompt_model(
+            prompt_content=prompt_content,
+            name="test_prompt.md",
+            prompt_type=PromptType.CMD,
+            cmd_category=CmdCategory.PYTHON,
+            status=PromptPlanStatus.DRAFT,
+            project="collect",
+            description="A basic test prompt",
+            tags=["test", "python", "cmd"]
+        )
+    
+    def new_plan_prompt(prompt_content: str) -> Prompt:
+        return ps.new_prompt_model(
+            prompt_content=prompt_content,
+            name="test_prompt.md",
+            prompt_type=PromptType.PLAN,
+            cmd_category=None,
+            status=PromptPlanStatus.APPROVED,
+            project="collect",
+            description="A basic prd prompt",
+            tags=["test", "python", "plan"]
+        )
     return
 
 
