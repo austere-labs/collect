@@ -75,3 +75,12 @@ class PromptLoadResult(BaseModel):
     """Result of loading prompts into database"""
     loaded_prompts: List[Prompt]
     errors: Optional[List[LoadError]] = None
+
+
+class PromptDeleteResult(BaseModel):
+    success: bool
+    prompt_id: str
+    deleted: bool
+    rows_affected: int
+    error_message: Optional[str] = None
+    error_type: Optional[str] = None

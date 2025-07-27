@@ -14,6 +14,7 @@ from repository.prompt_models import (
     PromptData,
     Prompt,
     PromptCreateResult,
+    PromptDeleteResult,
 )
 
 
@@ -656,8 +657,6 @@ class PromptService:
                 data,
                 content_hash,
                 created_at,
-                archived_at,
-                change_summary
                 )
                 VALUES(?, ?, jsonb(?), ?, ?, ?, ?)
                 """, (
@@ -729,6 +728,24 @@ class PromptService:
             created_at=created_at,
             updated_at=updated_at
         )
+
+    def delete_prompt_by_id(self, prompt_id: str) -> PromptDeleteResult:
+        cursor = self.conn.cursor()
+        # archive final state in prompt_history table before deletion
+        cursor.execute("""
+            INSERT INTO prompt_history (
+            id,
+            version,
+            data,
+            content_hash,
+            created_at,
+            change_summary)
+            SELECT id, version, data, content_hash, craeted_at, 'DELETED - Final Version'
+            FROM prompt WHERE id = ?
+        """, (prompt_id, ))
+
+        # Delete only from the prompt table
+        cursor.execute("DELETE FROM prompt where id = ?", (prompt_id, ))
 
     def load_database(self, prompts: List[Prompt]) -> PromptLoadResult:
         """Load plans into the database

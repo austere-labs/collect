@@ -68,7 +68,7 @@ def test_load_plans_from_disk(prompt_service: PromptService):
             len(load_results.errors) if load_results.errors else 0} errors"
 
 
-def create_test_prompt(prompt_service: PromptService) -> List[Prompt]:
+def create_test_prompts(prompt_service: PromptService) -> List[Prompt]:
     prompt_content = """
     this is a test prompt for testing database persistence... blah blah
     """
@@ -100,7 +100,7 @@ def create_test_prompt(prompt_service: PromptService) -> List[Prompt]:
 
 
 def test_save_prompt_in_db(prompt_service: PromptService):
-    pls = create_test_prompt(prompt_service)
+    pls = create_test_prompts(prompt_service)
     cmd_prompt = pls[0]
     plan_prompt = pls[1]
 
@@ -110,6 +110,9 @@ def test_save_prompt_in_db(prompt_service: PromptService):
     print(cmd_result)
     print("---------------\n")
     print(plan_result)
+
+    prompt_cmd_result = prompt_service.get_prompt_by_id(cmd_prompt.id)
+    prompt_plan_result = prompt_service.get_prompt_by_id(plan_prompt.id)
 
 
 def test_prompt_loading(prompt_service: PromptService):
