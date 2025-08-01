@@ -2,7 +2,7 @@ import sqlite3
 from pathlib import Path
 import uuid
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 import hashlib
 from typing import Optional, List, Tuple
 from repository.prompt_models import (
@@ -366,7 +366,7 @@ class PromptService:
             prompt_content.encode('utf-8')
         ).hexdigest()
 
-        timestamp = datetime.utcnow()
+        timestamp = datetime.now(timezone.utc)
 
         db_name = self.create_db_name(
             prompt_type=prompt_type,
@@ -419,7 +419,7 @@ class PromptService:
         """
         # split the name to a list using '_' seperator
         ls = db_name.split('_')
-        # rebuild filename from ls
+        # rebuild filename from the list of split words
         filename = ""
         if prompt_type == PromptType.PLAN:
             # if prompt type is PLAN: then name will include the project
@@ -592,7 +592,7 @@ class PromptService:
                         prompt_jsonb,
                         prompt.content_hash,
                         prompt.created_at,
-                        datetime.utcnow(),
+                        datetime.now(timezone.utc),
                         change_summary,
                     ))
                 self.conn.commit()
@@ -631,24 +631,27 @@ class PromptService:
             cursor = self.conn.cursor()
 
             # Update prompt table
+            # NOTE: when writing the the jsonb field `data` we use jsonb
+            # when reading we use `json(data)`
             cursor.execute(
                 """
                 UPDATE prompt
                 SET name = ?,
                     data = jsonb(?),
-                    version = version,
+                    version = ?,
                     content_hash = ?,
                     updated_at = ?
                 WHERE id = ?
                 """, (
                     prompt.name,
                     prompt_jsonb,
+                    prompt.version,
                     prompt.content_hash,
                     prompt.updated_at,
                     prompt.id
                 ))
 
-            # Insert into prompt_history
+            # Insert into the updated prompt into prompt_history
             cursor.execute(
                 """
                 INSERT INTO prompt_history(
@@ -657,7 +660,8 @@ class PromptService:
                 data,
                 content_hash,
                 created_at,
-                )
+                archived_at,
+                change_summary)
                 VALUES(?, ?, jsonb(?), ?, ?, ?, ?)
                 """, (
                     prompt.id,
@@ -665,7 +669,7 @@ class PromptService:
                     prompt_jsonb,
                     prompt.content_hash,
                     prompt.created_at,
-                    datetime.utcnow(),
+                    datetime.now(timezone.utc),
                     change_summary
                 ))
 
@@ -674,7 +678,7 @@ class PromptService:
             return PromptCreateResult(
                 success=True,
                 prompt_id=prompt.id,
-                version=prompt.version + 1
+                version=prompt.version
             )
 
         except Exception as e:
@@ -700,52 +704,123 @@ class PromptService:
         cursor.execute(
             """
             SELECT
-            id, name, data, version, content_hash, created_at, updated_at
+            id,
+            name,
+            json(data) as data_json,
+            version,
+            content_hash,
+            created_at,
+            updated_at
+
             FROM prompt
             WHERE id = ?
             """,
             (prompt_id,)
         )
-        result = cursor.fetchone()
 
-        if not result:
+        row = cursor.fetchone()
+        if not row:
             return None
 
-        # Unpack the result
-        id, name, data_json, version, content_hash, created_at, updated_at = result
-
         # Parse the JSONB data back to PromptData
-        data_dict = json.loads(data_json)
+        data_dict = json.loads(row['data_json'])
         prompt_data = PromptData(**data_dict)
 
         # Create and return the Prompt object
         return Prompt(
-            id=id,
-            name=name,
+            id=row['id'],
+            name=row['name'],
             data=prompt_data,
-            version=version,
-            content_hash=content_hash,
-            created_at=created_at,
-            updated_at=updated_at
+            version=row['version'],
+            content_hash=row['content_hash'],
+            created_at=row['created_at'],
+            updated_at=row['updated_at']
+        )
+
+    def get_prompt_by_name(self, prompt_name: str) -> Optional[Prompt]:
+        """
+        Get a prompt by name from the database
+
+        Args:
+            prompt_name: The name of the prompt to retrieve.
+            (should be unique)
+        Returns:
+            Optional[Prompt]: The prompt if found by name or None otherwise
+        """
+
+        cursor = self.conn.cursor()
+        cursor.execute(
+            """
+            SELECT
+            id,
+            name,
+            json(data) as data_json,
+            version,
+            content_hash,
+            created_at,
+            updated_at
+
+            FROM prompt
+            WHERE name = ?
+            """, (prompt_name,))
+
+        row = cursor.fetchone()
+        if not row:
+            return None
+
+        data_dict = json.loads(row['data_json'])
+        prompt_data = PromptData(**data_dict)
+
+        return Prompt(
+            id=row['id'],
+            name=row['name'],
+            data=prompt_data,
+            version=row['version'],
+            content_hash=row['content_hash'],
+            created_at=row['created_at'],
+            updated_at=row['updated_at']
         )
 
     def delete_prompt_by_id(self, prompt_id: str) -> PromptDeleteResult:
         cursor = self.conn.cursor()
-        # archive final state in prompt_history table before deletion
-        cursor.execute("""
-            INSERT INTO prompt_history (
-            id,
-            version,
-            data,
-            content_hash,
-            created_at,
-            change_summary)
-            SELECT id, version, data, content_hash, craeted_at, 'DELETED - Final Version'
-            FROM prompt WHERE id = ?
-        """, (prompt_id, ))
+        try:
+            # archive final state in prompt_history table before deletion
+            cursor.execute("""
+                INSERT INTO prompt_history (
+                id,
+                version,
+                data,
+                content_hash,
+                created_at,
+                archived_at,
+                change_summary)
+                SELECT id, version, data, content_hash, created_at, ?, ?
+                FROM prompt WHERE id = ?
+            """, (datetime.now(timezone.utc), 'DELETED - Final Version', prompt_id))
 
-        # Delete only from the prompt table
-        cursor.execute("DELETE FROM prompt where id = ?", (prompt_id, ))
+            # Delete only from the prompt table
+            cursor.execute("DELETE FROM prompt WHERE id = ?", (prompt_id,))
+            deleted_row_count = cursor.rowcount
+
+            self.conn.commit()
+
+            return PromptDeleteResult(
+                success=True,
+                prompt_id=prompt_id,
+                deleted=True,
+                rows_affected=deleted_row_count
+            )
+
+        except Exception as e:
+            self.conn.rollback()
+            return PromptDeleteResult(
+                success=False,
+                prompt_id=prompt_id,
+                deleted=False,
+                rows_affected=0,
+                error_message=str(e),
+                error_type=type(e).__name__
+            )
 
     def load_database(self, prompts: List[Prompt]) -> PromptLoadResult:
         """Load plans into the database

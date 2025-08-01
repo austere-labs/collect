@@ -100,19 +100,96 @@ def create_test_prompts(prompt_service: PromptService) -> List[Prompt]:
 
 
 def test_save_prompt_in_db(prompt_service: PromptService):
+    # create test cmd and plan prompt types
     pls = create_test_prompts(prompt_service)
     cmd_prompt = pls[0]
     plan_prompt = pls[1]
 
-    cmd_result = prompt_service.save_prompt_in_db(cmd_prompt)
-    plan_result = prompt_service.save_prompt_in_db(plan_prompt)
+    try:
+        # save test prompts in sqlite and verify success
+        cmd_result = prompt_service.save_prompt_in_db(cmd_prompt)
+        print(f"cmd_result: {cmd_result}")
+        assert cmd_result.success is not False
 
-    print(cmd_result)
-    print("---------------\n")
-    print(plan_result)
+        plan_result = prompt_service.save_prompt_in_db(plan_prompt)
+        print(f"plan_result: {plan_result}")
+        assert plan_result.success is not False
 
-    prompt_cmd_result = prompt_service.get_prompt_by_id(cmd_prompt.id)
-    prompt_plan_result = prompt_service.get_prompt_by_id(plan_prompt.id)
+        # retrieve the saved test prompts from sqlite and verify they
+        # match the original test cmd and plan prompts
+        print(f"Retrieving cmd prompt with id: {cmd_prompt.id}")
+        retrieved_cmd = prompt_service.get_prompt_by_id(cmd_prompt.id)
+        print(f"Retrieved cmd: {retrieved_cmd}")
+        assert retrieved_cmd is not None
+
+        retrieved_plan = prompt_service.get_prompt_by_id(plan_prompt.id)
+        assert retrieved_plan is not None
+
+        # TODO: update prompt and test the `update_prompt_in_db` function
+
+        # TODO: retrieve the updated prompt again from the prompt table and
+        # validate the changes were persisted/updated
+
+        # TODO: retrieve the prompt by name and validate correct prompt
+        # retrieval
+
+    finally:
+        # Clean up test data - this will ALWAYS run, even if test fails
+        print("\nCleaning up test prompts...")
+
+        cmd_cleanup = delete_prompt_completely(prompt_service, cmd_prompt.id)
+        print(f"CMD cleanup result: {cmd_cleanup}")
+
+        plan_cleanup = delete_prompt_completely(prompt_service, plan_prompt.id)
+        print(f"PLAN cleanup result: {plan_cleanup}")
+
+
+def delete_prompt_completely(prompt_service: PromptService, prompt_id: str):
+    """
+    DELETE a prompt from tables: prompt, prompt_history and prompt_metrics
+    THIS IS FOR INTEGRATION TESTING ONLY - as production code should reserve
+    history
+    """
+    cursor = prompt_service.conn.cursor()
+    try:
+        # start transaction
+        cursor.execute("BEGIN TRANSACTION")
+
+        # delete from prompt_history first (due to composite primary key)
+        cursor.execute("""
+                       DELETE FROM prompt_history
+                       WHERE id = ?
+                       """, (prompt_id,))
+        prompt_history_rows_deleted = cursor.rowcount
+
+        # delete from prompt_metrics table if any exist
+        cursor.execute("""
+                       DELETE FROM prompt_metrics
+                       WHERE prompt_id = ?
+                       """, (prompt_id,))
+        prompt_metrics_rows_deleted = cursor.rowcount
+
+        # delete from prompt table (we do this last)
+        cursor.execute("""
+                       DELETE FROM prompt
+                       WHERE id = ?
+                       """, (prompt_id,))
+        prompt_rows_deleted = cursor.rowcount
+
+        prompt_service.conn.commit()
+        return {
+            "success": True,
+            "prompt_rows": prompt_rows_deleted,
+            "prompt_history_rows": prompt_history_rows_deleted,
+            "prompt_metrics_rows": prompt_metrics_rows_deleted
+        }
+
+    except Exception as e:
+        prompt_service.conn.rollback()
+        return {
+            "success": False,
+            "error": str(e)
+        }
 
 
 def test_prompt_loading(prompt_service: PromptService):
