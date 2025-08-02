@@ -1,3 +1,8 @@
+---
+allowed-tools: Bash(tools/*)
+description: scripts that can be perused and run where appropriate see the examples in this prompt
+---
+
 # CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
@@ -234,3 +239,24 @@ collect/
 
 ## Workflow Rules
 - I do not want a pr created if I don't have a branch already
+
+## Tools
+
+###IMPORTANT: 
+I have a directory from the main project directory called: tools/* wherein there scripts stored that you can use
+use
+
+- All of my tools in this directory are on my path and can be called directly.
+- You use these tools and see what they do by simply calling the tool name with `--llm`
+
+Example 1:
+```bash
+extract --llm
+```
+
+Example 2: 
+```bash
+createdb --llm
+```
+
+

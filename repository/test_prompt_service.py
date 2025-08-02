@@ -125,13 +125,24 @@ def test_save_prompt_in_db(prompt_service: PromptService):
         retrieved_plan = prompt_service.get_prompt_by_id(plan_prompt.id)
         assert retrieved_plan is not None
 
-        # TODO: update prompt and test the `update_prompt_in_db` function
+        # update prompt and increment the version
+        updated_text = cmd_prompt.data.content + "UPDATED TEXT"
+        cmd_prompt.data.content = updated_text
 
-        # TODO: retrieve the updated prompt again from the prompt table and
+        update_result = prompt_service.update_prompt_in_db(cmd_prompt)
+        assert update_result.success is True
+
+        # retrieve the updated prompt again from the prompt table and
         # validate the changes were persisted/updated
+        retrieved_prompt = prompt_service.get_prompt_by_id(cmd_prompt.id)
+        assert retrieved_prompt.data.content == updated_text
 
-        # TODO: retrieve the prompt by name and validate correct prompt
-        # retrieval
+        # retrieve the prompt by name
+        # and validate correct prompt retrieval
+        retrieved_prompt_by_name = prompt_service.get_prompt_by_name(
+            cmd_prompt.name)
+        assert retrieved_prompt_by_name is not None
+        assert retrieved_prompt_by_name.id == cmd_prompt.id
 
     finally:
         # Clean up test data - this will ALWAYS run, even if test fails
@@ -200,3 +211,13 @@ def test_prompt_loading(prompt_service: PromptService):
     plans = prompt_service.load_plans_from_disk()
     print(f"\nTotal plans loaded: {len(plans.loaded_prompts)}")
     assert len(plans.errors) == 0
+
+    prompts = cmds.loaded_prompts + plans.loaded_prompts
+
+    results = prompt_service.bulk_save_in_db(prompts)
+
+    bad_results = [result for result in results if not result.success]
+    good_results = [result for result in results if result.success]
+
+    print(f"\nGood Result count: {len(good_results)}")
+    print(f"\nBad Result count: {len(bad_results)}")

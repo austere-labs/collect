@@ -2,6 +2,7 @@ from pydantic import BaseModel, Field
 from datetime import datetime
 from enum import Enum
 from typing import Optional, List
+from config import Config
 
 
 class PromptPlanStatus(str, Enum):
@@ -17,14 +18,29 @@ class PromptType(str, Enum):
     CMD = "cmd"
 
 
-class CmdCategory(str, Enum):
-    GO = "go"
-    PYTHON = "python"
-    JS = "js"
-    ARCHIVE = "archive"
-    TOOLS = "tools"
-    MCP = "mcp"
-    UNCATEGORIZED = "uncategorized"
+def create_cmd_category_enum():
+    """Create CmdCategory enum dynamically from config"""
+    try:
+        config = Config()
+        subdirs = config.command_subdirs
+    except Exception:
+        # Fallback to default subdirs if config fails
+        subdirs = ['archive', 'go', 'js', 'mcp', 'python', 'tools']
+
+    # Build enum members dictionary
+    members = {}
+    for subdir in subdirs:
+        members[subdir.upper()] = subdir
+
+    # Always include UNCATEGORIZED as fallback
+    members['UNCATEGORIZED'] = 'uncategorized'
+
+    # Create enum using the functional API with type=str for JSON serialization
+    return Enum('CmdCategory', members, type=str)
+
+
+# Create the enum instance
+CmdCategory = create_cmd_category_enum()
 
 
 class PromptData(BaseModel):
@@ -33,7 +49,7 @@ class PromptData(BaseModel):
     status: PromptPlanStatus
     project: Optional[str]
     cmd_category: Optional[CmdCategory]
-    content: str  # Markdown content for plans, command content for cmds
+    content: str  # This is the actualy prompt content, in markdown
     description: Optional[str] = None
     tags: List[str] = Field(default_factory=list)
 

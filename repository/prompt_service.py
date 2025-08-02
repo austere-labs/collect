@@ -16,6 +16,7 @@ from repository.prompt_models import (
     PromptCreateResult,
     PromptDeleteResult,
 )
+from config import Config
 
 
 class PromptService:
@@ -80,53 +81,79 @@ class PromptService:
         """
         project_dir = Path(__file__).parent.parent
         claude_dir = project_dir / ".claude"
-        commands_dir = claude_dir / "commands"
+        gemini_dir = project_dir / ".gemini"
 
-        # Required directories
-        required_dirs = [
-            commands_dir,
-            commands_dir / "archive",
-            commands_dir / "go",
-            commands_dir / "js",
-            commands_dir / "mcp",
-            commands_dir / "python",
-            commands_dir / "tools"
-        ]
-        missing_dirs = []
-        created_dirs = []
+        # Get subdirectories from config
+        config = Config()
+        subdirs = config.command_subdirs
 
-        # get missing dirs and add any to missing_dirs list
-        for dir_path in required_dirs:
-            if not dir_path.exists():
-                missing_dirs.append(dir_path)
+        # Build required directories
+        required_dirs = {
+            "claude": [claude_dir / "commands"] +
+            [claude_dir / "commands" / subdir for subdir in subdirs],
+            "gemini": [gemini_dir / "commands"] +
+            [gemini_dir / "commands" / subdir for subdir in subdirs]
+        }
 
-        if missing_dirs:
-            print("📁 Creating missing command directories:")
-            for missing_dir in missing_dirs:
-                try:
-                    missing_dir.mkdir(parents=True, exist_ok=True)
-                    created_dirs.append(missing_dir)
-                    print(f"   ✅ Created: {
-                          missing_dir.relative_to(claude_dir)}")
-                except Exception as e:
-                    print(f"   ❌ Failed to create {
-                          missing_dir.relative_to(claude_dir)}: {e}")
-                    return False
+        # Check for missing directories by type
+        missing_by_type = {"claude": [], "gemini": []}
+        for dir_type, dirs in required_dirs.items():
+            for dir_path in dirs:
+                if not dir_path.exists():
+                    missing_by_type[dir_type].append(dir_path)
 
-            if created_dirs:
-                print(f"📁 Successfully created {
-                      len(created_dirs)} directories")
-        else:
+        # Count total missing
+        total_missing = sum(len(dirs) for dirs in missing_by_type.values())
+
+        if total_missing == 0:
             print("✅ All required command directories exist")
+            return True
 
-        return True
+        # Create missing directories
+        print(f"📁 Creating {total_missing} missing command directories:")
+        created_count = 0
+        failed = False
 
-    def load_cmds_from_disk(self) -> PromptLoadResult:
-        cmds_dir = Path(__file__).parent.parent / ".claude" / "commands"
+        for dir_type, missing_dirs in missing_by_type.items():
+            if missing_dirs:
+                print(f"\n   {dir_type.title()} directories:")
+                for missing_dir in missing_dirs:
+                    try:
+                        missing_dir.mkdir(parents=True, exist_ok=True)
+                        created_count += 1
+                        print(f"   ✅ Created: {
+                              missing_dir.relative_to(project_dir)}")
+                    except Exception as e:
+                        print(f"   ❌ Failed to create {
+                              missing_dir.relative_to(project_dir)}: {e}")
+                        failed = True
+
+        if created_count > 0:
+            print(f"\n📁 Successfully created {created_count} directories")
+
+        return not failed
+
+    def _load_cmds_from_directory(
+            self,
+            cmds_dir: Path,
+            source: str
+    ) -> Tuple[List[Prompt], List[LoadError]]:
+        """Load commands from a specific directory
+
+        Args:
+            cmds_dir: Path to the commands directory
+            source: Source identifier ('claude' or 'gemini')
+
+        Returns:
+            Tuple of (prompts list, errors list)
+        """
         prompts = []
         errors = []
 
-        # loop through the files in cmds dir and load prompts first
+        if not cmds_dir.exists():
+            return prompts, errors
+
+        # Loop through the files in cmds dir and load prompts first
         for file in cmds_dir.iterdir():
             if file.is_file() and file.suffix == '.md':
                 try:
@@ -145,11 +172,8 @@ class PromptService:
 
                         # Update file reference to the new path
                         file = new_file_path
-                        print(
-                            f"""
-                            📝 Renamed: {current_filename} → {fixed_filename}
-                            """
-                        )
+                        print(f"📝 Renamed: {current_filename} → {
+                              fixed_filename}")
 
                     prompt_content = file.read_text()
                     prompt = self.new_prompt_model(
@@ -158,6 +182,7 @@ class PromptService:
                         prompt_type=PromptType.CMD,
                         cmd_category=CmdCategory.UNCATEGORIZED,
                         status=PromptPlanStatus.DRAFT,
+                        tags=[source]  # Add source tag
                     )
                     prompts.append(prompt)
 
@@ -166,64 +191,90 @@ class PromptService:
                         LoadError(
                             filename=str(file),
                             error_message=str(e),
-
                             error_type=type(e).__name__,
                         )
                     )
 
-        # then cycle through the subdirs, create Prompt models and append
+        # Then cycle through the subdirs, create Prompt models and append
         for sub_dir in cmds_dir.iterdir():
             if sub_dir.is_dir():
-                cmd_category = CmdCategory(sub_dir.name.lower())
+                try:
+                    cmd_category = CmdCategory(sub_dir.name.lower())
 
-                for file in sub_dir.iterdir():
-                    try:
-                        if file.is_file() and file.suffix == '.md':
-                            # Check if filename adheres to naming rules
-                            current_filename = file.name
-                            if not self.check_filename(current_filename):
-                                # Normalize the filename
-                                fixed_filename = self.normalize_filename(
-                                    current_filename)
+                    for file in sub_dir.iterdir():
+                        try:
+                            if file.is_file() and file.suffix == '.md':
+                                # Check if filename adheres to naming rules
+                                current_filename = file.name
+                                if not self.check_filename(current_filename):
+                                    # Normalize the filename
+                                    fixed_filename = self.normalize_filename(
+                                        current_filename)
 
-                                # Create new file path with normalized name
-                                new_file_path = file.parent / fixed_filename
+                                    # Create new file path with normalized name
+                                    new_file_path = file.parent / fixed_filename
 
-                                # Rename the file on disk
-                                file.rename(new_file_path)
+                                    # Rename the file on disk
+                                    file.rename(new_file_path)
 
-                                # Update file reference to the new path
-                                file = new_file_path
-                                print(
-                                    f"""
-                                    📝 Renamed: {current_filename} → {fixed_filename}
-                                    """
+                                    # Update file reference to the new path
+                                    file = new_file_path
+                                    print(f"📝 Renamed: {current_filename} → {
+                                          fixed_filename}")
+
+                                prompt_content = file.read_text()
+                                prompt = self.new_prompt_model(
+                                    prompt_content=prompt_content,
+                                    name=file.name,
+                                    prompt_type=PromptType.CMD,
+                                    cmd_category=cmd_category,
+                                    status=PromptPlanStatus.DRAFT,
+                                    tags=[source]  # Add source tag
                                 )
+                                prompts.append(prompt)
 
-                            prompt_content = file.read_text()
-                            prompt_type = PromptType.CMD
-                            status = PromptPlanStatus.DRAFT
-
-                            prompt = self.new_prompt_model(
-                                prompt_content=prompt_content,
-                                name=file.name,
-                                prompt_type=prompt_type,
-                                cmd_category=cmd_category,
-                                status=status,
+                        except Exception as e:
+                            errors.append(
+                                LoadError(
+                                    filename=str(file),
+                                    error_message=str(e),
+                                    error_type=type(e).__name__
+                                )
                             )
-                            prompts.append(prompt)
+                except ValueError:
+                    # Skip directories that don't match valid CmdCategory values
+                    continue
 
-                    except Exception as e:
-                        errors.append(
-                            LoadError(
-                                filename=str(file),
-                                error_message=str(e),
-                                error_type=type(e).__name__
-                            )
-                        )
+        return prompts, errors
+
+    def load_cmds_from_disk(self) -> PromptLoadResult:
+        """Load commands from both .claude and .gemini directories
+
+        Returns:
+            PromptLoadResult: Combined results from both directories
+        """
+        project_dir = Path(__file__).parent.parent
+        claude_cmds_dir = project_dir / ".claude" / "commands"
+        gemini_cmds_dir = project_dir / ".gemini" / "commands"
+
+        all_prompts = []
+        all_errors = []
+
+        # Load from Claude directory
+        claude_prompts, claude_errors = self._load_cmds_from_directory(
+            claude_cmds_dir, "claude")
+        all_prompts.extend(claude_prompts)
+        all_errors.extend(claude_errors)
+
+        # Load from Gemini directory
+        gemini_prompts, gemini_errors = self._load_cmds_from_directory(
+            gemini_cmds_dir, "gemini")
+        all_prompts.extend(gemini_prompts)
+        all_errors.extend(gemini_errors)
+
         return PromptLoadResult(
-            loaded_prompts=prompts,
-            errors=errors,
+            loaded_prompts=all_prompts,
+            errors=all_errors,
         )
 
     def load_plans_from_disk(self) -> PromptLoadResult:
@@ -349,8 +400,15 @@ class PromptService:
 
         default_tags = []
         if cmd_category:
-            default_tags.append(cmd_category.value)
+            # Handle both enum and string values
+            if isinstance(cmd_category, str):
+                default_tags.append(cmd_category)
+            else:
+                default_tags.append(cmd_category.value)
         default_tags.append(prompt_type.value)
+
+        # Merge custom tags with default tags
+        all_tags = default_tags + (tags if tags else [])
 
         prompt_data = PromptData(
             type=prompt_type,
@@ -359,7 +417,7 @@ class PromptService:
             cmd_category=cmd_category,
             content=prompt_content,
             description=description,
-            tags=default_tags,
+            tags=all_tags,
         )
 
         content_hash = hashlib.sha256(
@@ -402,7 +460,11 @@ class PromptService:
         if prompt_type == PromptType.PLAN:
             create_name = project_name + "_" + prompt_status.value + "_" + name
         if prompt_type == PromptType.CMD:
-            create_name = cmd_category.value + "_" + name
+            # Handle both enum and string values
+            if isinstance(cmd_category, str):
+                create_name = cmd_category + "_" + name
+            else:
+                create_name = cmd_category.value + "_" + name
 
         return create_name
 
@@ -461,7 +523,7 @@ class PromptService:
         result = cursor.fetchone()
 
         if result:
-            return (True, result[0])  # Found: return True and the prompt ID
+            return (True, result['id'])  # Found: return True and the prompt ID
         else:
             # Not found: return False and empty string
             return (False, "")
@@ -538,16 +600,9 @@ class PromptService:
                     # case the prompt is newly generated from the disk and is
                     # not in the db
                     prompt.id = prompt_from_db.id
-                    # we increment the version here because the updated prompt
-                    # will be version +1 in the `prompt` table and we will
-                    # update prompt history with the latest version as well
-                    # so we have a complete history for the prompt in the
-                    # `prompt_history` table. This IS redundant storage of the
-                    # same prompt, but it makes it easier when looking at
-                    # the prompt_history table to see the entire history
-                    prompt.version = prompt_from_db.version + 1
 
                     return self.update_prompt_in_db(prompt)
+
             else:  # prompt doesn't exist in the database
                 # if we make it here we have a new prompt and it
                 # needs to be saved to the database for the first time
@@ -627,8 +682,32 @@ class PromptService:
             PromptCreateResult: Success/failure with details
         """
         try:
-            prompt_jsonb = prompt.data.model_dump_json()
             cursor = self.conn.cursor()
+
+            # first we get the existing prompt in the database
+            current_prompt = self.get_prompt_by_id(prompt.id)
+            if not current_prompt:
+                return PromptCreateResult(
+                    success=False,
+                    prompt_id=prompt.id,
+                    version=prompt.version,
+                    error_message=f"Prompt w id {prompt.id} not found",
+                    error="NotFoundError"
+                )
+            # then we increment the version
+            prompt.version = current_prompt.version + 1
+
+            # we need to recalculate the hash for the udpated prompt
+            # so we can properly compare for changes
+            prompt.content_hash = hashlib.sha256(
+                prompt.data.content.encode('utf-8')
+            ).hexdigest()
+
+            # process the PromptData model to to json
+            prompt_jsonb = prompt.data.model_dump_json()
+
+            # then we update the `updated_at` timestamp
+            prompt.updated_at = datetime.now(timezone.utc)
 
             # Update prompt table
             # NOTE: when writing the the jsonb field `data` we use jsonb
@@ -785,6 +864,7 @@ class PromptService:
         cursor = self.conn.cursor()
         try:
             # archive final state in prompt_history table before deletion
+            # we will not be deleting the version history of the prompt
             cursor.execute("""
                 INSERT INTO prompt_history (
                 id,
@@ -796,7 +876,9 @@ class PromptService:
                 change_summary)
                 SELECT id, version, data, content_hash, created_at, ?, ?
                 FROM prompt WHERE id = ?
-            """, (datetime.now(timezone.utc), 'DELETED - Final Version', prompt_id))
+            """,
+                           (datetime.now(timezone.utc),
+                            'DELETED - Final Version', prompt_id))
 
             # Delete only from the prompt table
             cursor.execute("DELETE FROM prompt WHERE id = ?", (prompt_id,))
@@ -822,8 +904,12 @@ class PromptService:
                 error_type=type(e).__name__
             )
 
-    def load_database(self, prompts: List[Prompt]) -> PromptLoadResult:
-        """Load plans into the database
+    def bulk_save_in_db(
+            self,
+            prompts: List[Prompt]
+    ) -> List[PromptCreateResult]:
+        """
+        Bulk load/save prompts into the database
 
         Args:
             plans: List of Plan objects to load into database
@@ -831,3 +917,5 @@ class PromptService:
         Returns:
             PlanLoadResult: Summary of the loading operation
         """
+
+        return [self.save_prompt_in_db(prompt) for prompt in prompts]
