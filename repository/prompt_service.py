@@ -15,6 +15,7 @@ from repository.prompt_models import (
     Prompt,
     PromptCreateResult,
     PromptDeleteResult,
+    PromptFlattenResult,
 )
 from config import Config
 
@@ -919,3 +920,318 @@ class PromptService:
         """
 
         return [self.save_prompt_in_db(prompt) for prompt in prompts]
+
+    def flatten_cmds_to_disk(self) -> List[PromptFlattenResult]:
+        """Flatten all cmd_category prompts from database to disk directories
+
+        Queries all CMD type prompts from database and writes them to:
+        - .claude/commands/{category}/{filename}
+        - .gemini/commands/{category}/{filename}
+
+        Returns:
+            List[PromptFlattenResult]: Individual results for each file written
+        """
+        results = []
+
+        try:
+            # Ensure command directories exist
+            if not self.cmd_check_dirs():
+                results.append(PromptFlattenResult(
+                    success=False,
+                    prompt_id="",
+                    prompt_name="",
+                    file_path="",
+                    cmd_category="",
+                    error_message="Failed to create command directories",
+                    error_type="DirectoryError"
+                ))
+                return results
+
+            # Query all CMD type prompts from database
+            cursor = self.conn.cursor()
+            cursor.execute("""
+                SELECT
+                    id,
+                    name,
+                    json(data) as data_json,
+                    version,
+                    content_hash,
+                    created_at,
+                    updated_at
+                FROM prompt
+                WHERE data ->> '$.type' = 'cmd'
+                ORDER BY name
+            """)
+
+            rows = cursor.fetchall()
+
+            if not rows:
+                results.append(PromptFlattenResult(
+                    success=True,
+                    prompt_id="",
+                    prompt_name="",
+                    file_path="",
+                    cmd_category="",
+                    error_message="No CMD prompts found in database",
+                    error_type=""
+                ))
+                return results
+
+            project_dir = Path(__file__).parent.parent
+
+            for row in rows:
+                try:
+                    # Parse the JSONB data back to PromptData
+                    data_dict = json.loads(row['data_json'])
+                    # `**` unpacks the dictionary into key words for pydantic
+                    prompt_data = PromptData(**data_dict)
+
+                    # Create Prompt object
+                    prompt = Prompt(
+                        id=row['id'],
+                        name=row['name'],
+                        data=prompt_data,
+                        version=row['version'],
+                        content_hash=row['content_hash'],
+                        created_at=row['created_at'],
+                        updated_at=row['updated_at']
+                    )
+
+                    # Get original filename from database name
+                    filename = self.parse_db_name(prompt.name, PromptType.CMD)
+
+                    # Get category, handle None/uncategorized case
+                    if prompt.data.cmd_category:
+                        if isinstance(prompt.data.cmd_category, str):
+                            category = prompt.data.cmd_category
+                        else:
+                            category = prompt.data.cmd_category.value
+                    else:
+                        category = "uncategorized"
+
+                    # Write to both claude and gemini directories
+                    for target_dir in ["claude", "gemini"]:
+                        try:
+                            target_path = project_dir / \
+                                f".{target_dir}" / "commands" / \
+                                category / filename
+
+                            # Ensure parent directory exists
+                            target_path.parent.mkdir(
+                                parents=True, exist_ok=True)
+
+                            # Write content to file
+                            target_path.write_text(
+                                prompt.data.content, encoding='utf-8')
+
+                            results.append(PromptFlattenResult(
+                                success=True,
+                                prompt_id=prompt.id,
+                                prompt_name=prompt.name,
+                                file_path=str(target_path),
+                                cmd_category=category,
+                                error_message="",
+                                error_type=""
+                            ))
+
+                        except Exception as e:
+                            results.append(PromptFlattenResult(
+                                success=False,
+                                prompt_id=prompt.id,
+                                prompt_name=prompt.name,
+                                file_path=str(
+                                    target_path) if 'target_path' in locals() else "",
+                                cmd_category=category,
+                                error_message=str(e),
+                                error_type=type(e).__name__
+                            ))
+
+                except Exception as e:
+                    results.append(PromptFlattenResult(
+                        success=False,
+                        prompt_id=row.get('id', ''),
+                        prompt_name=row.get('name', ''),
+                        file_path="",
+                        cmd_category="",
+                        error_message=f"Failed to process prompt: {str(e)}",
+                        error_type=type(e).__name__
+                    ))
+
+        except Exception as e:
+            results.append(PromptFlattenResult(
+                success=False,
+                prompt_id="",
+                prompt_name="",
+                file_path="",
+                cmd_category="",
+                error_message=f"Database query failed: {str(e)}",
+                error_type=type(e).__name__
+            ))
+
+        return results
+
+    def flatten_plans_to_disk(self) -> List[PromptFlattenResult]:
+        """Flatten all plan prompts from database to disk directories
+
+        Queries all PLAN type prompts from database and writes them to:
+        - _docs/plans/drafts/{filename}
+        - _docs/plans/approved/{filename}
+        - _docs/plans/completed/{filename}
+
+        Returns:
+            List[PromptFlattenResult]: Individual results for each file written
+        """
+        results = []
+
+        try:
+            # Ensure plan directories exist
+            if not self.plans_check_dirs():
+                results.append(PromptFlattenResult(
+                    success=False,
+                    prompt_id="",
+                    prompt_name="",
+                    file_path="",
+                    cmd_category="",
+                    error_message="Failed to create plan directories",
+                    error_type="DirectoryError"
+                ))
+                return results
+
+            # Query all PLAN type prompts from database
+            cursor = self.conn.cursor()
+            cursor.execute("""
+                SELECT
+                    id,
+                    name,
+                    json(data) as data_json,
+                    version,
+                    content_hash,
+                    created_at,
+                    updated_at
+                FROM prompt
+                WHERE data ->> '$.type' = 'plan'
+                ORDER BY name
+            """)
+
+            rows = cursor.fetchall()
+
+            if not rows:
+                results.append(PromptFlattenResult(
+                    success=True,
+                    prompt_id="",
+                    prompt_name="",
+                    file_path="",
+                    cmd_category="",
+                    error_message="No PLAN prompts found in database",
+                    error_type=""
+                ))
+                return results
+
+            project_dir = Path(__file__).parent.parent
+
+            # Status to directory mapping
+            status_dir_mapping = {
+                PromptPlanStatus.DRAFT.value: "drafts",
+                PromptPlanStatus.APPROVED.value: "approved",
+                PromptPlanStatus.COMPLETED.value: "completed"
+            }
+
+            for row in rows:
+                try:
+                    # Parse the JSONB data back to PromptData
+                    data_dict = json.loads(row['data_json'])
+                    prompt_data = PromptData(**data_dict)
+
+                    # Create Prompt object
+                    prompt = Prompt(
+                        id=row['id'],
+                        name=row['name'],
+                        data=prompt_data,
+                        version=row['version'],
+                        content_hash=row['content_hash'],
+                        created_at=row['created_at'],
+                        updated_at=row['updated_at']
+                    )
+
+                    # Validate project name for PLAN type prompts
+                    if not prompt.data.project:
+                        # PLAN type must have a project name
+                        results.append(PromptFlattenResult(
+                            success=False,
+                            prompt_id=prompt.id,
+                            prompt_name=prompt.name,
+                            file_path="",
+                            cmd_category="",
+                            error_message="PLAN type prompt missing required project name",
+                            error_type="MissingProjectError"
+                        ))
+                        continue
+
+                    if prompt.data.project != project_dir.name:
+                        # Skip this prompt - it belongs to a different project
+                        continue
+
+                    # Get original filename from database name
+                    filename = self.parse_db_name(prompt.name, PromptType.PLAN)
+
+                    # Get status directory
+                    status_value = prompt.data.status.value if hasattr(
+                        prompt.data.status, 'value') else str(prompt.data.status)
+                    status_dir = status_dir_mapping.get(status_value, "drafts")
+
+                    # Write to appropriate status directory
+                    try:
+                        target_path = project_dir / "_docs" / "plans" / status_dir / filename
+
+                        # Ensure parent directory exists
+                        target_path.parent.mkdir(parents=True, exist_ok=True)
+
+                        # Write content to file
+                        target_path.write_text(
+                            prompt.data.content, encoding='utf-8')
+
+                        results.append(PromptFlattenResult(
+                            success=True,
+                            prompt_id=prompt.id,
+                            prompt_name=prompt.name,
+                            file_path=str(target_path),
+                            cmd_category=status_dir,
+                            error_message="",
+                            error_type=""
+                        ))
+
+                    except Exception as e:
+                        results.append(PromptFlattenResult(
+                            success=False,
+                            prompt_id=prompt.id,
+                            prompt_name=prompt.name,
+                            file_path=str(
+                                target_path) if 'target_path' in locals() else "",
+                            cmd_category=status_dir,
+                            error_message=str(e),
+                            error_type=type(e).__name__
+                        ))
+
+                except Exception as e:
+                    results.append(PromptFlattenResult(
+                        success=False,
+                        prompt_id=row.get('id', ''),
+                        prompt_name=row.get('name', ''),
+                        file_path="",
+                        cmd_category="",
+                        error_message=f"Failed to process prompt: {str(e)}",
+                        error_type=type(e).__name__
+                    ))
+
+        except Exception as e:
+            results.append(PromptFlattenResult(
+                success=False,
+                prompt_id="",
+                prompt_name="",
+                file_path="",
+                cmd_category="",
+                error_message=f"Database query failed: {str(e)}",
+                error_type=type(e).__name__
+            ))
+
+        return results

@@ -100,3 +100,14 @@ class PromptDeleteResult(BaseModel):
     rows_affected: int
     error_message: Optional[str] = None
     error_type: Optional[str] = None
+
+
+class PromptFlattenResult(BaseModel):
+    """Result of flattening a prompt to disk"""
+    success: bool
+    prompt_id: str
+    prompt_name: str
+    file_path: str
+    cmd_category: str
+    error_message: Optional[str] = None
+    error_type: Optional[str] = None
