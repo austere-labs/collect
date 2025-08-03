@@ -6,7 +6,6 @@ app = marimo.App(width="medium")
 
 @app.cell
 def _():
-    import marimo as mo
     from repository.database import SQLite3Database
     from repository.prompt_service import PromptService
     from repository.prompt_models import(Prompt, PromptType, PromptPlanStatus, CmdCategory)

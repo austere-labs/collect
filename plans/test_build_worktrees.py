@@ -1,12 +1,10 @@
 import pytest
 import tempfile
-import shutil
 from pathlib import Path
 import subprocess
 import sys
 import os
-from unittest.mock import AsyncMock, patch
-import asyncio
+from unittest.mock import patch
 
 # Add the parent directory to the path so we can import collect
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -256,7 +254,7 @@ async def test_build_worktrees_correct_branch_names(approved_plans_dir, temp_git
     try:
         os.chdir(temp_git_repo)
         
-        result = await build_worktrees()
+        await build_worktrees()
         
         # Check that branches were created with correct names
         branch_result = subprocess.run(["git", "branch", "-a"], 
@@ -427,7 +425,7 @@ async def test_build_worktrees_auto_process_error_handling(approved_plans_dir, t
         
         # Mock processing to raise an exception
         with patch('plans.worktree.process_plans_in_worktrees', 
-                  side_effect=Exception("Processing failed")) as mock_process:
+                  side_effect=Exception("Processing failed")):
             result = await build_worktrees(auto_process=True)
         
         # Worktrees should still be created successfully
@@ -525,7 +523,7 @@ Use the Write tool to create the file.
         if "processing_results" in result:
             # Check if Claude actually created the file
             worktree_dir = temp_git_repo.parent / "collect-test-echo"
-            test_file = worktree_dir / "test.txt"
+            _ = worktree_dir / "test.txt"
             
             # This might or might not succeed depending on Claude's response
             # Just verify the structure is correct

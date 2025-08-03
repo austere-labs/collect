@@ -161,7 +161,7 @@ def main():
 
             # Print final summary
             print("=" * 60)
-            print(f"📊 FINAL SUMMARY:")
+            print("📊 FINAL SUMMARY:")
             print(f"   ✅ Total items loaded: {total_loaded}")
             print(f"   ❌ Total errors: {total_errors}")
 

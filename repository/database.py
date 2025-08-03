@@ -4,7 +4,6 @@ from contextlib import contextmanager
 from typing import Generator
 
 # Import and register custom datetime adapters for Python 3.12+ compatibility
-from . import datetime_adapters
 
 
 class SQLite3Database:

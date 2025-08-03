@@ -1,7 +1,6 @@
 """Test the custom datetime adapters for SQLite3 compatibility."""
 
 import pytest
-import sqlite3
 import warnings
 from datetime import datetime, date
 from repository.database import SQLite3Database
