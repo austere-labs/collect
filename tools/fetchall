@@ -380,10 +380,21 @@ else
 fi
 
 # Check if .gemini/commands has any files, if not copy from .claude/commands
-GEMINI_FILE_COUNT=$(find "$BASE_DIR/.gemini/commands" -name "*.md" -type f 2>/dev/null | wc -l)
+# First ensure the directory exists
+if [ ! -d "$BASE_DIR/.gemini/commands" ]; then
+    mkdir -p "$BASE_DIR/.gemini/commands"
+fi
+
+GEMINI_FILE_COUNT=$(find "$BASE_DIR/.gemini/commands" -name "*.md" -type f 2>/dev/null | wc -l | tr -d ' ')
+print_info "Found $GEMINI_FILE_COUNT .md files in .gemini/commands"
+
 if [ "$GEMINI_FILE_COUNT" -eq 0 ]; then
     print_info "Copying .claude/commands/*.md to .gemini/commands..."
     if [ -d "$BASE_DIR/.claude/commands" ]; then
+        # Count files to copy
+        CLAUDE_FILE_COUNT=$(find "$BASE_DIR/.claude/commands" -name "*.md" -type f | wc -l | tr -d ' ')
+        print_info "Found $CLAUDE_FILE_COUNT .md files in .claude/commands to copy"
+        
         # Find all .md files in .claude/commands (including subdirectories) and copy them
         find "$BASE_DIR/.claude/commands" -name "*.md" -type f | while IFS= read -r file; do
             # Get the relative path from .claude/commands
@@ -409,6 +420,8 @@ if [ "$GEMINI_FILE_COUNT" -eq 0 ]; then
     else
         print_error "No .claude/commands directory found to copy from"
     fi
+else
+    print_info "Found $GEMINI_FILE_COUNT files in .gemini/commands, skipping copy"
 fi
 
 echo ""
