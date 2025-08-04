@@ -45,10 +45,14 @@ show_usage() {
     echo "  https://github.com/$REPO"
     echo ""
     echo "Resources downloaded:"
-    echo "  - movetools script"
+    echo "  - movetools script (if available)"
     echo "  - All scripts from /tools/*"
     echo "  - All .md files from /.claude/commands/*"
+    echo "  - All .md files from /.gemini/commands/*"
     echo "  - All .md files from /guides/*"
+    echo ""
+    echo "Additional actions:"
+    echo "  - If .gemini/commands/ doesn't exist in repo, copies from .claude/commands/"
     echo ""
     exit 0
 }
@@ -57,7 +61,8 @@ show_usage() {
 show_llm_usage() {
     echo "# fetchall Usage Guide"
     echo ""
-    echo "This script downloads multiple resources from the austere-labs/collect GitHub repository to the current directory."
+    echo "This script downloads multiple resources from the austere-labs/collect GitHub repository."
+    echo "If run from a 'tools' subdirectory, it will place files in the parent project directory."
     echo ""
     echo "## Usage"
     echo "\`\`\`bash"
@@ -72,18 +77,22 @@ show_llm_usage() {
     echo "## Repository Details"
     echo "- **Source Repository**: https://github.com/$REPO"
     echo "- **Resources Downloaded**:"
-    echo "  - \`movetools\` - Single script file saved to ./movetools"
+    echo "  - \`movetools\` - Single script file saved to ./movetools (if available)"
     echo "  - \`tools/*\` - All scripts from /tools/ directory"
     echo "  - \`.claude/commands/*.md\` - All command template files (recursive)"
+    echo "  - \`.gemini/commands/*.md\` - All Gemini command template files (recursive)"
     echo "  - \`guides/*.md\` - All guide markdown files"
     echo ""
     echo "## Local Directory Structure Created"
     echo "\`\`\`"
-    echo "./movetools           # Single script file"
+    echo "./movetools           # Single script file (if available)"
     echo "./tools/              # Scripts from /tools/*"
     echo "./.claude/commands/   # Command templates (*.md)"
+    echo "./.gemini/commands/   # Gemini command templates (*.md)"
     echo "./guides/             # Guide files (*.md)"
     echo "\`\`\`"
+    echo ""
+    echo "Note: When run from tools/ directory, files are placed in the parent directory."
     echo ""
     echo "## Examples"
     echo "\`\`\`bash"
@@ -101,6 +110,7 @@ show_llm_usage() {
     echo "- Downloads multiple resource types in one execution"
     echo "- Creates necessary directories automatically"
     echo "- Preserves directory structure for commands"
+    echo "- Downloads .gemini/commands if available, otherwise copies from .claude/commands"
     echo "- Sets executable permissions for script files"
     echo "- Shows progress for each file downloaded"
     echo "- Provides category-based summary"
@@ -164,9 +174,18 @@ fi
 STATS_FILE=$(mktemp)
 echo "0 0 0 0 0 0 0 0 0 0 0 0" > "$STATS_FILE"
 
+# Determine the base directory
+# If we're in a 'tools' subdirectory, use the parent directory
+# Otherwise use the current directory
+BASE_DIR="."
+if [ "$(basename "$PWD")" = "tools" ] && [ -d "../.git" -o -f "../pyproject.toml" -o -f "../main.py" ]; then
+    BASE_DIR=".."
+    print_info "Detected execution from tools/ directory, using parent directory"
+fi
+
 # Create directories if they don't exist
 print_info "Creating necessary directories..."
-DIRS_TO_CREATE=("./tools" "./.claude/commands" "./guides")
+DIRS_TO_CREATE=("$BASE_DIR/tools" "$BASE_DIR/.claude/commands" "$BASE_DIR/.gemini/commands" "$BASE_DIR/guides")
 
 for dir in "${DIRS_TO_CREATE[@]}"; do
     if [ ! -d "$dir" ]; then
@@ -316,9 +335,15 @@ process_md_directory() {
     done
 }
 
-# 1. Download movetools
+# 1. Download movetools (if it exists in the repository)
 print_info "Fetching movetools..."
-download_file "movetools" "./movetools" true "movetools"
+# First check if movetools exists in the repository
+MOVETOOLS_CHECK=$(gh api repos/$REPO/contents/movetools 2>/dev/null)
+if [ $? -eq 0 ]; then
+    download_file "movetools" "$BASE_DIR/movetools" true "movetools"
+else
+    print_info "movetools not found in repository, skipping..."
+fi
 
 echo ""
 
@@ -331,7 +356,7 @@ if [ $? -eq 0 ]; then
         type=$(echo "$item" | jq -r '.type')
         
         if [ "$type" = "file" ]; then
-            download_file "tools/$name" "./tools/$name" true "tools"
+            download_file "tools/$name" "$BASE_DIR/tools/$name" true "tools"
         fi
     done
 else
@@ -342,11 +367,53 @@ echo ""
 
 # 3. Download .claude/commands/*.md
 print_info "Fetching .claude/commands..."
-process_md_directory ".claude/commands" "./.claude/commands" "commands"
+process_md_directory ".claude/commands" "$BASE_DIR/.claude/commands" "commands"
+
+# 4. Download .gemini/commands/*.md (if it exists in the repo)
+print_info "Checking for .gemini/commands in repository..."
+GEMINI_CHECK=$(gh api repos/$REPO/contents/.gemini/commands 2>/dev/null)
+if [ $? -eq 0 ]; then
+    print_info "Found .gemini/commands in repository, downloading..."
+    process_md_directory ".gemini/commands" "$BASE_DIR/.gemini/commands" "commands"
+else
+    print_info ".gemini/commands not found in repository, will copy from .claude/commands..."
+fi
+
+# Check if .gemini/commands has any files, if not copy from .claude/commands
+GEMINI_FILE_COUNT=$(find "$BASE_DIR/.gemini/commands" -name "*.md" -type f 2>/dev/null | wc -l)
+if [ "$GEMINI_FILE_COUNT" -eq 0 ]; then
+    print_info "Copying .claude/commands/*.md to .gemini/commands..."
+    if [ -d "$BASE_DIR/.claude/commands" ]; then
+        # Find all .md files in .claude/commands (including subdirectories) and copy them
+        find "$BASE_DIR/.claude/commands" -name "*.md" -type f | while IFS= read -r file; do
+            # Get the relative path from .claude/commands
+            relative_path="${file#$BASE_DIR/.claude/commands/}"
+            target_file="$BASE_DIR/.gemini/commands/$relative_path"
+            target_dir=$(dirname "$target_file")
+            
+            # Create target directory if it doesn't exist
+            if [ ! -d "$target_dir" ]; then
+                mkdir -p "$target_dir"
+            fi
+            
+            # Copy the file
+            cp "$file" "$target_file"
+            if [ $? -eq 0 ]; then
+                echo -n "  $target_file... "
+                echo -e "${GREEN}✓${NC}"
+            else
+                echo -n "  $target_file... "
+                echo -e "${RED}✗${NC}"
+            fi
+        done
+    else
+        print_error "No .claude/commands directory found to copy from"
+    fi
+fi
 
 echo ""
 
-# 4. Download guides/*.md
+# 5. Download guides/*.md
 print_info "Fetching guides..."
 GUIDES_CONTENTS=$(gh api repos/$REPO/contents/guides 2>/dev/null)
 if [ $? -eq 0 ]; then
@@ -355,7 +422,7 @@ if [ $? -eq 0 ]; then
         type=$(echo "$item" | jq -r '.type')
         
         if [ "$type" = "file" ] && [[ "$name" == *.md ]]; then
-            download_file "guides/$name" "./guides/$name" false "guides"
+            download_file "guides/$name" "$BASE_DIR/guides/$name" false "guides"
         fi
     done
 else

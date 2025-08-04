@@ -3,8 +3,6 @@ import sqlite3
 from contextlib import contextmanager
 from typing import Generator
 
-# Import and register custom datetime adapters for Python 3.12+ compatibility
-
 
 class SQLite3Database:
     def __init__(self, db_path: str = "../data/collect.db"):

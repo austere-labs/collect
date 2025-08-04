@@ -15,7 +15,6 @@ from models.gemini_mcp import GeminiMCP
 from fetcher import Fetcher
 import pyperclip
 from reviewer.code_review import CodeReviewer
-from plans import worktree
 
 mcp = FastMCP("Collect")
 
@@ -34,96 +33,6 @@ async def run_code_review(from_file: str, to_file: str = "codereview"):
     """
     reviewer = CodeReviewer(to_file)
     return await reviewer.review_code(from_file, to_file)
-
-
-@mcp.tool()
-async def build_worktrees(auto_process: bool = False) -> dict:
-    """
-    Create git worktrees for approved plans in _docs/plans/approved/.
-    Optionally process plans automatically using Claude Code SDK.
-
-    Args:
-        auto_process: If True, automatically process plan files using
-        Claude SDK
-
-    Returns:
-        Dictionary with status, summary, and optional processing results
-    """
-    try:
-        # Validate the build environment
-        validation_result = worktree.validate_build_environment()
-        if validation_result["status"] != "success":
-            return validation_result
-
-        # Find the approved plans directory
-        approved_plans_dir = Path("_docs/plans/approved/")
-
-        # Get all markdown files
-        plan_files = list(approved_plans_dir.glob("*.md"))
-        if not plan_files:
-            return {
-                "status": "info",
-                "message": f"No markdown files found in {approved_plans_dir}",
-            }
-
-        # Get parent directory
-        current_dir = Path.cwd()
-        parent_dir = current_dir.parent
-
-        # Create worktrees
-        created = []
-        skipped = []
-        failed = []
-
-        for file in sorted(plan_files):
-            try:
-                result = worktree.create(file, parent_dir)
-                if result.status == worktree.WorktreeStatus.CREATED:
-                    created.append(file.name)
-                elif result.status == worktree.WorktreeStatus.SKIPPED:
-                    skipped.append(file.name)
-                else:  # FAILED
-                    failed.append(f"{file.name}: {result.message}")
-            except Exception as e:
-                failed.append(f"{file.name} (error: {str(e)})")
-
-        # Get worktree list if any were created
-        worktree_list = ""
-        if created:
-            _, stdout, _ = worktree.run_command(["git", "worktree", "list"])
-            worktree_list = stdout
-
-        # Prepare base result
-        result = {
-            "status": "success",
-            "summary": {
-                "found": len(plan_files),
-                "created": len(created),
-                "skipped": len(skipped),
-                "failed": len(failed),
-            },
-            "details": {"created": created, "skipped": skipped, "failed": failed},
-            "worktree_dir": str(parent_dir),
-            "worktree_list": worktree_list,
-        }
-
-        # Process plans automatically if requested and worktrees were created
-        if auto_process and created:
-            try:
-                processing_results = await worktree.process_plans_in_worktrees(
-                    created, plan_files, parent_dir
-                )
-                result["processing_results"] = processing_results
-            except Exception as e:
-                result["processing_error"] = (
-                    f"Failed to process plans: {
-                        str(e)}"
-                )
-
-        return result
-
-    except Exception as e:
-        return {"status": "error", "message": f"Unexpected error: {str(e)}"}
 
 
 @mcp.tool()
@@ -251,26 +160,6 @@ async def get_docs(url: str, extract_value: str = None, ctx: Context = None) -> 
         prompt = prompt_prefatory + "\n\n"
         response = await gemini.build_prompt_from_url(url, prompt, ctx)
         return response.strip()
-
-
-@mcp.prompt()
-async def copy_clipboard_prompt(text: str) -> str:
-    """
-    I actually think the model can do this just fine without this prompt
-    This lives here only as an example
-    """
-    return f"""
-        # Use the instructions from {text} to create the text input for the
-        mcp tool defined in Task 1.
-
-        ## Task 1: Please use the mcp tool copy_clipboard
-
-        ```python
-        @mcp.tool()
-        async def copy_clipboard(text: str):
-            pyperclip.copy(text)
-        ```
-    """
 
 
 @mcp.tool()
