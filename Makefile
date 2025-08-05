@@ -28,6 +28,7 @@ test-single:
 check: 
 	make lint
 	make format
+	make movetools
 	make test-fast
 
 migrate:
