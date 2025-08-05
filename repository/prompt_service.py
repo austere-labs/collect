@@ -204,7 +204,7 @@ class PromptService:
 
                     for file in sub_dir.iterdir():
                         try:
-                            if file.is_file() and file.suffix == '.md':
+                            if file.is_file():
                                 # Check if filename adheres to naming rules
                                 current_filename = file.name
                                 if not self.check_filename(current_filename):
@@ -297,7 +297,7 @@ class PromptService:
                 status = status_mapping[subdir.name]
                 for file in subdir.iterdir():
                     try:
-                        if file.is_file() and file.suffix == '.md':
+                        if file.is_file():
                             # Check if filename adheres to naming rules
                             current_filename = file.name
                             if not self.check_filename(current_filename):
@@ -602,6 +602,8 @@ class PromptService:
                     # not in the db
                     prompt.id = prompt_from_db.id
 
+                    # Important to note that we will increment the version in
+                    # `self.update_prompt_in_db`, we do not increment it here
                     return self.update_prompt_in_db(prompt)
 
             else:  # prompt doesn't exist in the database
@@ -1235,3 +1237,82 @@ class PromptService:
             ))
 
         return results
+
+    def assign_prompt_to_projects(
+            self,
+            prompt_id: str,
+            project_names: List[str]):
+        """
+            Assign a prompt to specific projects
+        """
+        self.conn.execute(
+            """
+            UPDATE prompt
+            SET projects = json(?),
+                updated_at = datetime('now')
+            WHERE id = ?
+            """,
+            (json.dumps(project_names), prompt_id)
+        )
+        self.conn.commit()
+
+    def add_project_to_prompt(
+            self,
+            prompt_id: str,
+            project_name: str):
+        """
+        Add project to a prompt's project list
+        """
+        # retrieve project list from prompts table
+        cursor = self.conn.execute(
+            """
+            SELECT projects FROM prompt WHERE id = ?
+            """, (prompt_id,)
+        )
+        # should just be one row
+        row = cursor.fetchone()
+        if row:
+            # load current list of projects
+            current_projects = json.loads(row[0])
+            if project_name not in current_projects:
+                current_projects.append(project_name)
+                self.assign_prompt_to_projects(prompt_id, current_projects)
+
+    def mark_prompt_as_global(
+            self,
+            prompt_id: str):
+        """
+        Mark prompt as 'global' which will make it available to all projects
+        """
+        self.conn.execute(
+            """
+            UPDATE prompt
+            SET is_global = 1,
+                projects = '[]',
+                updated_at = datetime('now')
+            WHERE id = ?
+            """, (prompt_id,)
+        )
+        self.conn.commit()
+
+    def remove_project_from_prompt(
+            self,
+            project_name: str,
+            prompt_id: str) -> bool:
+        cursor = self.conn.cursor()
+        cursor.execute(
+            """
+            UPDATE prompt
+            SET projects = json_remove(projects,
+                '$[' || (
+                    SELECT key
+                    FROM json_each(projects)
+                    WHERE value = ?
+                ) || ']'
+            ),
+            updated_at = datetime('now')
+            WHERE id = ?
+            """, (project_name, prompt_id)
+        )
+        self.conn.commit()
+        return cursor.rowcount > 0

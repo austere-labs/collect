@@ -2,7 +2,7 @@
 -- depends: 
 
 -- Current prompt table
-CREATE TABLE prompt (
+CREATE TABLE IF NOT EXISTS prompt (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
     data JSONB NOT NULL,
@@ -13,7 +13,7 @@ CREATE TABLE prompt (
 );
 
 -- Historical versions table
-CREATE TABLE prompt_history (
+CREATE TABLE IF NOT EXISTS prompt_history (
     id TEXT,
     version INTEGER,
     data JSONB NOT NULL,
@@ -25,7 +25,7 @@ CREATE TABLE prompt_history (
 );
 
 -- Metrics time-series table (optimized for prompt tracking)
-CREATE TABLE prompt_metrics (
+CREATE TABLE IF NOT EXISTS prompt_metrics (
     prompt_id TEXT,
     version INTEGER,
     metric_name TEXT,
@@ -36,11 +36,11 @@ CREATE TABLE prompt_metrics (
 );
 
 -- Performance-critical indexes
-CREATE INDEX idx_prompt_hash ON prompt(content_hash);
-CREATE INDEX idx_prompt_updated ON prompt(updated_at);
-CREATE INDEX idx_prompt_history_created ON prompt_history(created_at);
-CREATE INDEX idx_prompt_metrics_time ON prompt_metrics(timestamp);
+CREATE INDEX IF NOT EXISTS idx_prompt_hash ON prompt(content_hash);
+CREATE INDEX IF NOT EXISTS idx_prompt_updated ON prompt(updated_at);
+CREATE INDEX IF NOT EXISTS idx_prompt_history_created ON prompt_history(created_at);
+CREATE INDEX IF NOT EXISTS idx_prompt_metrics_time ON prompt_metrics(timestamp);
 
 -- Expression indexes on JSONB fields for common queries
-CREATE INDEX idx_prompt_status ON prompt(data ->> '$.status');
-CREATE INDEX idx_prompt_type ON prompt(data ->> '$.type');
+CREATE INDEX IF NOT EXISTS idx_prompt_status ON prompt(data ->> '$.status');
+CREATE INDEX IF NOT EXISTS idx_prompt_type ON prompt(data ->> '$.type');

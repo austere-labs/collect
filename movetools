@@ -1,7 +1,18 @@
 #!/bin/bash
 
-# Setup script to copy tools to user bin directory
+# Enhanced setup script to copy tools to user bin directory with colorful output
 # This script should be run from the collect project home directory
+
+# Color definitions for enhanced output
+readonly RED='\033[0;31m'
+readonly GREEN='\033[0;32m'
+readonly YELLOW='\033[1;33m'
+readonly BLUE='\033[0;34m'
+readonly PURPLE='\033[0;35m'
+readonly CYAN='\033[0;36m'
+readonly WHITE='\033[1;37m'
+readonly BOLD='\033[1m'
+readonly NC='\033[0m' # No Color
 
 # Set default target directory (configurable)
 TARGET_DIR=${1:-~/bin}
@@ -13,23 +24,59 @@ TARGET_DIR="${TARGET_DIR/#\~/$HOME}"
 PROJECT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 TOOLS_DIR="$PROJECT_DIR/tools"
 
+# Enhanced printing functions
+print_header() {
+    echo -e "${BOLD}${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${BOLD}${WHITE}  🔧 MOVETOOLS - Tool Installation Script${NC}"
+    echo -e "${BOLD}${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+}
+
+print_info() {
+    echo -e "${CYAN}ℹ${NC}  $1"
+}
+
+print_success() {
+    echo -e "${GREEN}✅${NC} $1"
+}
+
+print_warning() {
+    echo -e "${YELLOW}⚠️${NC}  $1"
+}
+
+print_error() {
+    echo -e "${RED}❌${NC} $1"
+}
+
+print_step() {
+    echo -e "\n${BOLD}${PURPLE}▶${NC} ${BOLD}$1${NC}"
+}
+
+print_item() {
+    echo -e "   ${GREEN}•${NC} $1"
+}
+
 # Function to display usage
 usage() {
-    echo "Usage: $0 [target_directory]"
+    print_header
+    echo -e "${BOLD}USAGE:${NC}"
+    echo -e "  $0 [target_directory]"
     echo ""
-    echo "Copies all tools from the tools/ directory to the specified target directory"
-    echo "and makes them executable."
+    echo -e "${BOLD}DESCRIPTION:${NC}"
+    echo -e "  Copies all tools from the tools/ directory to the specified target directory"
+    echo -e "  and makes them executable with enhanced visual feedback."
     echo ""
-    echo "Arguments:"
-    echo "  target_directory    Optional. Directory to copy tools to (default: ~/bin)"
+    echo -e "${BOLD}ARGUMENTS:${NC}"
+    echo -e "  ${CYAN}target_directory${NC}    Optional. Directory to copy tools to (default: ~/bin)"
     echo ""
-    echo "Options:"
-    echo "  --llm              Display this usage information"
+    echo -e "${BOLD}OPTIONS:${NC}"
+    echo -e "  ${YELLOW}--llm${NC}              Display this usage information"
     echo ""
-    echo "Examples:"
-    echo "  $0                 # Copies to ~/bin"
-    echo "  $0 ~/.local/bin    # Copies to ~/.local/bin"
-    echo "  $0 --llm           # Shows this help message"
+    echo -e "${BOLD}EXAMPLES:${NC}"
+    echo -e "  ${GREEN}$0${NC}                 # Copies to ~/bin"
+    echo -e "  ${GREEN}$0 ~/.local/bin${NC}    # Copies to ~/.local/bin"
+    echo -e "  ${GREEN}$0 --llm${NC}           # Shows this help message"
+    echo ""
+    echo -e "${BOLD}${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     exit 0
 }
 
@@ -38,57 +85,98 @@ if [ $# -eq 1 ] && [ "$1" = "--llm" ]; then
     usage
 fi
 
-echo "Setting up tools..."
-echo "Project directory: $PROJECT_DIR"
-echo "Tools directory: $TOOLS_DIR"
-echo "Target directory: $TARGET_DIR"
+# Display header
+print_header
+
+# Display configuration
+print_step "Configuration"
+print_info "Project directory: ${BOLD}$PROJECT_DIR${NC}"
+print_info "Tools directory: ${BOLD}$TOOLS_DIR${NC}"
+print_info "Target directory: ${BOLD}$TARGET_DIR${NC}"
 
 # Check if tools directory exists
+print_step "Validation"
 if [ ! -d "$TOOLS_DIR" ]; then
-    echo "Error: tools directory not found at $TOOLS_DIR"
+    print_error "Tools directory not found at $TOOLS_DIR"
     exit 1
 fi
+print_success "Tools directory found"
 
 # Create target directory if it doesn't exist
-mkdir -p "$TARGET_DIR"
+if [ ! -d "$TARGET_DIR" ]; then
+    print_info "Creating target directory..."
+    mkdir -p "$TARGET_DIR"
+    if [ $? -eq 0 ]; then
+        print_success "Target directory created"
+    else
+        print_error "Failed to create target directory"
+        exit 1
+    fi
+else
+    print_success "Target directory exists"
+fi
 
-# Copy all files from @tools directory
-echo ""
-echo "Copying tools..."
+# Copy all files from tools directory
+print_step "Copying Tools"
 tool_count=0
+copied_tools=()
+
 for tool in "$TOOLS_DIR"/*; do
     if [ -f "$tool" ]; then
         tool_name=$(basename "$tool")
-        echo "  - Copying $tool_name"
-        cp "$tool" "$TARGET_DIR/"
-        ((tool_count++))
+        if cp "$tool" "$TARGET_DIR/" 2>/dev/null; then
+            print_item "Copied ${BOLD}$tool_name${NC}"
+            copied_tools+=("$tool_name")
+            ((tool_count++))
+        else
+            print_error "Failed to copy $tool_name"
+        fi
     fi
 done
 
 if [ $tool_count -eq 0 ]; then
-    echo "No tools found in $TOOLS_DIR"
+    print_warning "No tools found in $TOOLS_DIR"
     exit 0
 fi
 
-# Make all tools in target directory executable
-echo ""
-echo "Making tools executable..."
-for tool in "$TARGET_DIR"/*; do
-    if [ -f "$tool" ]; then
-        tool_name=$(basename "$tool")
-        chmod u+x "$tool"
-        echo "  - Made $tool_name executable"
+# Make all copied tools executable
+print_step "Setting Permissions"
+executable_count=0
+for tool_name in "${copied_tools[@]}"; do
+    tool_path="$TARGET_DIR/$tool_name"
+    if chmod u+x "$tool_path" 2>/dev/null; then
+        print_item "Made ${BOLD}$tool_name${NC} executable"
+        ((executable_count++))
+    else
+        print_error "Failed to make $tool_name executable"
     fi
 done
 
-echo ""
-echo "Setup complete! $tool_count tools copied."
-echo "Tools are now available in: $TARGET_DIR"
+# Display completion summary
+print_step "Summary"
+print_success "Installation complete!"
+print_info "${BOLD}$tool_count${NC} tools copied and ${BOLD}$executable_count${NC} made executable"
+print_info "Tools are now available in: ${BOLD}$TARGET_DIR${NC}"
+
+# List installed tools
+if [ ${#copied_tools[@]} -gt 0 ]; then
+    echo ""
+    print_info "${BOLD}Installed tools:${NC}"
+    for tool_name in "${copied_tools[@]}"; do
+        echo -e "   ${GREEN}▸${NC} ${BOLD}$tool_name${NC}"
+    done
+fi
 
 # Check if target directory is in PATH
+echo ""
 if [[ ":$PATH:" != *":$TARGET_DIR:"* ]]; then
-    echo ""
-    echo "Note: $TARGET_DIR is not in your PATH."
-    echo "To use these tools from anywhere, add this line to your ~/.bashrc or ~/.zshrc:"
-    echo "  export PATH=\"$TARGET_DIR:\$PATH\""
+    print_warning "Target directory is not in your PATH"
+    echo -e "${YELLOW}💡${NC} To use these tools from anywhere, add this line to your ${BOLD}~/.bashrc${NC} or ${BOLD}~/.zshrc${NC}:"
+    echo -e "   ${CYAN}export PATH=\"$TARGET_DIR:\$PATH\"${NC}"
+else
+    print_success "Target directory is already in your PATH"
 fi
+
+echo -e "\n${BOLD}${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo -e "${BOLD}${GREEN}🎉 Setup completed successfully!${NC}"
+echo -e "${BOLD}${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
