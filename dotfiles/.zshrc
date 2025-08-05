@@ -64,6 +64,34 @@ alias gc='git commit -m '
 alias push='git push origin main'
 alias ga='git add '
 alias gb='git branch'
+alias gwl='git worktree list'
+
+# Worktree navigation functions
+cd1() {
+    local project_name=$(basename "$(pwd)")
+    local wt1_path="../${project_name}-wt1"
+    
+    if [[ -d "$wt1_path" ]]; then
+        cd "$wt1_path"
+        echo "Changed to worktree 1: $(pwd)"
+    else
+        echo "Worktree 1 not found: $wt1_path"
+        echo "Run 'trees' to create worktrees first."
+    fi
+}
+
+cd2() {
+    local project_name=$(basename "$(pwd)")
+    local wt2_path="../${project_name}-wt2"
+    
+    if [[ -d "$wt2_path" ]]; then
+        cd "$wt2_path"
+        echo "Changed to worktree 2: $(pwd)"
+    else
+        echo "Worktree 2 not found: $wt2_path"
+        echo "Run 'trees' to create worktrees first."
+    fi
+}
 
 # uv shortcuts
 alias env='source .venv/bin/activate'
