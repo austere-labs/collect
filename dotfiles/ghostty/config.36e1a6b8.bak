@@ -1,0 +1,8 @@
+background-opacity = 0.8
+
+theme = catppuccin-mocha
+keybind = shift+tab=text:\x1b
+macos-titlebar-style = hidden
+
+keybind = ctrl+3=reload_config
+keybind = global:cmd+shift+space=toggle_quick_terminal

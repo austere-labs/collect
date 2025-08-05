@@ -156,7 +156,7 @@ class PromptService:
 
         # Loop through the files in cmds dir and load prompts first
         for file in cmds_dir.iterdir():
-            if file.is_file() and file.suffix == '.md':
+            if file.is_file():
                 try:
                     # Check if filename adheres to naming rules
                     current_filename = file.name

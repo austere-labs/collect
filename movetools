@@ -177,6 +177,62 @@ else
     print_success "Target directory is already in your PATH"
 fi
 
+# Copy dotfiles section
+print_step "Copying Dotfiles"
+DOTFILES_DIR="$PROJECT_DIR/dotfiles"
+
+# Ensure dotfiles directory exists
+if [ ! -d "$DOTFILES_DIR" ]; then
+    print_info "Creating dotfiles directory..."
+    mkdir -p "$DOTFILES_DIR"
+    if [ $? -eq 0 ]; then
+        print_success "Dotfiles directory created"
+    else
+        print_error "Failed to create dotfiles directory"
+    fi
+else
+    print_success "Dotfiles directory exists"
+fi
+
+# Copy .zshrc
+if [ -f "$HOME/.zshrc" ]; then
+    if cp "$HOME/.zshrc" "$DOTFILES_DIR/.zshrc" 2>/dev/null; then
+        print_item "Copied ${BOLD}.zshrc${NC} from home directory"
+    else
+        print_error "Failed to copy .zshrc"
+    fi
+else
+    print_warning ".zshrc not found in home directory"
+fi
+
+# Copy ghostty config
+GHOSTTY_CONFIG_DIR="$HOME/.config/ghostty"
+if [ -d "$GHOSTTY_CONFIG_DIR" ]; then
+    # Create ghostty subdirectory in dotfiles
+    mkdir -p "$DOTFILES_DIR/ghostty"
+    if cp -r "$GHOSTTY_CONFIG_DIR"/* "$DOTFILES_DIR/ghostty/" 2>/dev/null; then
+        print_item "Copied ${BOLD}ghostty config${NC} from ~/.config/ghostty"
+    else
+        print_error "Failed to copy ghostty config"
+    fi
+else
+    print_warning "Ghostty config directory not found at ~/.config/ghostty"
+fi
+
+# Copy nvim init.lua
+NVIM_CONFIG="$HOME/.config/nvim/init.lua"
+if [ -f "$NVIM_CONFIG" ]; then
+    # Create nvim subdirectory in dotfiles
+    mkdir -p "$DOTFILES_DIR/nvim"
+    if cp "$NVIM_CONFIG" "$DOTFILES_DIR/nvim/init.lua" 2>/dev/null; then
+        print_item "Copied ${BOLD}nvim init.lua${NC} from ~/.config/nvim"
+    else
+        print_error "Failed to copy nvim init.lua"
+    fi
+else
+    print_warning "Nvim init.lua not found at ~/.config/nvim/init.lua"
+fi
+
 echo -e "\n${BOLD}${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo -e "${BOLD}${GREEN}🎉 Setup completed successfully!${NC}"
 echo -e "${BOLD}${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"

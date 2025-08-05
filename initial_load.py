@@ -127,7 +127,7 @@ def main():
 
     try:
         # Initialize database connection
-        database = SQLite3Database("data/prompts.db")
+        database = SQLite3Database("data/collect.db")
 
         with database.get_connection() as conn:
             # Create PromptService instance
