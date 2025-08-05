@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+
+# Create two git worktrees for the current project
+
+set -e  # Exit on error
+
+# Get the current project name from the directory
+PROJECT_NAME=$(basename "$(pwd)")
+
+echo "Creating worktrees for $PROJECT_NAME project..."
+
+# Create first worktree
+echo "Creating worktree 1: feature1 -> ../${PROJECT_NAME}-wt1"
+git worktree add -b feature1 ../${PROJECT_NAME}-wt1
+
+# Create second worktree  
+echo "Creating worktree 2: feature2 -> ../${PROJECT_NAME}-wt2"
+git worktree add -b feature2 ../${PROJECT_NAME}-wt2
+
+echo "Successfully created 2 worktrees!"
+echo ""
+echo "Worktrees created:"
+echo "  - ../${PROJECT_NAME}-wt1 (branch: feature1)"
+echo "  - ../${PROJECT_NAME}-wt2 (branch: feature2)"

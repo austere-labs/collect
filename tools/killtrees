@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+
+# Remove the two git worktrees created by the trees script
+
+set -e  # Exit on error
+
+# Get the current project name from the directory
+PROJECT_NAME=$(basename "$(pwd)")
+
+echo "Removing worktrees for $PROJECT_NAME project..."
+
+# Remove first worktree
+if git worktree list | grep -q "${PROJECT_NAME}-wt1"; then
+    echo "Removing worktree: ../${PROJECT_NAME}-wt1"
+    git worktree remove ../${PROJECT_NAME}-wt1 --force
+else
+    echo "Worktree ../${PROJECT_NAME}-wt1 not found, skipping"
+fi
+
+# Remove second worktree
+if git worktree list | grep -q "${PROJECT_NAME}-wt2"; then
+    echo "Removing worktree: ../${PROJECT_NAME}-wt2"
+    git worktree remove ../${PROJECT_NAME}-wt2 --force
+else
+    echo "Worktree ../${PROJECT_NAME}-wt2 not found, skipping"
+fi
+
+# Clean up any prunable worktree entries
+echo "Pruning worktree entries..."
+git worktree prune
+
+echo "Successfully removed worktrees!"
