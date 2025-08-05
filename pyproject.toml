@@ -9,6 +9,7 @@ dependencies = [
     "anthropic>=0.50.0",
     "beautifulsoup4>=4.13.4",
     "black>=25.1.0",
+    "fastapi>=0.116.1",
     "google-ai-generativelanguage>=0.6.15",
     "google-api-python-client>=2.169.0",
     "google-auth-httplib2>=0.2.0",
@@ -33,6 +34,7 @@ dependencies = [
     "readabilipy>=0.3.0",
     "ruff>=0.11.9",
     "tiktoken>=0.9.0",
+    "uvicorn>=0.34.2",
     "yoyo-migrations>=9.0.0",
 ]
 
