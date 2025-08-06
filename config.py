@@ -8,6 +8,7 @@ class Config:
 
     def __init__(self) -> None:
         self.project_id = os.getenv("GCP_PROJECT_ID")
+        self.port = os.getenv("PORT")
         self.anthropic_key_path = os.getenv("ANTHROPIC_API_KEY_PATH")
         self.anthropic_model_opus = os.getenv("ANTHROPIC_MODEL_OPUS")
         self.anthropic_model_sonnet = os.getenv("ANTHROPIC_MODEL_SONNET")
@@ -25,10 +26,13 @@ class Config:
         self.anthropic_default_code_review_model = os.getenv(
             "ANTHROPIC_DEFAULT_CODE_REVIEW_MODEL"
         )
-        self.xai_default_code_review_model = os.getenv("XAI_DEFAULT_CODE_REVIEW_MODEL")
+        self.xai_default_code_review_model = os.getenv(
+            "XAI_DEFAULT_CODE_REVIEW_MODEL")
         self.polygon_api_key_path = os.getenv("POLYGON_API_KEY_PATH")
         self.polygon_base_url = "https://api.polygon.io"
-        
+
         # Command subdirectories - read as comma-separated string
-        command_subdirs_str = os.getenv("COMMAND_SUBDIRS", "archive,go,js,mcp,python,tools")
-        self.command_subdirs = [subdir.strip() for subdir in command_subdirs_str.split(",")]
+        command_subdirs_str = os.getenv(
+            "COMMAND_SUBDIRS", "archive,go,js,mcp,python,tools")
+        self.command_subdirs = [subdir.strip()
+                                for subdir in command_subdirs_str.split(",")]
