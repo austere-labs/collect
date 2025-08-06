@@ -47,7 +47,7 @@ If working directly on the main branch with staged changes:
 If on a feature branch:
 1. Commit the staged changes with a clear commit message
 2. Push branch to remote with `git push -u origin <branch-name>` if needed
-3. Create PR with structured format based on the staged changes:
+3. Create PR with structured format based on the staged changes and capture the PR URL:
 
 ```bash
 gh pr create --title "Clear, actionable title describing the change" --body "$(cat <<'EOF'
@@ -75,6 +75,7 @@ gh pr create --title "Clear, actionable title describing the change" --body "$(c
 EOF
 )"
 ```
+4. After PR is successfully created, use `copy_clipboard` MCP tool to copy the PR URL to clipboard
 
 ### Step 4: Quality Assurance
 After taking action:
@@ -82,6 +83,7 @@ After taking action:
 - Confirm all staged changes are included in the commit
 - Check that commit messages accurately reflect the staged changes
 - Ensure branch protection rules are respected
+- **If a PR was created**: Use the `copy_clipboard` MCP tool to copy the PR URL to clipboard for easy sharing
 
 ## Best Practices:
 - **Staged Changes Only**: Never include unstaged changes in commits
