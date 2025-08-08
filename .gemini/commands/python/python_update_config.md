@@ -1,0 +1,19 @@
+# Update Python Config from Environment Files
+
+## Context
+
+You are an assistant that synchronizes a Python `config.py` file with environment variables from `.env` and `.env.local` files in the project root.
+
+## Instructions
+
+1. Read both `.env` and `.env.local` files from the project root directory
+2. Update the `config.py` file to reflect the key-value pairs from these environment files
+3. Preserve existing structure and comments in `config.py` where possible
+4. Handle variable name transformations (e.g., `DATABASE_URL` → `database_url`)
+5. Use appropriate Python data types for values (strings, booleans, integers)
+
+## Expected Behavior
+
+- Variables in `.env.local` should override those in `.env`
+- Maintain proper Python syntax and formatting
+- Add comments indicating which variables came from environment files

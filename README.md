@@ -1,118 +1,29 @@
-# Collect
+**Collect** is a command-line toolkit built with Python that functions as an MCP (Model Context Protocol) server. It is designed to assist with AI-driven development by providing tools to fetch web content, process it, and coordinate analysis across multiple AI models.
 
-An MCP (Model Context Protocol) server for fetching web content, processing HTML, and enabling multi-model AI analysis workflows.
+*   **Multi-Model Integration**: Interact with models from Google (Gemini), Anthropic (Claude), OpenAI (GPT), and XAI (Grok) through a single interface.
+*   **Content Processing**: Fetch content from URLs and convert HTML to clean markdown or plain text.
+*   **Code & Diff Analysis**: Perform code reviews on files or git diffs using any of the integrated AI models.
+*   **Secure Configuration**: Utilizes Google Cloud Secret Manager for API key storage.
+*   **Prompt Management**: A version-controlled system for managing and synchronizing prompts between the local filesystem and a SQLite database.
+*   **Token Utilities**: Tools to count token usage for various models to manage costs and context windows.
 
-## Features
+### Prompt Management System
 
-- **Web Content Fetching**: Download and process content from multiple URLs with automatic chunking
-- **HTML Processing**: Convert HTML to clean markdown or plain text using readabilipy and markdownify
-- **Multi-Model AI Integration**: Unified access to OpenAI, Anthropic, Gemini, and XAI APIs
-- **Code Review Workflows**: Send content to all AI models concurrently for comparison
-- **Token Management**: Count tokens across different providers with automatic chunking for large content
-- **Secure Configuration**: Google Cloud Secret Manager integration for API key storage
+The project includes a comprehensive system for managing prompts, which are categorized as either **Commands** (`CMD`) or **Plans** (`PLAN`). This system, located in the `repository/` directory, uses a SQLite database to store and version prompts, while also synchronizing them with the local filesystem.
 
-## MCP Tools
+*   **Core Components**:
+    *   `prompt_service.py`: The main service class that orchestrates loading, saving, versioning, and flattening prompts.
+    *   `prompt_models.py`: Defines the Pydantic data models for prompts, including `Prompt`, `PromptData`, and various status enums like `PromptType` and `PromptPlanStatus`.
+    *   `database.py`: Manages the connection to the `collect.db` SQLite database.
+    *   `20250727_01_create-prompt-tables.sql`: The database migration file that defines the schema for the `prompt` and `prompt_history` tables.
 
-### Content Processing
-- `collect(urls: List[str])` - Fetch content from multiple URLs, convert to markdown, handle chunking if >25k tokens
-- `strip_html(html: str)` - Convert HTML to plain text using BeautifulSoup
-- `to_markdown(html: str)` - Convert HTML to clean markdown using readabilipy and markdownify
+*   **Synchronization Workflow**:
+    1.  **Loading from Disk**: The `PromptService` can load prompts from predefined directories (`.claude/commands`, `.gemini/commands`, and `_docs/plans`).
+    2.  **Database Persistence**: Loaded prompts are saved to the SQLite database. The service checks for existing prompts by name. If a prompt already exists and its content has changed (verified via a SHA256 hash), a new version is created in the `prompt_history` table, and the main `prompt` table is updated.
+    3.  **Flattening to Disk**: The service can "flatten" the prompts from the database back to the filesystem, ensuring that the local files are consistent with the database state. This is useful for maintaining a clear and organized prompt library.
 
-### Multi-Model Analysis
-- `multi_model_code_review(output_dir: str, from_file: str = "diff.md")` - Send content to all AI models concurrently
+*   **Versioning**:
+    *   Every time a prompt's content is updated, its `version` number is incremented.
+    *   A complete record of all versions is stored in the `prompt_history` table, including a timestamp and a change summary. This allows for a full audit trail of how a prompt has evolved.
 
-### Model Management
-- `get_anthropic_model_list()` - Get available Anthropic models
-- `get_openai_model_list()` - Get available OpenAI models (handles reasoning models like o1/o3)
-- `get_xai_model_list()` - Get available XAI/Grok models
-
-### Token Utilities
-- `count_openai_tokens(text: str, model: str = "gpt-4")` - Count tokens using tiktoken
-- `count_anthropic_tokens(text: str)` - Count tokens via Anthropic API
-- `count_gemini_tokens(text: str)` - Count tokens via Gemini API
-- `count_grok_tokens(text: str)` - Count tokens via XAI API
-
-## Setup
-
-1. **Install dependencies:**
-   ```bash
-   uv sync
-   ```
-
-2. **Configure environment variables** in `.env`:
-   ```bash
-   # Required
-   GCP_PROJECT_ID=your-gcp-project-id
-   
-   # API Key paths (for Google Cloud Secret Manager)
-   ANTHROPIC_API_KEY_PATH=projects/PROJECT/secrets/anthropic-api-key/versions/latest
-   OPENAI_API_KEY_PATH=projects/PROJECT/secrets/openai-api-key/versions/latest
-   GEMINI_API_KEY_PATH=projects/PROJECT/secrets/gemini-api-key/versions/latest
-   XAI_API_KEY_PATH=projects/PROJECT/secrets/xai-api-key/versions/latest
-   
-   # Optional: Default model names
-   DEFAULT_ANTHROPIC_MODEL=claude-3-5-sonnet-20241022
-   DEFAULT_OPENAI_MODEL=gpt-4
-   DEFAULT_GEMINI_MODEL=gemini-1.5-pro
-   DEFAULT_XAI_MODEL=grok-beta
-   ```
-
-3. **Run the MCP server:**
-   ```bash
-   python collect.py
-   ```
-
-## MCP Configuration
-
-Add to your Claude Code config (`.mcp.json`):
-```json
-{
-  "collect": {
-    "command": "/Users/benjaminmetz/.local/bin/uv",
-    "args": [
-      "--directory",
-      "/Users/benjaminmetz/python/collect",
-      "run",
-      "collect.py"
-    ]
-  }
-}
-```
-
-## Usage Examples
-
-The server provides MCP tools for Claude Code and other MCP clients:
-
-- **Fetch web content**: Automatically converts HTML to markdown and copies to clipboard
-- **Code reviews**: Send diff files to multiple AI models for comparative analysis
-- **Token counting**: Check token usage before sending to AI APIs
-- **Content chunking**: Automatically splits large content when exceeding token limits
-
-## Dependencies
-
-Core dependencies include:
-- `mcp[cli]` - MCP framework
-- `httpx` - HTTP client for web fetching
-- `anthropic`, `openai` - AI model APIs
-- `google-cloud-aiplatform` - Gemini integration and token counting
-- `tiktoken` - OpenAI token counting
-- `readabilipy`, `markdownify` - HTML to markdown conversion
-- `beautifulsoup4` - HTML parsing
-
-## Testing
-
-Run tests with:
-```bash
-pytest
-```
-
-Tests cover all MCP tools, AI model integrations, and async token counting functionality.
-
-urls for testing fetcher:  
-```
-
-url1 = "https://github.com/modelcontextprotocol/python-sdk/blob/main/README.md"
-url2 = "https://modelcontextprotocol.io/llms-full.txt"
-
-
-```
+This system ensures that prompts are treated as version-controlled assets within the project, providing a structured and auditable way to manage the instructions given to the AI models.
