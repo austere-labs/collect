@@ -59,76 +59,118 @@ show_usage() {
 
 # Function to show LLM-formatted usage
 show_llm_usage() {
-    echo "# fetchall Usage Guide"
+    # Additional colors for LLM output
+    local CYAN='\033[0;36m'
+    local MAGENTA='\033[0;35m'
+    local BOLD='\033[1m'
+    local UNDERLINE='\033[4m'
+    local DIM='\033[2m'
+    local RESET='\033[0m'
+    
+    # Box drawing characters
+    local BOX_TOP="╔═══════════════════════════════════════════════════════════════════════╗"
+    local BOX_MID="╠═══════════════════════════════════════════════════════════════════════╣"
+    local BOX_BOT="╚═══════════════════════════════════════════════════════════════════════╝"
+    local BOX_SIDE="║"
+    
+    # Header
+    echo -e "${CYAN}${BOX_TOP}${RESET}"
+    echo -e "${CYAN}${BOX_SIDE}${RESET}  ${BOLD}${MAGENTA}📦 FETCHALL USAGE GUIDE${RESET}                                              ${CYAN}${BOX_SIDE}${RESET}"
+    echo -e "${CYAN}${BOX_SIDE}${RESET}  ${DIM}Downloads resources from austere-labs/collect repository${RESET}              ${CYAN}${BOX_SIDE}${RESET}"
+    echo -e "${CYAN}${BOX_MID}${RESET}"
     echo ""
-    echo "This script downloads multiple resources from the austere-labs/collect GitHub repository."
-    echo "If run from a 'tools' subdirectory, it will place files in the parent project directory."
+    
+    # Description
+    echo -e "${BOLD}${BLUE}📋 DESCRIPTION${RESET}"
+    echo -e "  Downloads multiple resources from the ${UNDERLINE}austere-labs/collect${RESET} GitHub repository."
+    echo -e "  ${DIM}If run from a 'tools' subdirectory, it will place files in the parent directory.${RESET}"
     echo ""
-    echo "## Usage"
-    echo "\`\`\`bash"
-    echo "./fetchall [options]"
-    echo "\`\`\`"
+    
+    # Usage
+    echo -e "${BOLD}${BLUE}🚀 USAGE${RESET}"
+    echo -e "  ${GREEN}$${RESET} ${CYAN}./fetchall${RESET} [${YELLOW}options${RESET}]"
     echo ""
-    echo "## Options"
-    echo "- \`--force\` - Overwrite existing files in the destination directories"
-    echo "- \`--help\` - Show basic usage information"
-    echo "- \`--llm\` - Show this LLM-formatted usage guide"
+    
+    # Options
+    echo -e "${BOLD}${BLUE}⚙️  OPTIONS${RESET}"
+    echo -e "  ${YELLOW}--force${RESET}    ${DIM}→${RESET} Overwrite existing files in destination directories"
+    echo -e "  ${YELLOW}--help${RESET}     ${DIM}→${RESET} Show basic usage information"
+    echo -e "  ${YELLOW}--llm${RESET}      ${DIM}→${RESET} Show this enhanced usage guide"
     echo ""
-    echo "## Repository Details"
-    echo "- **Source Repository**: https://github.com/$REPO"
-    echo "- **Resources Downloaded**:"
-    echo "  - \`movetools\` - Single script file saved to ./movetools (if available)"
-    echo "  - \`tools/*\` - All scripts from /tools/ directory"
-    echo "  - \`.claude/commands/*.md\` - All command template files (recursive)"
-    echo "  - \`.gemini/commands/*.md\` - All Gemini command template files (recursive)"
-    echo "  - \`guides/*.md\` - All guide markdown files"
+    
+    # Repository Details
+    echo -e "${BOLD}${BLUE}📂 REPOSITORY DETAILS${RESET}"
+    echo -e "  ${BOLD}Source:${RESET} ${UNDERLINE}https://github.com/$REPO${RESET}"
     echo ""
-    echo "## Local Directory Structure Created"
-    echo "\`\`\`"
-    echo "./movetools           # Single script file (if available)"
-    echo "./tools/              # Scripts from /tools/*"
-    echo "./.claude/commands/   # Command templates (*.md)"
-    echo "./.gemini/commands/   # Gemini command templates (*.md)"
-    echo "./guides/             # Guide files (*.md)"
-    echo "\`\`\`"
+    echo -e "  ${BOLD}Resources Downloaded:${RESET}"
+    echo -e "  ${GREEN}✓${RESET} ${CYAN}movetools${RESET}              ${DIM}→ Single script file (if available)${RESET}"
+    echo -e "  ${GREEN}✓${RESET} ${CYAN}tools/*${RESET}                ${DIM}→ All scripts from /tools/ directory${RESET}"
+    echo -e "  ${GREEN}✓${RESET} ${CYAN}.claude/commands/*.md${RESET}  ${DIM}→ Command template files (recursive)${RESET}"
+    echo -e "  ${GREEN}✓${RESET} ${CYAN}.gemini/commands/*.md${RESET}  ${DIM}→ Gemini command templates (recursive)${RESET}"
+    echo -e "  ${GREEN}✓${RESET} ${CYAN}guides/*.md${RESET}            ${DIM}→ Guide markdown files${RESET}"
     echo ""
-    echo "Note: When run from tools/ directory, files are placed in the parent directory."
+    
+    # Directory Structure
+    echo -e "${BOLD}${BLUE}🗂️  LOCAL DIRECTORY STRUCTURE${RESET}"
+    echo -e "  ${MAGENTA}┌─ Project Root${RESET}"
+    echo -e "  ${MAGENTA}├─${RESET} ${CYAN}movetools${RESET}           ${DIM}# Single script file${RESET}"
+    echo -e "  ${MAGENTA}├─${RESET} ${CYAN}tools/${RESET}              ${DIM}# Scripts directory${RESET}"
+    echo -e "  ${MAGENTA}├─${RESET} ${CYAN}.claude/${RESET}"
+    echo -e "  ${MAGENTA}│  └─${RESET} ${CYAN}commands/${RESET}       ${DIM}# Command templates${RESET}"
+    echo -e "  ${MAGENTA}├─${RESET} ${CYAN}.gemini/${RESET}"
+    echo -e "  ${MAGENTA}│  └─${RESET} ${CYAN}commands/${RESET}       ${DIM}# Gemini templates${RESET}"
+    echo -e "  ${MAGENTA}└─${RESET} ${CYAN}guides/${RESET}             ${DIM}# Guide files${RESET}"
     echo ""
-    echo "## Examples"
-    echo "\`\`\`bash"
-    echo "# Download all resources (skip existing)"
-    echo "./fetchall"
+    echo -e "  ${YELLOW}⚠️  Note:${RESET} ${DIM}When run from tools/ directory, files are placed in parent directory${RESET}"
     echo ""
-    echo "# Download and overwrite existing files"
-    echo "./fetchall --force"
+    
+    # Examples
+    echo -e "${BOLD}${BLUE}💡 EXAMPLES${RESET}"
+    echo -e "  ${DIM}# Download all resources (skip existing)${RESET}"
+    echo -e "  ${GREEN}$${RESET} ${CYAN}./fetchall${RESET}"
     echo ""
-    echo "# Show help information"
-    echo "./fetchall --help"
-    echo "\`\`\`"
+    echo -e "  ${DIM}# Download and overwrite existing files${RESET}"
+    echo -e "  ${GREEN}$${RESET} ${CYAN}./fetchall${RESET} ${YELLOW}--force${RESET}"
     echo ""
-    echo "## Features"
-    echo "- Downloads multiple resource types in one execution"
-    echo "- Creates necessary directories automatically"
-    echo "- Preserves directory structure for commands"
-    echo "- Downloads .gemini/commands if available, otherwise copies from .claude/commands"
-    echo "- Sets executable permissions for script files"
-    echo "- Shows progress for each file downloaded"
-    echo "- Provides category-based summary"
-    echo "- Skips existing files by default (use --force to overwrite)"
-    echo "- Uses GitHub CLI (gh) for secure API access"
+    echo -e "  ${DIM}# Show help information${RESET}"
+    echo -e "  ${GREEN}$${RESET} ${CYAN}./fetchall${RESET} ${YELLOW}--help${RESET}"
     echo ""
-    echo "## Requirements"
-    echo "- GitHub CLI (\`gh\`) must be installed and authenticated"
-    echo "- \`jq\` command-line JSON processor"
-    echo "- \`base64\` command for content decoding"
+    
+    # Features
+    echo -e "${BOLD}${BLUE}✨ FEATURES${RESET}"
+    echo -e "  ${GREEN}•${RESET} Downloads multiple resource types in one execution"
+    echo -e "  ${GREEN}•${RESET} Creates necessary directories automatically"
+    echo -e "  ${GREEN}•${RESET} Preserves directory structure for commands"
+    echo -e "  ${GREEN}•${RESET} Auto-copies .claude → .gemini if needed"
+    echo -e "  ${GREEN}•${RESET} Sets executable permissions for scripts"
+    echo -e "  ${GREEN}•${RESET} Shows real-time progress indicators"
+    echo -e "  ${GREEN}•${RESET} Provides category-based summary"
+    echo -e "  ${GREEN}•${RESET} Skips existing files by default"
+    echo -e "  ${GREEN}•${RESET} Uses GitHub CLI for secure API access"
     echo ""
-    echo "## Error Handling"
-    echo "The script handles common errors gracefully:"
-    echo "- Missing GitHub CLI installation"
-    echo "- Network connectivity issues"
-    echo "- Repository access problems"
-    echo "- File system permission errors"
-    echo "- Continues with other categories if one fails"
+    
+    # Requirements
+    echo -e "${BOLD}${BLUE}📦 REQUIREMENTS${RESET}"
+    echo -e "  ${RED}◆${RESET} ${BOLD}GitHub CLI${RESET} (${CYAN}gh${RESET})    ${DIM}→ Must be installed and authenticated${RESET}"
+    echo -e "  ${RED}◆${RESET} ${BOLD}jq${RESET}                  ${DIM}→ Command-line JSON processor${RESET}"
+    echo -e "  ${RED}◆${RESET} ${BOLD}base64${RESET}              ${DIM}→ For content decoding${RESET}"
+    echo ""
+    
+    # Error Handling
+    echo -e "${BOLD}${BLUE}🛡️  ERROR HANDLING${RESET}"
+    echo -e "  The script handles common errors gracefully:"
+    echo -e "  ${YELLOW}▸${RESET} Missing GitHub CLI installation"
+    echo -e "  ${YELLOW}▸${RESET} Network connectivity issues"
+    echo -e "  ${YELLOW}▸${RESET} Repository access problems"
+    echo -e "  ${YELLOW}▸${RESET} File system permission errors"
+    echo -e "  ${YELLOW}▸${RESET} Continues with other categories if one fails"
+    echo ""
+    
+    # Footer
+    echo -e "${CYAN}${BOX_BOT}${RESET}"
+    echo ""
+    echo -e "${DIM}For more information, visit: ${UNDERLINE}https://github.com/$REPO${RESET}"
+    
     exit 0
 }
 
