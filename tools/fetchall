@@ -34,26 +34,67 @@ print_header() {
 
 # Function to show usage
 show_usage() {
-    echo "Usage: $0 [options]"
+    # Additional colors for help output
+    local CYAN='\033[0;36m'
+    local MAGENTA='\033[0;35m'
+    local BOLD='\033[1m'
+    local UNDERLINE='\033[4m'
+    local DIM='\033[2m'
+    local RESET='\033[0m'
+    
+    # Header
+    echo -e "${CYAN}╔═══════════════════════════════════════════════════════════════╗${RESET}"
+    echo -e "${CYAN}║${RESET}  ${BOLD}${MAGENTA}📦 FETCHALL${RESET} - GitHub Resource Downloader                     ${CYAN}║${RESET}"
+    echo -e "${CYAN}╚═══════════════════════════════════════════════════════════════╝${RESET}"
     echo ""
-    echo "Options:"
-    echo "  --force    Overwrite existing files"
-    echo "  --help     Show this help message"
-    echo "  --llm      Show LLM-formatted usage"
+    
+    # Usage
+    echo -e "${BOLD}${BLUE}USAGE:${RESET}"
+    echo -e "  ${GREEN}$${RESET} ${CYAN}fetchall${RESET} [${YELLOW}options${RESET}]"
     echo ""
-    echo "This script downloads multiple resources from:"
-    echo "  https://github.com/$REPO"
+    
+    # Options
+    echo -e "${BOLD}${BLUE}OPTIONS:${RESET}"
+    echo -e "  ${YELLOW}--force${RESET}    ${DIM}→${RESET} Overwrite existing files"
+    echo -e "  ${YELLOW}--help${RESET}     ${DIM}→${RESET} Show this help message"
+    echo -e "  ${YELLOW}--llm${RESET}      ${DIM}→${RESET} Show detailed LLM-formatted usage guide"
     echo ""
-    echo "Resources downloaded:"
-    echo "  - movetools script (if available)"
-    echo "  - All scripts from /tools/*"
-    echo "  - All .md files from /.claude/commands/*"
-    echo "  - All .md files from /.gemini/commands/*"
-    echo "  - All .md files from /guides/*"
+    
+    # Repository
+    echo -e "${BOLD}${BLUE}SOURCE:${RESET}"
+    echo -e "  ${UNDERLINE}https://github.com/$REPO${RESET}"
     echo ""
-    echo "Additional actions:"
-    echo "  - If .gemini/commands/ doesn't exist in repo, copies from .claude/commands/"
+    
+    # Resources
+    echo -e "${BOLD}${BLUE}RESOURCES DOWNLOADED:${RESET}"
+    echo -e "  ${GREEN}✓${RESET} ${CYAN}movetools${RESET}              ${DIM}(single script, if available)${RESET}"
+    echo -e "  ${GREEN}✓${RESET} ${CYAN}tools/*${RESET}                ${DIM}(all scripts from /tools/)${RESET}"
+    echo -e "  ${GREEN}✓${RESET} ${CYAN}.claude/commands/*.md${RESET}  ${DIM}(command templates, recursive)${RESET}"
+    echo -e "  ${GREEN}✓${RESET} ${CYAN}.gemini/commands/*.md${RESET}  ${DIM}(Gemini templates, recursive)${RESET}"
+    echo -e "  ${GREEN}✓${RESET} ${CYAN}guides/*.md${RESET}            ${DIM}(documentation guides)${RESET}"
     echo ""
+    
+    # Special Features
+    echo -e "${BOLD}${BLUE}SPECIAL FEATURES:${RESET}"
+    echo -e "  ${YELLOW}•${RESET} Auto-creates missing directories"
+    echo -e "  ${YELLOW}•${RESET} Preserves directory structure for commands"
+    echo -e "  ${YELLOW}•${RESET} Auto-copies .claude → .gemini if needed"
+    echo -e "  ${YELLOW}•${RESET} Sets executable permissions on scripts"
+    echo -e "  ${YELLOW}•${RESET} Smart parent directory detection"
+    echo ""
+    
+    # Examples
+    echo -e "${BOLD}${BLUE}EXAMPLES:${RESET}"
+    echo -e "  ${DIM}# Download all (skip existing)${RESET}"
+    echo -e "  ${GREEN}$${RESET} ${CYAN}fetchall${RESET}"
+    echo ""
+    echo -e "  ${DIM}# Force overwrite existing files${RESET}"
+    echo -e "  ${GREEN}$${RESET} ${CYAN}fetchall${RESET} ${YELLOW}--force${RESET}"
+    echo ""
+    
+    # Footer
+    echo -e "${DIM}For detailed documentation, use: ${CYAN}fetchall --llm${RESET}"
+    
     exit 0
 }
 

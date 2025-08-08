@@ -5,6 +5,8 @@ You are acting as a Senior Principal Software Engineer reviewing staged code cha
 
 **IMPORTANT: This command only works with staged changes. If no changes are staged, inform the user to stage their changes first.**
 
+**IMPORTANT: If we are on the main branch DO NOT create a branch and do try to create a pr.**
+
 ## Workflow Steps:
 
 ### Step 1: Repository State Analysis
