@@ -95,31 +95,6 @@ def main():
 4. **Process Isolation**: Servers run independently
 5. **Clean Logs**: API output is captured, not mixed with MCP
 
-## Alternative Approaches
-
-### 1. Threading (Not Recommended)
-```python
-import threading
-thread = threading.Thread(target=lambda: uvicorn.run(app))
-thread.daemon = True
-thread.start()
-```
-**Issue**: FastAPI/uvicorn may conflict with MCP's event loop
-
-### 2. Multiprocessing
-```python
-from multiprocessing import Process
-api_process = Process(target=lambda: uvicorn.run(app))
-api_process.daemon = True
-api_process.start()
-```
-**Issue**: More complex, requires importing API app
-
-### 3. External Process Manager
-- Use systemd, supervisor, or docker-compose
-- **Pros**: Production-ready, robust
-- **Cons**: Additional configuration required
-
 ## Usage
 
 Once implemented, simply run:
@@ -136,7 +111,7 @@ This will:
 ## Port Configuration
 Ensure your `.env` file has:
 ```
-PORT=8000  # Or desired port for API
+PORT=8081  # Or desired port for API
 ```
 
 ## Debugging
