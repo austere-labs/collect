@@ -7,6 +7,60 @@
 *   **Prompt Management**: A version-controlled system for managing and synchronizing prompts between the local filesystem and a SQLite database.
 *   **Token Utilities**: Tools to count token usage for various models to manage costs and context windows.
 
+### MCP Server Configuration
+
+#### For Claude Code
+
+To enable Claude Code to use the `collect` MCP server, create a `.mcp.json` file in your project's root directory:
+
+1.  **Create the Configuration File**: In the root of your project where you want to use the collect tools, create a file named `.mcp.json`.
+2.  **Add Configuration**: Add the following JSON configuration:
+
+```json
+{
+  "mcpServers": {
+    "collect": {
+      "command": "/path/to/.local/bin/uv",
+      "args": [
+        "--directory",
+        "/path/to/collect",
+        "run",
+        "collect.py"
+      ]
+    }
+  }
+}
+```
+
+Replace `/path/to/.local/bin/uv` with the full path to your `uv` binary (you can find this with `which uv`), and `/path/to/collect` with the full path to your collect repository.
+
+#### For Gemini CLI
+
+To enable the Gemini CLI to automatically start the `collect` MCP server, you need to configure a `.gemini/settings.json` file in your project's root directory:
+
+1.  **Create the Directory**: If it doesn't already exist, create a `.gemini` directory in the root of the `collect` project.
+2.  **Create the Settings File**: Inside the `.gemini` directory, create a file named `settings.json`.
+3.  **Add Configuration**: Paste the following JSON configuration into the `settings.json` file.
+
+```json
+{
+  "mcpServers": {
+    "collect": {
+      "command": "uv",
+      "args": [
+        "run",
+        "python",
+        "collect.py"
+      ],
+      "workingDirectory": "/Users/benjaminmetz/python/collect",
+      "enabled": true
+    }
+  }
+}
+```
+
+This configuration tells the Gemini CLI how to launch the `collect` server, specifying the command, arguments, and working directory.
+
 ### Prompt Management System
 
 The project includes a comprehensive system for managing prompts, which are categorized as either **Commands** (`CMD`) or **Plans** (`PLAN`). This system, located in the `repository/` directory, uses a SQLite database to store and version prompts, while also synchronizing them with the local filesystem.

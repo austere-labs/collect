@@ -30,7 +30,7 @@ export PKG_CONFIG_PATH="$(brew --prefix sentencepiece)/lib/pkgconfig:$(brew --pr
 # shortcuts to project work
 alias gowork='cd $HOME/go/src/github.com/metzben && ls -lhG'
 alias py='cd $HOME/python && ls -l --color'
-alias collect='cd $HOME/python/collect && ls -l --color'
+alias collect='cd $HOME/python/collect'
 alias el='cd $HOME/go/src/github.com/metzben/elephnt && ls -l --color'
 alias tiny='cd $HOME/go/src/github.com/metzben/tinystack && ls -lhG'
 alias ai='cd $HOME/python/aiwork && ls -lhG'
@@ -65,6 +65,8 @@ alias push='git push origin main'
 alias ga='git add '
 alias gb='git branch'
 alias gwl='git worktree list'
+alias rebase='git pull --rebase origin main'
+alias pull='git pull origin main'
 
 # Worktree navigation functions
 cd1() {

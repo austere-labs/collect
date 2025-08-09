@@ -1,0 +1,14 @@
+{
+	"mcpServers": {
+		"collect": {
+			"command": "uv",
+			"args": [
+				"run",
+				"python",
+				"collect.py"
+			],
+			"workingDirectory": "/Users/benjaminmetz/python/collect",
+			"enabled": true
+		}
+	}
+}

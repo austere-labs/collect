@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Function extraction tool using ripgrep
 # Supports Python, JavaScript, and Go
