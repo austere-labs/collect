@@ -1,7 +1,6 @@
----
-allowed-tools: Bash(extract:*)
-description: Extract complete function or method definitions from source code
----
+allowed-tools = ["Bash(extract:*)"]
+description = "Extract complete function or method definitions from source code"
+prompt = """
 
 # Extract Function
 
@@ -74,3 +73,4 @@ The extracted function is displayed with:
 ## IMPORTANT
 
 This is a **read-only** operation that extracts and displays function code. After the extraction completes, **wait for further instructions** before taking any actions or making decisions based on the extracted code.
+"""

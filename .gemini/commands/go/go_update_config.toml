@@ -1,4 +1,5 @@
-<purpose>
+description = "Update Go env.go configuration with additional elements from .env file"
+prompt = """<purpose>
 Using the additional content designated in the content tags, we want to update env.go
 with the additional configuration elements.
 </purpose>
@@ -14,5 +15,5 @@ with the additional configuration elements.
 </instructions>
 
 <content>
-$ARGUMENTS
-</content>
+{{args}}
+</content>"""

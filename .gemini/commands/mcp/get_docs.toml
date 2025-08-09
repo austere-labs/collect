@@ -1,4 +1,5 @@
-# Extract Documentation from URLs
+description = "Extract specific documentation sections from web pages using Gemini AI"
+prompt = """# Extract Documentation from URLs
 
 Use the `get_docs` MCP tool to extract specific documentation sections from web pages using Gemini 2.5 Flash.
 
@@ -6,10 +7,10 @@ Use the `get_docs` MCP tool to extract specific documentation sections from web 
 
 ```
 Use the get_docs tool with:
-- url: $ARGUMENTS[0] (The URL of the documentation page)
-- extract_value: $ARGUMENTS[1] (The specific section/function/topic to extract)
+- url: (The URL of the documentation page)
+- extract_value: (The specific section/function/topic to extract)
 
-Example: get_docs($ARGUMENTS[0], $ARGUMENTS[1])
+Example: get_docs(url, extract_value)
 ```
 
 ## What it does
@@ -45,7 +46,9 @@ get_docs("https://docs.aws.amazon.com/s3/latest/userguide/", "bucket policies")
 
 ## Command Template
 
-When called, this will execute:
+When called with arguments, use them as follows:
 ```
-get_docs($ARGUMENTS[0], $ARGUMENTS[1])
+get_docs({{args}})
 ```
+
+Note: Provide the URL and the specific section to extract, separated by a space or comma."""

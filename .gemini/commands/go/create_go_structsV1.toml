@@ -1,4 +1,5 @@
-# Create Golang structs from API documentation for requests and responses
+description = "Create Golang structs from API documentation JSON responses"
+prompt = """# Create Golang structs from API documentation for requests and responses
 
 ## There are two phases to the work we need to do:  
 * Phase 1: we will call the provided URL using the `get_docs` tool
@@ -9,10 +10,9 @@
 
 ```
 Use the get_docs tool with:
-- url: $ARGUMENTS[0] (The URL of the documentation page)
-- extract_value: $ARGUMENTS[1] (The specific section/function/topic to extract)
+- url: {{args}} (The URL of the documentation page and specific section to extract, separated by space)
 
-Example: get_docs($ARGUMENTS[0], $ARGUMENTS[1])
+Example: get_docs(url, extract_value)
 ```
 
 ## What it does
@@ -33,7 +33,7 @@ This tool:
 
 When called, this will execute:
 ```
-get_docs($ARGUMENTS[0], $ARGUMENTS[1])
+get_docs(url, extract_value)
 ```
 Example usage for getting the json response from a url: 
 ```
@@ -45,11 +45,12 @@ get_docs("https://developer.tastytrade.com/api-guides/customer-account-info/",
 
 # JSON to Golang Struct Generator
 
-## After extracting the json structur, I'll automatically:
+## After extracting the json structure, I'll automatically:
 1. Identify all objects in the JSON
 2. Determine appropriate Golang types for each field
 3. Create properly formatted structs with JSON tags
 4. Handle nested objects and arrays properly and idiomatically per best practice in Golang
 5. Follow Go naming conventions
 6. Add helpful comments
-7. Ensure that if there are potential null values in the JSON (per the documentation) that we appropriately handle those with Golang pointers
+7. Ensure that if there are potential null values in the JSON (per the documentation) that we appropriately handle those with Golang pointers"""
+

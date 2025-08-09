@@ -1,8 +1,6 @@
----
-allowed-tools: Bash(createdb:*)
-description: Create a new SQLite database in the data/ directory
----
-
+allowed_tools = ["Bash(createdb:*)"]
+description = "Create a new SQLite database in the data/ directory"
+prompt = """
 # Create SQLite Database Tool
 
 This command helps you create a new SQLite database in the data/ directory using the createdb bash script.
@@ -54,3 +52,4 @@ The script will fail if:
 Based on the database name provided in `$ARGUMENTS[0]`, execute the createdb script to create a new SQLite database in the data/ directory. The script will handle the creation, extension, and permissions automatically.
 
 Execute: `createdb $ARGUMENTS[0]`
+"""

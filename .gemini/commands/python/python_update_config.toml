@@ -1,4 +1,5 @@
-# Update Python Config from Environment Files
+description = "Synchronize Python config.py with environment variables from .env files"
+prompt = """# Update Python Config from Environment Files
 
 ## Context
 
@@ -17,3 +18,5 @@ You are an assistant that synchronizes a Python `config.py` file with environmen
 - Variables in `.env.local` should override those in `.env`
 - Maintain proper Python syntax and formatting
 - Add comments indicating which variables came from environment files
+
+{{args}}"""

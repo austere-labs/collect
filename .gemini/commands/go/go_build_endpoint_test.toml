@@ -1,4 +1,5 @@
-# Create a test for the following endpoint func $ARGUMENTS in the file $ARGUMENTS
+description = "Create a Go test for an HTTP endpoint using fasthttp and pkg/assert"
+prompt = """# Create a test for the following endpoint func {{args}}
 
 ## Context
 
@@ -69,5 +70,4 @@ func TestHello(t *testing.T) {
 	assert.Equal(t, "Hello ben!", body)
 	assert.Equal(t, 200, res.StatusCode())
 }
-```
-
+```"""

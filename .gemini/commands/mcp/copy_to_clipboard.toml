@@ -1,4 +1,5 @@
-# Copy to Clipboard Tool
+description = "Copy various types of content to the system clipboard using MCP tool"
+prompt = """# Copy to Clipboard Tool
 
 This command helps you copy various types of content to the system clipboard using the MCP `copy_clipboard` tool.
 
@@ -13,7 +14,7 @@ async def copy_clipboard(text: str):
 
 ## Usage Instructions
 
-Use the `mcp__collect__copy_clipboard` tool to copy content based on the user's request from `$ARGUMENTS`.
+Use the `mcp__collect__copy_clipboard` tool to copy content based on the user's request.
 
 ### Common Use Cases
 
@@ -57,5 +58,6 @@ DEBUG=false
 
 ## Task: Copy Content to Clipboard
 
-Based on the user's request in `$ARGUMENTS`, use the `mcp__collect__copy_clipboard` tool to copy the appropriate content to their system clipboard. Ensure the content is well-formatted and ready for their intended use.
+Based on the user's request: {{args}}
 
+Use the `mcp__collect__copy_clipboard` tool to copy the appropriate content to their system clipboard. Ensure the content is well-formatted and ready for their intended use."""
