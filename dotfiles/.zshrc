@@ -55,7 +55,7 @@ db() {
 alias ask='claude -p '
 alias editmcp='nvim ~/Library/Application\ Support/Claude/claude_desktop_config.json'
 alias rip='claude --dangerously-skip-permissions'
-alias cmds='cd .claude/commands && ls -l'
+alias cmds='cd .claude/commands && ls -l --color'
 
 # git shortcuts
 alias gs='git status'
@@ -92,6 +92,20 @@ cd2() {
     else
         echo "Worktree 2 not found: $wt2_path"
         echo "Run 'trees' to create worktrees first."
+    fi
+}
+
+
+checkport() {
+    if [ -z "$1" ]; then
+        echo "Usage: checkport <port_number>"
+        return 1
+    fi
+    
+    if lsof -i :$1 2>/dev/null; then
+        echo "Port $1 is in use"
+    else
+        echo "Port $1 is available"
     fi
 }
 

@@ -62,26 +62,54 @@ usage() {
     echo -e "  $0 [target_directory]"
     echo ""
     echo -e "${BOLD}DESCRIPTION:${NC}"
-    echo -e "  Copies all tools from the tools/ directory to the specified target directory"
-    echo -e "  and makes them executable with enhanced visual feedback."
+    echo -e "  ${BOLD}MOVETOOLS${NC} is a comprehensive installation and backup script for the collect project."
+    echo -e "  It performs two main functions:"
+    echo ""
+    echo -e "  ${BOLD}1. Tool Installation:${NC}"
+    echo -e "     • Copies all executable tools from the tools/ directory to your bin directory"
+    echo -e "     • Makes all copied tools executable with proper permissions"
+    echo -e "     • Validates PATH configuration and provides setup guidance"
+    echo -e "     • Provides colorful visual feedback throughout the process"
+    echo ""
+    echo -e "  ${BOLD}2. Dotfiles Backup:${NC}"
+    echo -e "     • Backs up your .zshrc configuration to the project's dotfiles/ directory"
+    echo -e "     • Copies your Ghostty terminal configuration (~/.config/ghostty)"
+    echo -e "     • Backs up your Neovim init.lua configuration (~/.config/nvim/init.lua)"
+    echo -e "     • Creates organized dotfiles structure for version control"
     echo ""
     echo -e "${BOLD}ARGUMENTS:${NC}"
-    echo -e "  ${CYAN}target_directory${NC}    Optional. Directory to copy tools to (default: ~/bin)"
+    echo -e "  ${CYAN}target_directory${NC}    Optional. Directory to install tools (default: ~/bin)"
     echo ""
     echo -e "${BOLD}OPTIONS:${NC}"
-    echo -e "  ${YELLOW}--llm${NC}              Display this usage information"
+    echo -e "  ${YELLOW}--llm${NC}              Display comprehensive usage information (LLM-friendly)"
+    echo -e "  ${YELLOW}--help, -h${NC}         Display this usage information"
+    echo ""
+    echo -e "${BOLD}FEATURES:${NC}"
+    echo -e "  • Enhanced colorful terminal output with status indicators"
+    echo -e "  • Automatic directory creation with proper error handling"
+    echo -e "  • Tool validation and permission management"
+    echo -e "  • PATH verification with configuration suggestions"
+    echo -e "  • Comprehensive dotfiles backup across multiple applications"
+    echo -e "  • Installation summary with detailed feedback"
     echo ""
     echo -e "${BOLD}EXAMPLES:${NC}"
-    echo -e "  ${GREEN}$0${NC}                 # Copies to ~/bin"
-    echo -e "  ${GREEN}$0 ~/.local/bin${NC}    # Copies to ~/.local/bin"
-    echo -e "  ${GREEN}$0 --llm${NC}           # Shows this help message"
+    echo -e "  ${GREEN}$0${NC}                 # Install tools to ~/bin and backup dotfiles"
+    echo -e "  ${GREEN}$0 ~/.local/bin${NC}    # Install tools to ~/.local/bin and backup dotfiles"
+    echo -e "  ${GREEN}$0 --llm${NC}           # Show comprehensive help for AI assistants"
+    echo -e "  ${GREEN}$0 --help${NC}          # Show this help message"
+    echo ""
+    echo -e "${BOLD}DIRECTORY STRUCTURE:${NC}"
+    echo -e "  ${CYAN}tools/${NC}              # Source directory containing executable tools"
+    echo -e "  ${CYAN}dotfiles/zshrc${NC}      # Backed up shell configuration"
+    echo -e "  ${CYAN}dotfiles/ghostty/${NC}   # Backed up terminal configuration"
+    echo -e "  ${CYAN}dotfiles/nvim/${NC}      # Backed up Neovim configuration"
     echo ""
     echo -e "${BOLD}${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     exit 0
 }
 
-# Check for --llm flag
-if [ $# -eq 1 ] && [ "$1" = "--llm" ]; then
+# Check for help flags
+if [ $# -eq 1 ] && ([ "$1" = "--llm" ] || [ "$1" = "--help" ] || [ "$1" = "-h" ]); then
     usage
 fi
 
@@ -124,6 +152,10 @@ copied_tools=()
 for tool in "$TOOLS_DIR"/*; do
     if [ -f "$tool" ]; then
         tool_name=$(basename "$tool")
+        # Skip CLAUDE.md file
+        if [ "$tool_name" = "CLAUDE.md" ]; then
+            continue
+        fi
         if cp "$tool" "$TARGET_DIR/" 2>/dev/null; then
             print_item "Copied ${BOLD}$tool_name${NC}"
             copied_tools+=("$tool_name")
