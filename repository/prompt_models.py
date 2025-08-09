@@ -43,6 +43,12 @@ def create_cmd_category_enum():
 CmdCategory = create_cmd_category_enum()
 
 
+class Project(BaseModel):
+    id: str
+    github_url: str
+    description: str
+
+
 class PromptData(BaseModel):
     """Structured data for prompt JSONB field"""
     type: PromptType

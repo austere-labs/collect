@@ -7,6 +7,11 @@ marimo:
 movetools:
 	./movetools
 
+
+.PHONY: ensuregithub
+ensuregithub:
+	./tools/ensure-github-url
+
 lint:
 	ruff check .
 
@@ -29,7 +34,7 @@ check:
 	make lint
 	make format
 	make movetools
-	make test-fast
+	make ensuregithub
 
 migrate:
 	uv run yoyo apply --config yoyo.ini --batch
