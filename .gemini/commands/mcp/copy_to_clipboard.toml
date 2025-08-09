@@ -8,7 +8,7 @@ This command helps you copy various types of content to the system clipboard usi
 ```python
 @mcp.tool()
 async def copy_clipboard(text: str):
-    """Copy text to the system clipboard"""
+    '''Copy text to the system clipboard'''
     pyperclip.copy(text)
 ```
 

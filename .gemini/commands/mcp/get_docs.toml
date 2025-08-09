@@ -5,20 +5,21 @@ Use the `get_docs` MCP tool to extract specific documentation sections from web 
 
 ## Usage
 
-```
-Use the get_docs tool with:
-- url: (The URL of the documentation page)
-- extract_value: (The specific section/function/topic to extract)
+This tool takes a URL and an optional `extract_value`. You must provide the arguments as keyword arguments.
 
-Example: get_docs(url, extract_value)
-```
+### Get entire page
+`@get_docs url="<url>"`
+
+### Extract a specific section
+`@get_docs url="<url>", extract_value="<topic>"`
+
 
 ## What it does
 
 This tool:
-1. Fetches content from the specified URL
-2. Uses Gemini 2.5 Flash Preview to intelligently extract documentation for the requested section
-3. Returns the relevant documentation as clean, readable text
+1. Fetches content from the specified URL.
+2. Uses Gemini 2.5 Flash Preview to intelligently extract documentation for the requested section if `extract_value` is provided.
+3. Returns the relevant documentation as clean, readable text.
 
 ## Best for
 
@@ -29,20 +30,12 @@ This tool:
 
 ## Examples
 
-Extract Python json.dumps documentation:
-```
-get_docs("https://docs.python.org/3/library/json.html", "json.dumps")
-```
+### Extract Python json.dumps documentation
+`@get_docs url="https://docs.python.org/3/library/json.html", extract_value="json.dumps"`
 
-Extract React useEffect documentation:
-```
-get_docs("https://react.dev/reference/react/useEffect", "useEffect")
-```
+### Get the whole page for an AWS service
+`@get_docs url="https://docs.aws.amazon.com/s3/latest/userguide/s3-getting-started.html"`
 
-Extract specific AWS service documentation:
-```
-get_docs("https://docs.aws.amazon.com/s3/latest/userguide/", "bucket policies")
-```
 
 ## Command Template
 
@@ -51,4 +44,5 @@ When called with arguments, use them as follows:
 get_docs({{args}})
 ```
 
-Note: Provide the URL and the specific section to extract, separated by a space or comma."""
+**Note:** You must provide the arguments in `key="value"` format, separated by commas, just like in a Python function call.
+"""
