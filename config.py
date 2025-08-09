@@ -27,12 +27,15 @@ class Config:
             "ANTHROPIC_DEFAULT_CODE_REVIEW_MODEL"
         )
         self.xai_default_code_review_model = os.getenv(
-            "XAI_DEFAULT_CODE_REVIEW_MODEL")
-        self.polygon_api_key_path = os.getenv("POLYGON_API_KEY_PATH")
-        self.polygon_base_url = "https://api.polygon.io"
+            "XAI_DEFAULT_CODE_REVIEW_MODEL"
+        )
+
+        # GitHub configuration
+        self.github_url = os.getenv("GITHUB_URL")
 
         # Command subdirectories - read as comma-separated string
         command_subdirs_str = os.getenv(
-            "COMMAND_SUBDIRS", "archive,go,js,mcp,python,tools")
+            "COMMAND_SUBDIRS", "archive,go,js,mcp,python,tools"
+        )
         self.command_subdirs = [subdir.strip()
                                 for subdir in command_subdirs_str.split(",")]

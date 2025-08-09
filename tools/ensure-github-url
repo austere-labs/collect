@@ -1,0 +1,129 @@
+#!/usr/bin/env python3
+"""
+Ensures GITHUB_URL exists in .env file.
+If it doesn't exist, gets the URL using GitHub CLI and adds it to .env.
+"""
+
+import os
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+
+def get_project_root():
+    """Find the project root by looking for .env file."""
+    current = Path.cwd()
+    while current != current.parent:
+        if (current / ".env").exists():
+            return current
+        current = current.parent
+    raise FileNotFoundError("Could not find .env file in current directory or parent directories")
+
+
+def read_env_file(env_path):
+    """Read the .env file and return its contents."""
+    try:
+        with open(env_path, 'r') as f:
+            return f.read()
+    except FileNotFoundError:
+        return ""
+
+
+def has_github_url(env_content):
+    """Check if GITHUB_URL exists in the env content."""
+    return re.search(r'^GITHUB_URL=', env_content, re.MULTILINE) is not None
+
+
+def get_github_url():
+    """Get the GitHub URL using GitHub CLI."""
+    try:
+        result = subprocess.run(
+            ['gh', 'repo', 'view', '--json', 'url', '-q', '.url'],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        return result.stdout.strip()
+    except subprocess.CalledProcessError as e:
+        print(f"Error getting GitHub URL: {e}", file=sys.stderr)
+        return None
+    except FileNotFoundError:
+        print("GitHub CLI (gh) not found. Please install it first.", file=sys.stderr)
+        return None
+
+
+def add_github_url_to_env(env_path, github_url):
+    """Add GITHUB_URL to the .env file."""
+    with open(env_path, 'a') as f:
+        f.write(f"GITHUB_URL={github_url}\n")
+
+
+def show_help():
+    """Show help information."""
+    print("""
+ensure-github-url - Ensures GITHUB_URL exists in .env file
+
+DESCRIPTION:
+    This script checks if GITHUB_URL is present in the .env file.
+    If not found, it uses the GitHub CLI to get the repository URL
+    and adds it to the .env file.
+
+USAGE:
+    ensure-github-url [--llm]
+
+OPTIONS:
+    --llm    Show this help message (for LLM integration)
+
+REQUIREMENTS:
+    - GitHub CLI (gh) must be installed and authenticated
+    - Must be run from within a Git repository
+    - .env file must exist in the project root or parent directories
+
+EXAMPLES:
+    ensure-github-url          # Check and add GITHUB_URL if missing
+    ensure-github-url --llm    # Show this help
+    """)
+
+
+def main():
+    if len(sys.argv) > 1 and sys.argv[1] == '--llm':
+        show_help()
+        return
+
+    try:
+        # Find project root
+        project_root = get_project_root()
+        env_path = project_root / ".env"
+        
+        # Read current .env content
+        env_content = read_env_file(env_path)
+        
+        # Check if GITHUB_URL already exists
+        if has_github_url(env_content):
+            print(f"GITHUB_URL already exists in {env_path}")
+            return
+        
+        print(f"GITHUB_URL not found in {env_path}")
+        
+        # Get GitHub URL using CLI
+        github_url = get_github_url()
+        if not github_url:
+            sys.exit(1)
+        
+        print(f"Found GitHub URL: {github_url}")
+        
+        # Add to .env file
+        add_github_url_to_env(env_path, github_url)
+        print(f"Added GITHUB_URL to {env_path}")
+        
+    except FileNotFoundError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+    except Exception as e:
+        print(f"Unexpected error: {e}", file=sys.stderr)
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()
