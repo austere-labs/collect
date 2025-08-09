@@ -63,7 +63,7 @@ This configuration tells the Gemini CLI how to launch the `collect` server, spec
 
 ### Prompt Management System
 
-The project includes a comprehensive system for managing prompts, which are categorized as either **Commands** (`CMD`) or **Plans** (`PLAN`). This system, located in the `repository/` directory, uses a SQLite database to store and version prompts, while also synchronizing them with the local filesystem.
+The project includes a system for managing prompts **that is very much under construction**. Prompts are categorized as either **Commands** (`CMD`) or **Plans** (`PLAN`). This system, located in the `repository/` directory, uses a SQLite database to store and version prompts, while also synchronizing them with the local filesystem.
 
 *   **Core Components**:
     *   `prompt_service.py`: The main service class that orchestrates loading, saving, versioning, and flattening prompts.
