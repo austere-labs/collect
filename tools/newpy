@@ -54,6 +54,8 @@ llm_usage() {
     echo "  - Creates .claude/commands and .gemini/commands directories"
     echo "  - Downloads fetchall script from GitHub using gh CLI"
     echo "  - Runs fetchall to download tools, command templates, and guides"
+    echo "  - Initializes git repository"
+    echo "  - Optionally creates public GitHub repository (with user confirmation)"
     echo "  - Automatically launches Claude Code in the new project"
     echo ""
     echo "GENERATED FILES:"
@@ -111,8 +113,11 @@ llm_usage() {
     echo "  - Automatically activates virtual environment"
     echo "  - Creates SQLite database file"
     echo "  - Downloads and runs fetchall script to get all resources"
+    echo "  - Initializes git repository"
+    echo "  - Prompts for GitHub repository creation (creates public repo if confirmed)"
+    echo "  - Adds GITHUB_URL to .env file if repository is created"
     echo "  - Launches Claude Code in the project directory"
-    echo "  - Ready for FastAPI development with database migrations"
+    echo "  - Ready for FastAPI development with database migrations and version control"
     exit 0
 }
 
@@ -474,7 +479,48 @@ else
 fi
 
 echo
+echo "→ initializing git repository…"
+
+# 5. initialize git repository
+git init
+
+echo "✅  Git repository initialized"
+
+# 6. Ask user about creating GitHub repository
+echo
+echo "→ GitHub repository creation"
+echo "Would you like to create a public GitHub repository for this project? (y/N)"
+read -r response
+
+if [[ "$response" =~ ^([yY][eE][sS]|[yY])$ ]]; then
+    echo "→ creating GitHub repository…"
+    
+    # Check if gh CLI is available
+    if command -v gh &> /dev/null; then
+        # Create public GitHub repository
+        if gh repo create "$proj" --public --source=. --remote=origin --push; then
+            echo "✅  GitHub repository created and code pushed"
+            
+            # Add GITHUB_URL to .env file
+            GITHUB_URL="https://github.com/$(gh api user --jq '.login')/$proj"
+            echo "GITHUB_URL=$GITHUB_URL" >> .env
+            echo "✅  Added GITHUB_URL to .env file"
+        else
+            echo "✗  Failed to create GitHub repository"
+            echo "   You can create it manually later with: gh repo create $proj --public"
+        fi
+    else
+        echo "✗  GitHub CLI (gh) not found"
+        echo "   Install gh from: https://cli.github.com/"
+        echo "   Then create repository manually with: gh repo create $proj --public"
+    fi
+else
+    echo "⚠️  Skipping GitHub repository creation"
+    echo "   You can create it later with: gh repo create $proj --public"
+fi
+
+echo
 echo "→ launching Claude Code…"
 
-# 5. launch claude in the project dir
+# 7. launch claude in the project dir
 claude

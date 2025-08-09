@@ -23,6 +23,9 @@ newpy <project_name>
 - Makefile with common commands
 - Environment configuration (.env, .env.local)
 - Automatically downloads additional tools via fetchall
+- **Git repository initialization**
+- **Optional GitHub repository creation (with user confirmation)**
+- **Automatic GITHUB_URL configuration in .env**
 - Launches Claude Code after creation
 
 **Example:**
@@ -73,6 +76,35 @@ createdb <database_name>
 ```bash
 createdb myapp
 # Creates data/myapp.db
+```
+
+### 🔗 GitHub Integration Tools
+
+#### `ensure-github-url`
+Ensures GITHUB_URL exists in .env file by detecting the current GitHub repository.
+
+**Usage:**
+```bash
+ensure-github-url [options]
+```
+
+**Options:**
+- `--help`, `-h`: Show usage information
+- `--llm`: Show detailed LLM-friendly documentation
+
+**Features:**
+- Automatically detects git repository root
+- Uses GitHub CLI to fetch repository URL
+- Creates .env file if it doesn't exist
+- Adds GITHUB_URL variable to .env file
+- Idempotent operation (safe to run multiple times)
+- Integrates seamlessly with newpy-created projects
+
+**Examples:**
+```bash
+ensure-github-url          # Check and add GITHUB_URL if missing
+ensure-github-url --help   # Show usage information
+ensure-github-url --llm    # Show detailed documentation
 ```
 
 ### 🌳 Git Workflow Tools
@@ -220,8 +252,8 @@ Tools typically work with this structure:
 - **bash**: All scripts are bash-based
 - **uv**: Required for Python project creation (newpy, startmcp)
 - **sqlite3**: Required for database creation
-- **git**: Required for worktree management
-- **gh**: GitHub CLI for fetchall
+- **git**: Required for worktree management and ensure-github-url
+- **gh**: GitHub CLI for fetchall, newpy GitHub repo creation, and ensure-github-url
 - **jq**: JSON processor for fetchall
 - **ripgrep** (`rg`): Required for extract tool (expects at /opt/homebrew/bin/rg)
 
@@ -239,10 +271,12 @@ Several tools integrate with Claude Code:
 ## Best Practices
 
 1. **Project Creation**: Use `newpy` for FastAPI projects, `startmcp` for MCP servers
-2. **Worktrees**: Use `trees` for parallel feature development, clean up with `killtrees`
-3. **Resources**: Run `fetchall` in new projects to get latest tools and templates
-4. **Databases**: Use `createdb` to maintain consistent database creation
-5. **Code Search**: Use `extract` for precise function extraction with proper context
+2. **Version Control**: `newpy` automatically initializes git and offers GitHub repo creation
+3. **Environment Configuration**: Use `ensure-github-url` to verify GITHUB_URL in .env files
+4. **Worktrees**: Use `trees` for parallel feature development, clean up with `killtrees`
+5. **Resources**: Run `fetchall` in new projects to get latest tools and templates
+6. **Databases**: Use `createdb` to maintain consistent database creation
+7. **Code Search**: Use `extract` for precise function extraction with proper context
 
 ## Troubleshooting
 
@@ -267,3 +301,9 @@ Several tools integrate with Claude Code:
 - Ensure you're in a git repository
 - Check for uncommitted changes
 - Verify no existing worktrees with same names
+
+**ensure-github-url fails:**
+- Ensure you're in a git repository (run `git init` if needed)
+- Ensure GitHub CLI (`gh`) is installed and authenticated
+- Verify the repository exists on GitHub and you have access
+- Check that you're in the correct project directory

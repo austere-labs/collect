@@ -4,7 +4,6 @@ Ensures GITHUB_URL exists in .env file.
 If it doesn't exist, gets the URL using GitHub CLI and adds it to .env.
 """
 
-import os
 import re
 import subprocess
 import sys
@@ -12,13 +11,18 @@ from pathlib import Path
 
 
 def get_project_root():
-    """Find the project root by looking for .env file."""
+    """Find the project root by looking for .git directory."""
     current = Path.cwd()
     while current != current.parent:
-        if (current / ".env").exists():
+        if (current / ".git").exists():
             return current
         current = current.parent
-    raise FileNotFoundError("Could not find .env file in current directory or parent directories")
+    raise FileNotFoundError(
+        """
+        No git repository found.
+        Please initialize git with 'git init'
+        and create a GitHub repository first.
+        """)
 
 
 def read_env_file(env_path):
@@ -55,6 +59,8 @@ def get_github_url():
 
 def add_github_url_to_env(env_path, github_url):
     """Add GITHUB_URL to the .env file."""
+    # Create the file if it doesn't exist
+    env_path.parent.mkdir(parents=True, exist_ok=True)
     with open(env_path, 'a') as f:
         f.write(f"GITHUB_URL={github_url}\n")
 
@@ -70,53 +76,124 @@ DESCRIPTION:
     and adds it to the .env file.
 
 USAGE:
-    ensure-github-url [--llm]
+    ensure-github-url [options]
 
 OPTIONS:
-    --llm    Show this help message (for LLM integration)
+    --help, -h    Show this help message
+    --llm         Show detailed LLM-friendly documentation
 
 REQUIREMENTS:
     - GitHub CLI (gh) must be installed and authenticated
     - Must be run from within a Git repository
-    - .env file must exist in the project root or parent directories
+    - Will create .env file in project root if it doesn't exist
 
 EXAMPLES:
     ensure-github-url          # Check and add GITHUB_URL if missing
-    ensure-github-url --llm    # Show this help
+    ensure-github-url --help   # Show this help
+    ensure-github-url --llm    # Show detailed documentation
+    """)
+
+
+def show_llm_help():
+    """Show detailed LLM-friendly documentation."""
+    print("""
+=== LLM Usage Documentation for ensure-github-url ===
+
+PURPOSE:
+    Automatically configures the GITHUB_URL environment variable in .env files
+    by detecting the current GitHub repository using the GitHub CLI.
+
+USAGE:
+    ensure-github-url [options]
+
+PARAMETERS:
+    No required parameters - operates on current working directory
+
+BEHAVIOR:
+    - Searches for git repository root by looking for .git directory
+    - Reads existing .env file or prepares to create new one
+    - Checks if GITHUB_URL variable already exists in .env
+    - If missing, uses GitHub CLI to fetch repository URL
+    - Appends GITHUB_URL=<url> to .env file
+    - Creates .env file if it doesn't exist
+    - Provides detailed feedback on all operations
+
+REQUIREMENTS:
+    - Must be run from within a Git repository (has .git directory)
+    - GitHub CLI (gh) must be installed and authenticated
+    - Repository must exist on GitHub and be accessible to authenticated user
+    - Write permissions in project directory
+
+ERROR HANDLING:
+    - Fails if no git repository found (suggests git init)
+    - Fails if GitHub CLI not installed (provides installation link)
+    - Fails if GitHub CLI not authenticated or repo not accessible
+    - Creates directories and files as needed
+    - Handles existing .env files gracefully
+
+OUTPUT:
+    - Success: "GITHUB_URL already exists" or "Added GITHUB_URL to .env"
+    - Creates: GITHUB_URL=https://github.com/username/repository
+    - Errors: Detailed error messages with suggested solutions
+
+INTEGRATION:
+    - Works seamlessly with newpy-created projects
+    - Complements git repository initialization
+    - Essential for MCP and automation tools requiring repository URLs
+    - Safe to run multiple times (idempotent operation)
+
+EXAMPLES:
+    ensure-github-url              # Normal operation
+    ensure-github-url --help       # Show basic help
+    ensure-github-url --llm        # Show this detailed documentation
+
+TYPICAL WORKFLOW:
+    1. Create project with newpy (includes git init and optional GitHub repo creation)
+    2. Run ensure-github-url to verify/add GITHUB_URL to .env
+    3. Environment variable available for other tools and scripts
     """)
 
 
 def main():
-    if len(sys.argv) > 1 and sys.argv[1] == '--llm':
-        show_help()
-        return
+    # Check for help flags
+    if len(sys.argv) > 1:
+        arg = sys.argv[1]
+        if arg in ['--help', '-h']:
+            show_help()
+            return
+        elif arg == '--llm':
+            show_llm_help()
+            return
 
     try:
         # Find project root
         project_root = get_project_root()
         env_path = project_root / ".env"
-        
+
         # Read current .env content
         env_content = read_env_file(env_path)
-        
+
         # Check if GITHUB_URL already exists
         if has_github_url(env_content):
             print(f"GITHUB_URL already exists in {env_path}")
             return
-        
-        print(f"GITHUB_URL not found in {env_path}")
-        
+
+        if not env_path.exists():
+            print(f".env file not found at {env_path}, will create it")
+        else:
+            print(f"GITHUB_URL not found in {env_path}")
+
         # Get GitHub URL using CLI
         github_url = get_github_url()
         if not github_url:
             sys.exit(1)
-        
+
         print(f"Found GitHub URL: {github_url}")
-        
-        # Add to .env file
+
+        # Add to .env file (creates file if doesn't exist)
         add_github_url_to_env(env_path, github_url)
         print(f"Added GITHUB_URL to {env_path}")
-        
+
     except FileNotFoundError as e:
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
