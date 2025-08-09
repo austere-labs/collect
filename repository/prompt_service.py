@@ -59,19 +59,19 @@ class PromptService:
                     created_dirs.append(missing_dir)
                     print(
                         f"   ✅ Created: {
-                          missing_dir.relative_to(project_dir)}"
+                            missing_dir.relative_to(project_dir)}"
                     )
                 except Exception as e:
                     print(
                         f"   ❌ Failed to create {
-                          missing_dir.relative_to(project_dir)}: {e}"
+                            missing_dir.relative_to(project_dir)}: {e}"
                     )
                     return False
 
             if created_dirs:
                 print(
                     f"📁 Successfully created {
-                      len(created_dirs)} directories"
+                        len(created_dirs)} directories"
                 )
         else:
             print("✅ All required plan directories exist")
@@ -130,12 +130,12 @@ class PromptService:
                         created_count += 1
                         print(
                             f"   ✅ Created: {
-                              missing_dir.relative_to(project_dir)}"
+                                missing_dir.relative_to(project_dir)}"
                         )
                     except Exception as e:
                         print(
                             f"   ❌ Failed to create {
-                              missing_dir.relative_to(project_dir)}: {e}"
+                                missing_dir.relative_to(project_dir)}: {e}"
                         )
                         failed = True
 
@@ -169,20 +169,11 @@ class PromptService:
                     # Check if filename adheres to naming rules
                     current_filename = file.name
                     if not self.check_filename(current_filename):
-                        # Normalize the filename
-                        fixed_filename = self.normalize_filename(current_filename)
-
-                        # Create new file path with normalized name
-                        new_file_path = file.parent / fixed_filename
-
-                        # Rename the file on disk
-                        file.rename(new_file_path)
-
-                        # Update file reference to the new path
-                        file = new_file_path
+                        # Only rename files during explicit operations, not during loading
+                        # Skip file renaming when just loading/reading files
                         print(
-                            f"📝 Renamed: {current_filename} → {
-                              fixed_filename}"
+                            f"⚠️  File {
+                                current_filename} doesn't follow naming convention but will not be renamed during load operation"
                         )
 
                     prompt_content = file.read_text()
@@ -232,7 +223,7 @@ class PromptService:
                                     file = new_file_path
                                     print(
                                         f"📝 Renamed: {current_filename} → {
-                                          fixed_filename}"
+                                            fixed_filename}"
                                     )
 
                                 prompt_content = file.read_text()
@@ -380,7 +371,7 @@ class PromptService:
 
     def check_filename(self, filename: str) -> bool:
         """Check if filename adheres to naming rules
-        (underscores and .md extension)
+        (underscores and .md or .toml extension)
 
         Args:
             filename: The filename to check
@@ -388,8 +379,8 @@ class PromptService:
         Returns:
             bool: True if filename follows the rules, False otherwise
         """
-        # Check if filename has .md extension
-        if not filename.endswith(".md"):
+        # Check if filename has .md or .toml extension
+        if not (filename.endswith(".md") or filename.endswith(".toml")):
             return False
 
         # Check if filename contains hyphens (should use underscores)
@@ -434,7 +425,8 @@ class PromptService:
             tags=all_tags,
         )
 
-        content_hash = hashlib.sha256(prompt_content.encode("utf-8")).hexdigest()
+        content_hash = hashlib.sha256(
+            prompt_content.encode("utf-8")).hexdigest()
 
         timestamp = datetime.now(timezone.utc)
 
@@ -1065,7 +1057,8 @@ class PromptService:
                             )
 
                             # Ensure parent directory exists
-                            target_path.parent.mkdir(parents=True, exist_ok=True)
+                            target_path.parent.mkdir(
+                                parents=True, exist_ok=True)
 
                             # Write content to file
                             target_path.write_text(
@@ -1109,7 +1102,8 @@ class PromptService:
                             prompt_name=row.get("name", ""),
                             file_path="",
                             cmd_category="",
-                            error_message=f"Failed to process prompt: {str(e)}",
+                            error_message=f"Failed to process prompt: {
+                                str(e)}",
                             error_type=type(e).__name__,
                         )
                     )
@@ -1259,7 +1253,8 @@ class PromptService:
                         target_path.parent.mkdir(parents=True, exist_ok=True)
 
                         # Write content to file
-                        target_path.write_text(prompt.data.content, encoding="utf-8")
+                        target_path.write_text(
+                            prompt.data.content, encoding="utf-8")
 
                         results.append(
                             PromptFlattenResult(
@@ -1298,7 +1293,8 @@ class PromptService:
                             prompt_name=row.get("name", ""),
                             file_path="",
                             cmd_category="",
-                            error_message=f"Failed to process prompt: {str(e)}",
+                            error_message=f"Failed to process prompt: {
+                                str(e)}",
                             error_type=type(e).__name__,
                         )
                     )
