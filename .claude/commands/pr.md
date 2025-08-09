@@ -77,7 +77,11 @@ gh pr create --title "Clear, actionable title describing the change" --body "$(c
 EOF
 )"
 ```
-4. After PR is successfully created, use `copy_clipboard` MCP tool to copy the PR URL to clipboard
+4. **IMPORTANT** Please copy the url of the pull request to my clipboard:
+
+```bash
+echo {url} | pbcopy
+```
 
 ### Step 4: Quality Assurance
 After taking action:
