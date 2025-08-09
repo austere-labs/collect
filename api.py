@@ -32,8 +32,9 @@ config = Config()
 async def lifespan(app: FastAPI):
     # Startup
     logger.info("Starting prompt API service...")
-    app.state.db_path = config.db_path if hasattr(
-        config, 'db_path') else "data/collect.db"
+    app.state.db_path = (
+        config.db_path if hasattr(config, "db_path") else "data/collect.db"
+    )
     app.state.config = config
     logger.info(f"Database path set to: {app.state.db_path}")
     logger.info(f"Service running on port: {config.port}")
@@ -48,7 +49,7 @@ app = FastAPI(
     title="Prompt Service API",
     description="HTTP API for managing prompts and plans",
     version="1.0.0",
-    lifespan=lifespan
+    lifespan=lifespan,
 )
 
 app.add_middleware(

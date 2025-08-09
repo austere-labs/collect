@@ -43,7 +43,7 @@ def test_database_row_factory(test_db):
         cursor = conn.execute("SELECT 1 as test_col")
         row = cursor.fetchone()
         # Should be able to access by column name
-        assert row['test_col'] == 1
+        assert row["test_col"] == 1
 
 
 def test_database_pragma_settings(test_db):
@@ -55,7 +55,7 @@ def test_database_pragma_settings(test_db):
 
         # Check journal mode
         cursor = conn.execute("PRAGMA journal_mode")
-        assert cursor.fetchone()[0] == 'wal'
+        assert cursor.fetchone()[0] == "wal"
 
         # Check synchronous mode
         cursor = conn.execute("PRAGMA synchronous")

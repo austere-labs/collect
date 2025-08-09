@@ -2,12 +2,7 @@ import pytest
 from typing import List
 from repository.database import SQLite3Database
 from repository.prompt_service import PromptService
-from repository.prompt_models import (
-    Prompt,
-    PromptType,
-    PromptPlanStatus,
-    CmdCategory
-)
+from repository.prompt_models import Prompt, PromptType, PromptPlanStatus, CmdCategory
 
 
 @pytest.fixture
@@ -53,8 +48,9 @@ def test_check_dirs(prompt_service: PromptService):
 def test_load_cmds_from_disk(prompt_service: PromptService):
     load_results = prompt_service.load_cmds_from_disk()
     # Assert no errors occurred during loading
-    assert load_results.errors is None or len(load_results.errors) == 0, \
-        f"Expected no errors, but found {
+    assert (
+        load_results.errors is None or len(load_results.errors) == 0
+    ), f"Expected no errors, but found {
             len(load_results.errors) if load_results.errors else 0} errors"
 
 
@@ -63,8 +59,9 @@ def test_load_plans_from_disk(prompt_service: PromptService):
 
     print(f"\nTotal plans loaded: {len(load_results.loaded_prompts)}")
     # Assert no errors occurred during loading
-    assert load_results.errors is None or len(load_results.errors) == 0, \
-        f"Expected no errors, but found {
+    assert (
+        load_results.errors is None or len(load_results.errors) == 0
+    ), f"Expected no errors, but found {
             len(load_results.errors) if load_results.errors else 0} errors"
 
 
@@ -82,7 +79,7 @@ def create_test_prompts(prompt_service: PromptService) -> List[Prompt]:
             status=PromptPlanStatus.DRAFT,
             project="collect",
             description="A basic test prompt",
-            tags=["test", "python", "cmd"]
+            tags=["test", "python", "cmd"],
         )
 
     def new_plan_prompt(prompt_content: str) -> Prompt:
@@ -94,8 +91,9 @@ def create_test_prompts(prompt_service: PromptService) -> List[Prompt]:
             status=PromptPlanStatus.APPROVED,
             project="collect",
             description="A basic prd prompt",
-            tags=["test", "python", "plan"]
+            tags=["test", "python", "plan"],
         )
+
     return [new_cmd_prompt(prompt_content), new_plan_prompt(prompt_content)]
 
 
@@ -139,8 +137,7 @@ def test_save_prompt_in_db(prompt_service: PromptService):
 
         # retrieve the prompt by name
         # and validate correct prompt retrieval
-        retrieved_prompt_by_name = prompt_service.get_prompt_by_name(
-            cmd_prompt.name)
+        retrieved_prompt_by_name = prompt_service.get_prompt_by_name(cmd_prompt.name)
         assert retrieved_prompt_by_name is not None
         assert retrieved_prompt_by_name.id == cmd_prompt.id
 
@@ -167,24 +164,33 @@ def delete_prompt_completely(prompt_service: PromptService, prompt_id: str):
         cursor.execute("BEGIN TRANSACTION")
 
         # delete from prompt_history first (due to composite primary key)
-        cursor.execute("""
+        cursor.execute(
+            """
                        DELETE FROM prompt_history
                        WHERE id = ?
-                       """, (prompt_id,))
+                       """,
+            (prompt_id,),
+        )
         prompt_history_rows_deleted = cursor.rowcount
 
         # delete from prompt_metrics table if any exist
-        cursor.execute("""
+        cursor.execute(
+            """
                        DELETE FROM prompt_metrics
                        WHERE prompt_id = ?
-                       """, (prompt_id,))
+                       """,
+            (prompt_id,),
+        )
         prompt_metrics_rows_deleted = cursor.rowcount
 
         # delete from prompt table (we do this last)
-        cursor.execute("""
+        cursor.execute(
+            """
                        DELETE FROM prompt
                        WHERE id = ?
-                       """, (prompt_id,))
+                       """,
+            (prompt_id,),
+        )
         prompt_rows_deleted = cursor.rowcount
 
         prompt_service.conn.commit()
@@ -192,15 +198,12 @@ def delete_prompt_completely(prompt_service: PromptService, prompt_id: str):
             "success": True,
             "prompt_rows": prompt_rows_deleted,
             "prompt_history_rows": prompt_history_rows_deleted,
-            "prompt_metrics_rows": prompt_metrics_rows_deleted
+            "prompt_metrics_rows": prompt_metrics_rows_deleted,
         }
 
     except Exception as e:
         prompt_service.conn.rollback()
-        return {
-            "success": False,
-            "error": str(e)
-        }
+        return {"success": False, "error": str(e)}
 
 
 def test_prompt_loading(prompt_service: PromptService):

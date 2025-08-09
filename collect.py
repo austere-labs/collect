@@ -491,8 +491,7 @@ async def generate_prompt(prompt: str, target_model: str = None) -> str:
         # Set up Anthropic MCP client
         config = Config()
         secret_mgr = SecretManager(config.project_id)
-        anthropic_mcp = AnthropicMCP(
-            config, secret_mgr, config.anthropic_model_sonnet)
+        anthropic_mcp = AnthropicMCP(config, secret_mgr, config.anthropic_model_sonnet)
 
         # Call generate_prompt API with new signature
         response = anthropic_mcp.generate_prompt(task_content, target_model)
@@ -519,7 +518,7 @@ def main():
             ["uv", "run", "api.py"],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            text=True
+            text=True,
         )
 
         # Wait for API to initialize

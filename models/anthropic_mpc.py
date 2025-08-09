@@ -20,8 +20,7 @@ class AnthropicMCP:
         self.headers = self.build_headers()
 
     def build_headers(self) -> dict:
-        anthropic_key = self.secret_mgr.get_secret(
-            self.config.anthropic_key_path)
+        anthropic_key = self.secret_mgr.get_secret(self.config.anthropic_key_path)
 
         return {
             "x-api-key": anthropic_key,
@@ -85,8 +84,7 @@ class AnthropicMCP:
         if model is None:
             model = self.config.anthropic_model_sonnet
 
-        data = {"model": model, "messages": [
-            {"role": "user", "content": message}]}
+        data = {"model": model, "messages": [{"role": "user", "content": message}]}
 
         url = "https://api.anthropic.com/v1/messages/count_tokens"
         response = requests.post(url, headers=self.headers, json=data)
@@ -95,9 +93,9 @@ class AnthropicMCP:
         result = response.json()
         return result["input_tokens"]
 
-    def generate_prompt(self,
-                        task: str,
-                        target_model: str = None) -> PromptGenerateResponse:
+    def generate_prompt(
+        self, task: str, target_model: str = None
+    ) -> PromptGenerateResponse:
         """
         Generate an optimized prompt using Anthropic's experimental prompt tools API.
 
@@ -152,8 +150,7 @@ class AnthropicMCP:
             return PromptGenerateResponse(**response.json())
 
         except requests.exceptions.RequestException as e:
-            raise RuntimeError(
-                f"Failed to generate prompt from Anthropic API: {e}")
+            raise RuntimeError(f"Failed to generate prompt from Anthropic API: {e}")
         except KeyError as e:
             raise ValueError(f"Missing required configuration or secret: {e}")
         except Exception as e:
@@ -172,8 +169,7 @@ class AnthropicMCP:
             return PromptImproveResponse(**result)
 
         except requests.exceptions.RequestException as e:
-            raise RuntimeError(
-                f"Failed to generate prompt from Anthropic API: {e}")
+            raise RuntimeError(f"Failed to generate prompt from Anthropic API: {e}")
         except KeyError as e:
             raise ValueError(f"Missing required configuration or secret: {e}")
         except Exception as e:
@@ -192,8 +188,7 @@ class AnthropicMCP:
             return PromptTemplatizeResponse(**result)
 
         except requests.exceptions.RequestException as e:
-            raise RuntimeError(
-                f"Failed to templatize prompt from Anthropic API: {e}")
+            raise RuntimeError(f"Failed to templatize prompt from Anthropic API: {e}")
         except KeyError as e:
             raise ValueError(f"Missing required configuration or secret: {e}")
         except Exception as e:

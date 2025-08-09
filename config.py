@@ -26,9 +26,7 @@ class Config:
         self.anthropic_default_code_review_model = os.getenv(
             "ANTHROPIC_DEFAULT_CODE_REVIEW_MODEL"
         )
-        self.xai_default_code_review_model = os.getenv(
-            "XAI_DEFAULT_CODE_REVIEW_MODEL"
-        )
+        self.xai_default_code_review_model = os.getenv("XAI_DEFAULT_CODE_REVIEW_MODEL")
 
         # GitHub configuration
         self.github_url = os.getenv("GITHUB_URL")
@@ -37,5 +35,6 @@ class Config:
         command_subdirs_str = os.getenv(
             "COMMAND_SUBDIRS", "archive,go,js,mcp,python,tools"
         )
-        self.command_subdirs = [subdir.strip()
-                                for subdir in command_subdirs_str.split(",")]
+        self.command_subdirs = [
+            subdir.strip() for subdir in command_subdirs_str.split(",")
+        ]

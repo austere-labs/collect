@@ -41,7 +41,7 @@ class PromptService:
             plans_dir,
             plans_dir / "drafts",
             plans_dir / "approved",
-            plans_dir / "completed"
+            plans_dir / "completed",
         ]
 
         missing_dirs = []
@@ -57,16 +57,22 @@ class PromptService:
                 try:
                     missing_dir.mkdir(parents=True, exist_ok=True)
                     created_dirs.append(missing_dir)
-                    print(f"   ✅ Created: {
-                          missing_dir.relative_to(project_dir)}")
+                    print(
+                        f"   ✅ Created: {
+                          missing_dir.relative_to(project_dir)}"
+                    )
                 except Exception as e:
-                    print(f"   ❌ Failed to create {
-                          missing_dir.relative_to(project_dir)}: {e}")
+                    print(
+                        f"   ❌ Failed to create {
+                          missing_dir.relative_to(project_dir)}: {e}"
+                    )
                     return False
 
             if created_dirs:
-                print(f"📁 Successfully created {
-                      len(created_dirs)} directories")
+                print(
+                    f"📁 Successfully created {
+                      len(created_dirs)} directories"
+                )
         else:
             print("✅ All required plan directories exist")
 
@@ -90,10 +96,10 @@ class PromptService:
 
         # Build required directories
         required_dirs = {
-            "claude": [claude_dir / "commands"] +
-            [claude_dir / "commands" / subdir for subdir in subdirs],
-            "gemini": [gemini_dir / "commands"] +
-            [gemini_dir / "commands" / subdir for subdir in subdirs]
+            "claude": [claude_dir / "commands"]
+            + [claude_dir / "commands" / subdir for subdir in subdirs],
+            "gemini": [gemini_dir / "commands"]
+            + [gemini_dir / "commands" / subdir for subdir in subdirs],
         }
 
         # Check for missing directories by type
@@ -122,11 +128,15 @@ class PromptService:
                     try:
                         missing_dir.mkdir(parents=True, exist_ok=True)
                         created_count += 1
-                        print(f"   ✅ Created: {
-                              missing_dir.relative_to(project_dir)}")
+                        print(
+                            f"   ✅ Created: {
+                              missing_dir.relative_to(project_dir)}"
+                        )
                     except Exception as e:
-                        print(f"   ❌ Failed to create {
-                              missing_dir.relative_to(project_dir)}: {e}")
+                        print(
+                            f"   ❌ Failed to create {
+                              missing_dir.relative_to(project_dir)}: {e}"
+                        )
                         failed = True
 
         if created_count > 0:
@@ -135,9 +145,7 @@ class PromptService:
         return not failed
 
     def _load_cmds_from_directory(
-            self,
-            cmds_dir: Path,
-            source: str
+        self, cmds_dir: Path, source: str
     ) -> Tuple[List[Prompt], List[LoadError]]:
         """Load commands from a specific directory
 
@@ -162,8 +170,7 @@ class PromptService:
                     current_filename = file.name
                     if not self.check_filename(current_filename):
                         # Normalize the filename
-                        fixed_filename = self.normalize_filename(
-                            current_filename)
+                        fixed_filename = self.normalize_filename(current_filename)
 
                         # Create new file path with normalized name
                         new_file_path = file.parent / fixed_filename
@@ -173,8 +180,10 @@ class PromptService:
 
                         # Update file reference to the new path
                         file = new_file_path
-                        print(f"📝 Renamed: {current_filename} → {
-                              fixed_filename}")
+                        print(
+                            f"📝 Renamed: {current_filename} → {
+                              fixed_filename}"
+                        )
 
                     prompt_content = file.read_text()
                     prompt = self.new_prompt_model(
@@ -183,7 +192,7 @@ class PromptService:
                         prompt_type=PromptType.CMD,
                         cmd_category=CmdCategory.UNCATEGORIZED,
                         status=PromptPlanStatus.DRAFT,
-                        tags=[source]  # Add source tag
+                        tags=[source],  # Add source tag
                     )
                     prompts.append(prompt)
 
@@ -210,7 +219,8 @@ class PromptService:
                                 if not self.check_filename(current_filename):
                                     # Normalize the filename
                                     fixed_filename = self.normalize_filename(
-                                        current_filename)
+                                        current_filename
+                                    )
 
                                     # Create new file path with normalized name
                                     new_file_path = file.parent / fixed_filename
@@ -220,8 +230,10 @@ class PromptService:
 
                                     # Update file reference to the new path
                                     file = new_file_path
-                                    print(f"📝 Renamed: {current_filename} → {
-                                          fixed_filename}")
+                                    print(
+                                        f"📝 Renamed: {current_filename} → {
+                                          fixed_filename}"
+                                    )
 
                                 prompt_content = file.read_text()
                                 prompt = self.new_prompt_model(
@@ -230,7 +242,7 @@ class PromptService:
                                     prompt_type=PromptType.CMD,
                                     cmd_category=cmd_category,
                                     status=PromptPlanStatus.DRAFT,
-                                    tags=[source]  # Add source tag
+                                    tags=[source],  # Add source tag
                                 )
                                 prompts.append(prompt)
 
@@ -239,7 +251,7 @@ class PromptService:
                                 LoadError(
                                     filename=str(file),
                                     error_message=str(e),
-                                    error_type=type(e).__name__
+                                    error_type=type(e).__name__,
                                 )
                             )
                 except ValueError:
@@ -263,13 +275,15 @@ class PromptService:
 
         # Load from Claude directory
         claude_prompts, claude_errors = self._load_cmds_from_directory(
-            claude_cmds_dir, "claude")
+            claude_cmds_dir, "claude"
+        )
         all_prompts.extend(claude_prompts)
         all_errors.extend(claude_errors)
 
         # Load from Gemini directory
         gemini_prompts, gemini_errors = self._load_cmds_from_directory(
-            gemini_cmds_dir, "gemini")
+            gemini_cmds_dir, "gemini"
+        )
         all_prompts.extend(gemini_prompts)
         all_errors.extend(gemini_errors)
 
@@ -303,7 +317,8 @@ class PromptService:
                             if not self.check_filename(current_filename):
                                 # Normalize the filename
                                 fixed_filename = self.normalize_filename(
-                                    current_filename)
+                                    current_filename
+                                )
 
                                 # Create new file path with normalized name
                                 new_file_path = file.parent / fixed_filename
@@ -327,21 +342,19 @@ class PromptService:
                                     cmd_category=cmd_category,
                                     status=status,
                                     project=project_dir.name,
-                                ))
+                                )
+                            )
 
                     except Exception as e:
                         errors.append(
                             LoadError(
                                 filename=str(file),
                                 error_message=str(e),
-                                error_type=type(e).__name__
+                                error_type=type(e).__name__,
                             )
                         )
 
-        return PromptLoadResult(
-            loaded_prompts=prompts,
-            errors=errors
-        )
+        return PromptLoadResult(loaded_prompts=prompts, errors=errors)
 
     def normalize_filename(self, filename: str) -> str:
         """Normalize filename to use underscores and ensure .md extension
@@ -353,15 +366,15 @@ class PromptService:
             Normalized filename with underscores and .md extension
         """
         # Replace hyphens with underscores
-        normalized = filename.replace('-', '_')
+        normalized = filename.replace("-", "_")
 
         # Ensure .md extension
-        if not normalized.endswith('.md'):
+        if not normalized.endswith(".md"):
             # Remove any existing extension and add .md
-            if '.' in normalized:
-                normalized = normalized.rsplit('.', 1)[0] + '.md'
+            if "." in normalized:
+                normalized = normalized.rsplit(".", 1)[0] + ".md"
             else:
-                normalized = normalized + '.md'
+                normalized = normalized + ".md"
 
         return normalized
 
@@ -376,25 +389,25 @@ class PromptService:
             bool: True if filename follows the rules, False otherwise
         """
         # Check if filename has .md extension
-        if not filename.endswith('.md'):
+        if not filename.endswith(".md"):
             return False
 
         # Check if filename contains hyphens (should use underscores)
-        if '-' in filename:
+        if "-" in filename:
             return False
 
         return True
 
     def new_prompt_model(
-            self,
-            prompt_content: str,
-            name: str,
-            prompt_type: PromptType,
-            cmd_category: Optional[CmdCategory] = None,
-            status: PromptPlanStatus = PromptPlanStatus.DRAFT,
-            project: Optional[str] = None,
-            description: Optional[str] = None,
-            tags: Optional[List[str]] = None,
+        self,
+        prompt_content: str,
+        name: str,
+        prompt_type: PromptType,
+        cmd_category: Optional[CmdCategory] = None,
+        status: PromptPlanStatus = PromptPlanStatus.DRAFT,
+        project: Optional[str] = None,
+        description: Optional[str] = None,
+        tags: Optional[List[str]] = None,
     ) -> Prompt:
         if prompt_type == PromptType.CMD and not cmd_category:
             raise ValueError("CMD type prompts require a category")
@@ -421,9 +434,7 @@ class PromptService:
             tags=all_tags,
         )
 
-        content_hash = hashlib.sha256(
-            prompt_content.encode('utf-8')
-        ).hexdigest()
+        content_hash = hashlib.sha256(prompt_content.encode("utf-8")).hexdigest()
 
         timestamp = datetime.now(timezone.utc)
 
@@ -481,7 +492,7 @@ class PromptService:
             The original filename(e.g., 'update_function.md')
         """
         # split the name to a list using '_' seperator
-        ls = db_name.split('_')
+        ls = db_name.split("_")
         # rebuild filename from the list of split words
         filename = ""
         if prompt_type == PromptType.PLAN:
@@ -490,7 +501,7 @@ class PromptService:
             # example: collect_completed_add_claude_sdk_processing.md
             # ls = [collect, completed, add, claude, sdk, processing.md]
             for word in ls[2:]:
-                if not word.endswith('.md'):
+                if not word.endswith(".md"):
                     filename = filename + word + "_"
                 else:
                     filename = filename + word
@@ -502,7 +513,7 @@ class PromptService:
             # example: tools_create_database.md
             # ls = [tools, create, database.md]
             for word in ls[1:]:
-                if not word.endswith('.md'):
+                if not word.endswith(".md"):
                     filename = filename + word + "_"
                 else:
                     filename = filename + word
@@ -524,15 +535,13 @@ class PromptService:
         result = cursor.fetchone()
 
         if result:
-            return (True, result['id'])  # Found: return True and the prompt ID
+            return (True, result["id"])  # Found: return True and the prompt ID
         else:
             # Not found: return False and empty string
             return (False, "")
 
     def save_prompt_in_db(
-        self,
-        prompt: Prompt,
-        change_summary: str = "Initial prompt creation"
+        self, prompt: Prompt, change_summary: str = "Initial prompt creation"
     ) -> PromptCreateResult:
         """Create a new prompt and initialize version history
         if the prompt doesn't exist, if it already exists then
@@ -554,7 +563,7 @@ class PromptService:
                     prompt_id=prompt.id if prompt.id else "",
                     version=prompt.version if prompt.version else 1,
                     error_message="Prompt missing required fields",
-                    error="ValidationError"
+                    error="ValidationError",
                 )
 
             exists, prompt_id = self.check_exists(prompt.name)
@@ -621,15 +630,17 @@ class PromptService:
                     id, name, data, version, content_hash, created_at, updated_at
                     )
                     VALUES(?, ?, jsonb(?), ?, ?, ?, ?)
-                    """, (
+                    """,
+                    (
                         prompt.id,
                         prompt.name,
                         prompt_jsonb,
                         prompt.version,
                         prompt.content_hash,
                         prompt.created_at,
-                        prompt.updated_at
-                    ))
+                        prompt.updated_at,
+                    ),
+                )
 
                 # insert initial version into prompt_history table
                 cursor.execute(
@@ -644,7 +655,8 @@ class PromptService:
                     change_summary
                     )
                     VALUES(?, ?, jsonb(?), ?, ?, ?, ?)
-                    """, (
+                    """,
+                    (
                         prompt.id,
                         prompt.version,
                         prompt_jsonb,
@@ -652,13 +664,12 @@ class PromptService:
                         prompt.created_at,
                         datetime.now(timezone.utc),
                         change_summary,
-                    ))
+                    ),
+                )
                 self.conn.commit()
 
                 return PromptCreateResult(
-                    success=True,
-                    prompt_id=prompt.id,
-                    version=prompt.version
+                    success=True, prompt_id=prompt.id, version=prompt.version
                 )
 
         except Exception as e:
@@ -668,12 +679,11 @@ class PromptService:
                 prompt_id=prompt.id,
                 version=prompt.version,
                 error_message=str(e),
-                error=type(e).__name__
+                error=type(e).__name__,
             )
 
     def update_prompt_in_db(
-            self, prompt: Prompt,
-            change_summary: str = "Prompt updated from disk"
+        self, prompt: Prompt, change_summary: str = "Prompt updated from disk"
     ) -> PromptCreateResult:
         """Update an existing prompt and add to version history
 
@@ -695,7 +705,7 @@ class PromptService:
                     prompt_id=prompt.id,
                     version=prompt.version,
                     error_message=f"Prompt w id {prompt.id} not found",
-                    error="NotFoundError"
+                    error="NotFoundError",
                 )
             # then we increment the version
             prompt.version = current_prompt.version + 1
@@ -703,7 +713,7 @@ class PromptService:
             # we need to recalculate the hash for the udpated prompt
             # so we can properly compare for changes
             prompt.content_hash = hashlib.sha256(
-                prompt.data.content.encode('utf-8')
+                prompt.data.content.encode("utf-8")
             ).hexdigest()
 
             # process the PromptData model to to json
@@ -724,14 +734,16 @@ class PromptService:
                     content_hash = ?,
                     updated_at = ?
                 WHERE id = ?
-                """, (
+                """,
+                (
                     prompt.name,
                     prompt_jsonb,
                     prompt.version,
                     prompt.content_hash,
                     prompt.updated_at,
-                    prompt.id
-                ))
+                    prompt.id,
+                ),
+            )
 
             # Insert into the updated prompt into prompt_history
             cursor.execute(
@@ -745,22 +757,22 @@ class PromptService:
                 archived_at,
                 change_summary)
                 VALUES(?, ?, jsonb(?), ?, ?, ?, ?)
-                """, (
+                """,
+                (
                     prompt.id,
                     prompt.version,
                     prompt_jsonb,
                     prompt.content_hash,
                     prompt.created_at,
                     datetime.now(timezone.utc),
-                    change_summary
-                ))
+                    change_summary,
+                ),
+            )
 
             self.conn.commit()
 
             return PromptCreateResult(
-                success=True,
-                prompt_id=prompt.id,
-                version=prompt.version
+                success=True, prompt_id=prompt.id, version=prompt.version
             )
 
         except Exception as e:
@@ -770,7 +782,7 @@ class PromptService:
                 prompt_id=prompt.id,
                 version=prompt.version,
                 error_message=str(e),
-                error=type(e).__name__
+                error=type(e).__name__,
             )
 
     def get_prompt_by_id(self, prompt_id: str) -> Optional[Prompt]:
@@ -797,7 +809,7 @@ class PromptService:
             FROM prompt
             WHERE id = ?
             """,
-            (prompt_id,)
+            (prompt_id,),
         )
 
         row = cursor.fetchone()
@@ -805,18 +817,18 @@ class PromptService:
             return None
 
         # Parse the JSONB data back to PromptData
-        data_dict = json.loads(row['data_json'])
+        data_dict = json.loads(row["data_json"])
         prompt_data = PromptData(**data_dict)
 
         # Create and return the Prompt object
         return Prompt(
-            id=row['id'],
-            name=row['name'],
+            id=row["id"],
+            name=row["name"],
             data=prompt_data,
-            version=row['version'],
-            content_hash=row['content_hash'],
-            created_at=row['created_at'],
-            updated_at=row['updated_at']
+            version=row["version"],
+            content_hash=row["content_hash"],
+            created_at=row["created_at"],
+            updated_at=row["updated_at"],
         )
 
     def get_prompt_by_name(self, prompt_name: str) -> Optional[Prompt]:
@@ -844,23 +856,25 @@ class PromptService:
 
             FROM prompt
             WHERE name = ?
-            """, (prompt_name,))
+            """,
+            (prompt_name,),
+        )
 
         row = cursor.fetchone()
         if not row:
             return None
 
-        data_dict = json.loads(row['data_json'])
+        data_dict = json.loads(row["data_json"])
         prompt_data = PromptData(**data_dict)
 
         return Prompt(
-            id=row['id'],
-            name=row['name'],
+            id=row["id"],
+            name=row["name"],
             data=prompt_data,
-            version=row['version'],
-            content_hash=row['content_hash'],
-            created_at=row['created_at'],
-            updated_at=row['updated_at']
+            version=row["version"],
+            content_hash=row["content_hash"],
+            created_at=row["created_at"],
+            updated_at=row["updated_at"],
         )
 
     def delete_prompt_by_id(self, prompt_id: str) -> PromptDeleteResult:
@@ -868,7 +882,8 @@ class PromptService:
         try:
             # archive final state in prompt_history table before deletion
             # we will not be deleting the version history of the prompt
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO prompt_history (
                 id,
                 version,
@@ -880,8 +895,8 @@ class PromptService:
                 SELECT id, version, data, content_hash, created_at, ?, ?
                 FROM prompt WHERE id = ?
             """,
-                           (datetime.now(timezone.utc),
-                            'DELETED - Final Version', prompt_id))
+                (datetime.now(timezone.utc), "DELETED - Final Version", prompt_id),
+            )
 
             # Delete only from the prompt table
             cursor.execute("DELETE FROM prompt WHERE id = ?", (prompt_id,))
@@ -893,7 +908,7 @@ class PromptService:
                 success=True,
                 prompt_id=prompt_id,
                 deleted=True,
-                rows_affected=deleted_row_count
+                rows_affected=deleted_row_count,
             )
 
         except Exception as e:
@@ -904,13 +919,10 @@ class PromptService:
                 deleted=False,
                 rows_affected=0,
                 error_message=str(e),
-                error_type=type(e).__name__
+                error_type=type(e).__name__,
             )
 
-    def bulk_save_in_db(
-            self,
-            prompts: List[Prompt]
-    ) -> List[PromptCreateResult]:
+    def bulk_save_in_db(self, prompts: List[Prompt]) -> List[PromptCreateResult]:
         """
         Bulk load/save prompts into the database
 
@@ -938,20 +950,23 @@ class PromptService:
         try:
             # Ensure command directories exist
             if not self.cmd_check_dirs():
-                results.append(PromptFlattenResult(
-                    success=False,
-                    prompt_id="",
-                    prompt_name="",
-                    file_path="",
-                    cmd_category="",
-                    error_message="Failed to create command directories",
-                    error_type="DirectoryError"
-                ))
+                results.append(
+                    PromptFlattenResult(
+                        success=False,
+                        prompt_id="",
+                        prompt_name="",
+                        file_path="",
+                        cmd_category="",
+                        error_message="Failed to create command directories",
+                        error_type="DirectoryError",
+                    )
+                )
                 return results
 
             # Query all CMD type prompts from database
             cursor = self.conn.cursor()
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT
                     id,
                     name,
@@ -963,20 +978,23 @@ class PromptService:
                 FROM prompt
                 WHERE data ->> '$.type' = 'cmd'
                 ORDER BY name
-            """)
+            """
+            )
 
             rows = cursor.fetchall()
 
             if not rows:
-                results.append(PromptFlattenResult(
-                    success=True,
-                    prompt_id="",
-                    prompt_name="",
-                    file_path="",
-                    cmd_category="",
-                    error_message="No CMD prompts found in database",
-                    error_type=""
-                ))
+                results.append(
+                    PromptFlattenResult(
+                        success=True,
+                        prompt_id="",
+                        prompt_name="",
+                        file_path="",
+                        cmd_category="",
+                        error_message="No CMD prompts found in database",
+                        error_type="",
+                    )
+                )
                 return results
 
             project_dir = Path(__file__).parent.parent
@@ -984,19 +1002,19 @@ class PromptService:
             for row in rows:
                 try:
                     # Parse the JSONB data back to PromptData
-                    data_dict = json.loads(row['data_json'])
+                    data_dict = json.loads(row["data_json"])
                     # `**` unpacks the dictionary into key words for pydantic
                     prompt_data = PromptData(**data_dict)
 
                     # Create Prompt object
                     prompt = Prompt(
-                        id=row['id'],
-                        name=row['name'],
+                        id=row["id"],
+                        name=row["name"],
                         data=prompt_data,
-                        version=row['version'],
-                        content_hash=row['content_hash'],
-                        created_at=row['created_at'],
-                        updated_at=row['updated_at']
+                        version=row["version"],
+                        content_hash=row["content_hash"],
+                        created_at=row["created_at"],
+                        updated_at=row["updated_at"],
                     )
 
                     # Get original filename from database name
@@ -1022,75 +1040,92 @@ class PromptService:
                     # If no source tags found, skip this prompt
                     if not target_dirs:
                         errmsg = "No source tag (claude/gemini) found in tags"
-                        results.append(PromptFlattenResult(
-                            success=False,
-                            prompt_id=prompt.id,
-                            prompt_name=prompt.name,
-                            file_path="",
-                            cmd_category=category,
-                            error_message=errmsg,
-                            error_type="MissingSourceTag"
-                        ))
+                        results.append(
+                            PromptFlattenResult(
+                                success=False,
+                                prompt_id=prompt.id,
+                                prompt_name=prompt.name,
+                                file_path="",
+                                cmd_category=category,
+                                error_message=errmsg,
+                                error_type="MissingSourceTag",
+                            )
+                        )
                         continue
 
                     # Write to appropriate directories based on source tags
                     for target_dir in target_dirs:
                         try:
-                            target_path = project_dir / \
-                                f".{target_dir}" / "commands" / \
-                                category / filename
+                            target_path = (
+                                project_dir
+                                / f".{target_dir}"
+                                / "commands"
+                                / category
+                                / filename
+                            )
 
                             # Ensure parent directory exists
-                            target_path.parent.mkdir(
-                                parents=True, exist_ok=True)
+                            target_path.parent.mkdir(parents=True, exist_ok=True)
 
                             # Write content to file
                             target_path.write_text(
-                                prompt.data.content, encoding='utf-8')
+                                prompt.data.content, encoding="utf-8"
+                            )
 
-                            results.append(PromptFlattenResult(
-                                success=True,
-                                prompt_id=prompt.id,
-                                prompt_name=prompt.name,
-                                file_path=str(target_path),
-                                cmd_category=category,
-                                error_message="",
-                                error_type=""
-                            ))
+                            results.append(
+                                PromptFlattenResult(
+                                    success=True,
+                                    prompt_id=prompt.id,
+                                    prompt_name=prompt.name,
+                                    file_path=str(target_path),
+                                    cmd_category=category,
+                                    error_message="",
+                                    error_type="",
+                                )
+                            )
 
                         except Exception as e:
-                            results.append(PromptFlattenResult(
-                                success=False,
-                                prompt_id=prompt.id,
-                                prompt_name=prompt.name,
-                                file_path=str(
-                                    target_path) if 'target_path' in locals() else "",
-                                cmd_category=category,
-                                error_message=str(e),
-                                error_type=type(e).__name__
-                            ))
+                            results.append(
+                                PromptFlattenResult(
+                                    success=False,
+                                    prompt_id=prompt.id,
+                                    prompt_name=prompt.name,
+                                    file_path=(
+                                        str(target_path)
+                                        if "target_path" in locals()
+                                        else ""
+                                    ),
+                                    cmd_category=category,
+                                    error_message=str(e),
+                                    error_type=type(e).__name__,
+                                )
+                            )
 
                 except Exception as e:
-                    results.append(PromptFlattenResult(
-                        success=False,
-                        prompt_id=row.get('id', ''),
-                        prompt_name=row.get('name', ''),
-                        file_path="",
-                        cmd_category="",
-                        error_message=f"Failed to process prompt: {str(e)}",
-                        error_type=type(e).__name__
-                    ))
+                    results.append(
+                        PromptFlattenResult(
+                            success=False,
+                            prompt_id=row.get("id", ""),
+                            prompt_name=row.get("name", ""),
+                            file_path="",
+                            cmd_category="",
+                            error_message=f"Failed to process prompt: {str(e)}",
+                            error_type=type(e).__name__,
+                        )
+                    )
 
         except Exception as e:
-            results.append(PromptFlattenResult(
-                success=False,
-                prompt_id="",
-                prompt_name="",
-                file_path="",
-                cmd_category="",
-                error_message=f"Database query failed: {str(e)}",
-                error_type=type(e).__name__
-            ))
+            results.append(
+                PromptFlattenResult(
+                    success=False,
+                    prompt_id="",
+                    prompt_name="",
+                    file_path="",
+                    cmd_category="",
+                    error_message=f"Database query failed: {str(e)}",
+                    error_type=type(e).__name__,
+                )
+            )
 
         return results
 
@@ -1110,20 +1145,23 @@ class PromptService:
         try:
             # Ensure plan directories exist
             if not self.plans_check_dirs():
-                results.append(PromptFlattenResult(
-                    success=False,
-                    prompt_id="",
-                    prompt_name="",
-                    file_path="",
-                    cmd_category="",
-                    error_message="Failed to create plan directories",
-                    error_type="DirectoryError"
-                ))
+                results.append(
+                    PromptFlattenResult(
+                        success=False,
+                        prompt_id="",
+                        prompt_name="",
+                        file_path="",
+                        cmd_category="",
+                        error_message="Failed to create plan directories",
+                        error_type="DirectoryError",
+                    )
+                )
                 return results
 
             # Query all PLAN type prompts from database
             cursor = self.conn.cursor()
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT
                     id,
                     name,
@@ -1135,20 +1173,23 @@ class PromptService:
                 FROM prompt
                 WHERE data ->> '$.type' = 'plan'
                 ORDER BY name
-            """)
+            """
+            )
 
             rows = cursor.fetchall()
 
             if not rows:
-                results.append(PromptFlattenResult(
-                    success=True,
-                    prompt_id="",
-                    prompt_name="",
-                    file_path="",
-                    cmd_category="",
-                    error_message="No PLAN prompts found in database",
-                    error_type=""
-                ))
+                results.append(
+                    PromptFlattenResult(
+                        success=True,
+                        prompt_id="",
+                        prompt_name="",
+                        file_path="",
+                        cmd_category="",
+                        error_message="No PLAN prompts found in database",
+                        error_type="",
+                    )
+                )
                 return results
 
             project_dir = Path(__file__).parent.parent
@@ -1157,38 +1198,40 @@ class PromptService:
             status_dir_mapping = {
                 PromptPlanStatus.DRAFT.value: "drafts",
                 PromptPlanStatus.APPROVED.value: "approved",
-                PromptPlanStatus.COMPLETED.value: "completed"
+                PromptPlanStatus.COMPLETED.value: "completed",
             }
 
             for row in rows:
                 try:
                     # Parse the JSONB data back to PromptData
-                    data_dict = json.loads(row['data_json'])
+                    data_dict = json.loads(row["data_json"])
                     prompt_data = PromptData(**data_dict)
 
                     # Create Prompt object
                     prompt = Prompt(
-                        id=row['id'],
-                        name=row['name'],
+                        id=row["id"],
+                        name=row["name"],
                         data=prompt_data,
-                        version=row['version'],
-                        content_hash=row['content_hash'],
-                        created_at=row['created_at'],
-                        updated_at=row['updated_at']
+                        version=row["version"],
+                        content_hash=row["content_hash"],
+                        created_at=row["created_at"],
+                        updated_at=row["updated_at"],
                     )
 
                     # Validate project name for PLAN type prompts
                     if not prompt.data.project:
                         # PLAN type must have a project name
-                        results.append(PromptFlattenResult(
-                            success=False,
-                            prompt_id=prompt.id,
-                            prompt_name=prompt.name,
-                            file_path="",
-                            cmd_category="",
-                            error_message="PLAN type prompt missing required project name",
-                            error_type="MissingProjectError"
-                        ))
+                        results.append(
+                            PromptFlattenResult(
+                                success=False,
+                                prompt_id=prompt.id,
+                                prompt_name=prompt.name,
+                                file_path="",
+                                cmd_category="",
+                                error_message="PLAN type prompt missing required project name",
+                                error_type="MissingProjectError",
+                            )
+                        )
                         continue
 
                     if prompt.data.project != project_dir.name:
@@ -1199,63 +1242,78 @@ class PromptService:
                     filename = self.parse_db_name(prompt.name, PromptType.PLAN)
 
                     # Get status directory
-                    status_value = prompt.data.status.value if hasattr(
-                        prompt.data.status, 'value') else str(prompt.data.status)
+                    status_value = (
+                        prompt.data.status.value
+                        if hasattr(prompt.data.status, "value")
+                        else str(prompt.data.status)
+                    )
                     status_dir = status_dir_mapping.get(status_value, "drafts")
 
                     # Write to appropriate status directory
                     try:
-                        target_path = project_dir / "_docs" / "plans" / status_dir / filename
+                        target_path = (
+                            project_dir / "_docs" / "plans" / status_dir / filename
+                        )
 
                         # Ensure parent directory exists
                         target_path.parent.mkdir(parents=True, exist_ok=True)
 
                         # Write content to file
-                        target_path.write_text(
-                            prompt.data.content, encoding='utf-8')
+                        target_path.write_text(prompt.data.content, encoding="utf-8")
 
-                        results.append(PromptFlattenResult(
-                            success=True,
-                            prompt_id=prompt.id,
-                            prompt_name=prompt.name,
-                            file_path=str(target_path),
-                            cmd_category=status_dir,
-                            error_message="",
-                            error_type=""
-                        ))
+                        results.append(
+                            PromptFlattenResult(
+                                success=True,
+                                prompt_id=prompt.id,
+                                prompt_name=prompt.name,
+                                file_path=str(target_path),
+                                cmd_category=status_dir,
+                                error_message="",
+                                error_type="",
+                            )
+                        )
 
                     except Exception as e:
-                        results.append(PromptFlattenResult(
-                            success=False,
-                            prompt_id=prompt.id,
-                            prompt_name=prompt.name,
-                            file_path=str(
-                                target_path) if 'target_path' in locals() else "",
-                            cmd_category=status_dir,
-                            error_message=str(e),
-                            error_type=type(e).__name__
-                        ))
+                        results.append(
+                            PromptFlattenResult(
+                                success=False,
+                                prompt_id=prompt.id,
+                                prompt_name=prompt.name,
+                                file_path=(
+                                    str(target_path)
+                                    if "target_path" in locals()
+                                    else ""
+                                ),
+                                cmd_category=status_dir,
+                                error_message=str(e),
+                                error_type=type(e).__name__,
+                            )
+                        )
 
                 except Exception as e:
-                    results.append(PromptFlattenResult(
-                        success=False,
-                        prompt_id=row.get('id', ''),
-                        prompt_name=row.get('name', ''),
-                        file_path="",
-                        cmd_category="",
-                        error_message=f"Failed to process prompt: {str(e)}",
-                        error_type=type(e).__name__
-                    ))
+                    results.append(
+                        PromptFlattenResult(
+                            success=False,
+                            prompt_id=row.get("id", ""),
+                            prompt_name=row.get("name", ""),
+                            file_path="",
+                            cmd_category="",
+                            error_message=f"Failed to process prompt: {str(e)}",
+                            error_type=type(e).__name__,
+                        )
+                    )
 
         except Exception as e:
-            results.append(PromptFlattenResult(
-                success=False,
-                prompt_id="",
-                prompt_name="",
-                file_path="",
-                cmd_category="",
-                error_message=f"Database query failed: {str(e)}",
-                error_type=type(e).__name__
-            ))
+            results.append(
+                PromptFlattenResult(
+                    success=False,
+                    prompt_id="",
+                    prompt_name="",
+                    file_path="",
+                    cmd_category="",
+                    error_message=f"Database query failed: {str(e)}",
+                    error_type=type(e).__name__,
+                )
+            )
 
         return results

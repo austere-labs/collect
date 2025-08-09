@@ -16,34 +16,30 @@ class GeminiMCP:
         self.config = config
         self.secret_mgr = secret_mgr
         self.model = model
-        self.api_key = self.secret_mgr.get_secret(
-            self.config.gemini_api_key_path)
+        self.api_key = self.secret_mgr.get_secret(self.config.gemini_api_key_path)
         self.base_url = self.config.gemini_base_url
 
     def get_model_list(self) -> Dict:
         try:
-            gemini_key = self.secret_mgr.get_secret(
-                self.config.gemini_api_key_path)
+            gemini_key = self.secret_mgr.get_secret(self.config.gemini_api_key_path)
 
             base_url = self.config.gemini_base_url
             url = f"{base_url}models?key={gemini_key}"
             response = requests.get(url)
             response.raise_for_status()
 
-            return self.filter_models(['2.0', '2.5'], response.json())
+            return self.filter_models(["2.0", "2.5"], response.json())
 
         except requests.exceptions.RequestException as e:
-            raise RuntimeError(
-                f"Failed to get model list from Gemini API: {e}")
+            raise RuntimeError(f"Failed to get model list from Gemini API: {e}")
         except KeyError as e:
             raise ValueError(f"Missing required configuration or secret: {e}")
         except Exception as e:
             raise RuntimeError(f"Unexpected error in get_model_list: {e}")
 
     def filter_models(
-            self,
-            versions: List[str],
-            model_endpoint_response: Dict) -> List[Dict]:
+        self, versions: List[str], model_endpoint_response: Dict
+    ) -> List[Dict]:
         """
         Filter models by version numbers and include token limits.
 
@@ -56,17 +52,17 @@ class GeminiMCP:
         filtered_models = []
 
         for model in model_endpoint_response["models"]:
-            model_name = model["name"].split('/')[-1]
+            model_name = model["name"].split("/")[-1]
 
             for version in versions:
                 if version in model_name:
                     model_to_tokencount = {
-                        'model_name': model_name,
-                        'token_window': model.get('inputTokenLimit', 0),
+                        "model_name": model_name,
+                        "token_window": model.get("inputTokenLimit", 0),
                     }
                     filtered_models.append(model_to_tokencount)
 
-        filtered_models.sort(key=lambda x: x['token_window'], reverse=True)
+        filtered_models.sort(key=lambda x: x["token_window"], reverse=True)
         return filtered_models
 
     def extract_text(self, ai_response: dict) -> str:
@@ -97,8 +93,7 @@ class GeminiMCP:
         self, message: str, max_tokens: int = 1024, model: str = None
     ) -> dict:
         try:
-            gemini_key = self.secret_mgr.get_secret(
-                self.config.gemini_api_key_path)
+            gemini_key = self.secret_mgr.get_secret(self.config.gemini_api_key_path)
 
             # Use provided model or default
             if model is None:
@@ -128,8 +123,7 @@ class GeminiMCP:
 
     def count_tokens(self, message: str, model: str = None) -> int:
         try:
-            gemini_key = self.secret_mgr.get_secret(
-                self.config.gemini_api_key_path)
+            gemini_key = self.secret_mgr.get_secret(self.config.gemini_api_key_path)
 
             # Use provided model or default
             if model is None:

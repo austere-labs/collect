@@ -7,6 +7,7 @@ from config import Config
 
 class PromptPlanStatus(str, Enum):
     """Plan status types"""
+
     DRAFT = "draft"
     APPROVED = "approved"
     COMPLETED = "completed"
@@ -14,6 +15,7 @@ class PromptPlanStatus(str, Enum):
 
 class PromptType(str, Enum):
     """Prompt types"""
+
     PLAN = "plan"
     CMD = "cmd"
 
@@ -25,7 +27,7 @@ def create_cmd_category_enum():
         subdirs = config.command_subdirs
     except Exception:
         # Fallback to default subdirs if config fails
-        subdirs = ['archive', 'go', 'js', 'mcp', 'python', 'tools']
+        subdirs = ["archive", "go", "js", "mcp", "python", "tools"]
 
     # Build enum members dictionary
     members = {}
@@ -33,10 +35,10 @@ def create_cmd_category_enum():
         members[subdir.upper()] = subdir
 
     # Always include UNCATEGORIZED as fallback
-    members['UNCATEGORIZED'] = 'uncategorized'
+    members["UNCATEGORIZED"] = "uncategorized"
 
     # Create enum using the functional API with type=str for JSON serialization
-    return Enum('CmdCategory', members, type=str)
+    return Enum("CmdCategory", members, type=str)
 
 
 # Create the enum instance
@@ -51,6 +53,7 @@ class Project(BaseModel):
 
 class PromptData(BaseModel):
     """Structured data for prompt JSONB field"""
+
     type: PromptType
     status: PromptPlanStatus
     project: Optional[str]
@@ -88,6 +91,7 @@ class LoadError(BaseModel):
 
 class PromptCreateResult(BaseModel):
     """Result of creating a new prompt"""
+
     success: bool
     prompt_id: str
     version: int
@@ -97,6 +101,7 @@ class PromptCreateResult(BaseModel):
 
 class PromptLoadResult(BaseModel):
     """Result of loading prompts into database"""
+
     loaded_prompts: List[Prompt]
     errors: Optional[List[LoadError]] = None
 
@@ -112,6 +117,7 @@ class PromptDeleteResult(BaseModel):
 
 class PromptFlattenResult(BaseModel):
     """Result of flattening a prompt to disk"""
+
     success: bool
     prompt_id: str
     prompt_name: str

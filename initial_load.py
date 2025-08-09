@@ -25,8 +25,10 @@ def load_commands_to_db(service: PromptService) -> PromptLoadResult:
     cmd_result: PromptLoadResult = service.load_cmds_from_disk()
 
     if cmd_result.errors:
-        print(f"⚠️  Found {len(cmd_result.errors)
-                           } errors while loading commands:")
+        print(
+            f"⚠️  Found {len(cmd_result.errors)
+                           } errors while loading commands:"
+        )
         for error in cmd_result.errors:
             print(f"   ❌ {error.filename}: {error.error_message}")
 
@@ -38,7 +40,8 @@ def load_commands_to_db(service: PromptService) -> PromptLoadResult:
 
     # Save commands to database
     save_results: List[PromptCreateResult] = service.bulk_save_in_db(
-        cmd_result.loaded_prompts)
+        cmd_result.loaded_prompts
+    )
 
     # Track save results
     save_success_count = 0
@@ -51,18 +54,21 @@ def load_commands_to_db(service: PromptService) -> PromptLoadResult:
             print(f"   ❌ Failed to save command: {result.error_message}")
             # Convert PromptCreateResult errors to LoadError format for consistency
             from repository.prompt_models import LoadError
-            save_errors.append(LoadError(
-                filename=f"database_save_{result.prompt_id}",
-                error_message=result.error_message or "Unknown save error",
-                error_type=result.error_type or "SaveError"
-            ))
+
+            save_errors.append(
+                LoadError(
+                    filename=f"database_save_{result.prompt_id}",
+                    error_message=result.error_message or "Unknown save error",
+                    error_type=result.error_type or "SaveError",
+                )
+            )
 
     # Return updated PromptLoadResult with combined errors
     all_errors = (cmd_result.errors or []) + save_errors
 
     return PromptLoadResult(
         loaded_prompts=cmd_result.loaded_prompts,
-        errors=all_errors if all_errors else None
+        errors=all_errors if all_errors else None,
     )
 
 
@@ -78,8 +84,10 @@ def load_plans_to_db(service: PromptService) -> PromptLoadResult:
     plan_result: PromptLoadResult = service.load_plans_from_disk()
 
     if plan_result.errors:
-        print(f"⚠️  Found {len(plan_result.errors)
-                           } errors while loading plans:")
+        print(
+            f"⚠️  Found {len(plan_result.errors)
+                           } errors while loading plans:"
+        )
         for error in plan_result.errors:
             print(f"   ❌ {error.filename}: {error.error_message}")
 
@@ -87,12 +95,15 @@ def load_plans_to_db(service: PromptService) -> PromptLoadResult:
         print("ℹ️  No plans found to load")
         return plan_result
 
-    print(f"📄 Found {len(plan_result.loaded_prompts)
-                     } plans to save to database")
+    print(
+        f"📄 Found {len(plan_result.loaded_prompts)
+                     } plans to save to database"
+    )
 
     # Save plans to database
     save_results: List[PromptCreateResult] = service.bulk_save_in_db(
-        plan_result.loaded_prompts)
+        plan_result.loaded_prompts
+    )
 
     # Track save results
     save_success_count = 0
@@ -105,18 +116,21 @@ def load_plans_to_db(service: PromptService) -> PromptLoadResult:
             print(f"   ❌ Failed to save plan: {result.error_message}")
             # Convert PromptCreateResult errors to LoadError format for consistency
             from repository.prompt_models import LoadError
-            save_errors.append(LoadError(
-                filename=f"database_save_{result.prompt_id}",
-                error_message=result.error_message or "Unknown save error",
-                error_type=result.error_type or "SaveError"
-            ))
+
+            save_errors.append(
+                LoadError(
+                    filename=f"database_save_{result.prompt_id}",
+                    error_message=result.error_message or "Unknown save error",
+                    error_type=result.error_type or "SaveError",
+                )
+            )
 
     # Return updated PromptLoadResult with combined errors
     all_errors = (plan_result.errors or []) + save_errors
 
     return PromptLoadResult(
         loaded_prompts=plan_result.loaded_prompts,
-        errors=all_errors if all_errors else None
+        errors=all_errors if all_errors else None,
     )
 
 
@@ -168,8 +182,10 @@ def main():
             if total_errors == 0:
                 print("🎉 All data loaded successfully!")
             else:
-                print(f"⚠️  Completed with {
-                      total_errors} errors - check output above")
+                print(
+                    f"⚠️  Completed with {
+                      total_errors} errors - check output above"
+                )
 
     except Exception as e:
         print(f"💥 Fatal error during loading process: {str(e)}")

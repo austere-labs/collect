@@ -34,8 +34,7 @@ async def health_check():
 
 @prompt_api_router.get("/prompts/{prompt_id}")
 async def get_prompt(
-    prompt_id: str,
-    prompt_service: PromptService = Depends(get_prompt_service)
+    prompt_id: str, prompt_service: PromptService = Depends(get_prompt_service)
 ):
     prompt = prompt_service.get_prompt_by_id(prompt_id)
     if not prompt:
