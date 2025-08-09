@@ -52,6 +52,7 @@ llm_usage() {
     echo "  - Creates .gitignore with Python/UV-specific exclusions"
     echo "  - Creates .mcp.json configuration file"
     echo "  - Creates .claude/commands and .gemini/commands directories"
+    echo "  - Creates _docs/plans structure for structured planning workflow"
     echo "  - Downloads fetchall script from GitHub using gh CLI"
     echo "  - Runs fetchall to download tools, command templates, and guides"
     echo "  - Initializes git repository"
@@ -76,6 +77,9 @@ llm_usage() {
     echo "  - .claude/commands/*.md: Command templates for Claude"
     echo "  - .gemini/commands/*.md: Command templates for Gemini (copied from .claude)"
     echo "  - guides/*.md: Documentation and guides"
+    echo "  - _docs/plans/drafts/: Initial plans under development"
+    echo "  - _docs/plans/approved/: Reviewed plans ready for implementation"
+    echo "  - _docs/plans/completed/: Implemented plans with results"
     echo "  - movetools: Tool for moving files between projects"
     echo ""
     echo "INSTALLED DEPENDENCIES:"
@@ -165,6 +169,9 @@ mkdir -p data
 mkdir -p repository
 mkdir -p guides
 mkdir -p tools
+mkdir -p _docs/plans/drafts
+mkdir -p _docs/plans/approved
+mkdir -p _docs/plans/completed
 
 # create yoyo.ini configuration file
 cat > yoyo.ini <<EOF
@@ -483,8 +490,17 @@ echo "→ initializing git repository…"
 
 # 5. initialize git repository
 git init
+git branch -M main
 
-echo "✅  Git repository initialized"
+# Create initial commit with README.md only
+git add README.md
+git commit -m "feat: initial project setup
+
+Initial FastAPI project with UV dependency management
+
+🤖 Generated with Claude Code"
+
+echo "✅  Git repository initialized with main branch and initial commit"
 
 # 6. Ask user about creating GitHub repository
 echo
