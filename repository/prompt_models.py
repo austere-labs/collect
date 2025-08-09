@@ -57,6 +57,8 @@ class PromptData(BaseModel):
     cmd_category: Optional[CmdCategory]
     content: str  # This is the actualy prompt content, in markdown
     description: Optional[str] = None
+    # using 'claude' or 'gemini' here to specify the dir it will write to
+    # .claude/commands and .gemini/commands respectively
     tags: List[str] = Field(default_factory=list)
 
 

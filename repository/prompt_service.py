@@ -1011,8 +1011,30 @@ class PromptService:
                     else:
                         category = "uncategorized"
 
-                    # Write to both claude and gemini directories
-                    for target_dir in ["claude", "gemini"]:
+                    # Determine target directory based on tags
+                    target_dirs = []
+                    if prompt.data.tags:
+                        if "claude" in prompt.data.tags:
+                            target_dirs.append("claude")
+                        if "gemini" in prompt.data.tags:
+                            target_dirs.append("gemini")
+
+                    # If no source tags found, skip this prompt
+                    if not target_dirs:
+                        errmsg = "No source tag (claude/gemini) found in tags"
+                        results.append(PromptFlattenResult(
+                            success=False,
+                            prompt_id=prompt.id,
+                            prompt_name=prompt.name,
+                            file_path="",
+                            cmd_category=category,
+                            error_message=errmsg,
+                            error_type="MissingSourceTag"
+                        ))
+                        continue
+
+                    # Write to appropriate directories based on source tags
+                    for target_dir in target_dirs:
                         try:
                             target_path = project_dir / \
                                 f".{target_dir}" / "commands" / \
