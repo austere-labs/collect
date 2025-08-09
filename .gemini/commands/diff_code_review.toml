@@ -1,4 +1,5 @@
-<title># Ultra Diff Review</title>
+description = "Conduct a thorough code review of staged git changes"
+prompt = """<title># Ultra Diff Review</title>
 
 <purpose>
 We want to conduct a thorough comprehensive code review using the appropriate diff approach.
@@ -34,4 +35,4 @@ Within each task, execute each instruction in order.
         git diff --staged >> diff.md
         ```
         </instruction>
-</instructions>
+</instructions>"""

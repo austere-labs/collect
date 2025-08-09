@@ -1,4 +1,5 @@
-Read the file at the path: {file_name}
+description = "Read a file and display its contents"
+prompt = """Read the file at the path: {{args}}
 
 IMPORTANT INSTRUCTIONS:
 - ONLY use the Read tool to read the specified file
@@ -7,4 +8,4 @@ IMPORTANT INSTRUCTIONS:
 - DO NOT run any commands
 - DO NOT analyze or comment on the contents
 - Simply read the file and display its contents
-- After reading, stop immediately without any additional explanation or summary
+- After reading, stop immediately without any additional explanation or summary"""

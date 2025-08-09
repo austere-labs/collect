@@ -1,3 +1,5 @@
+description = "Format response in strict markdown format"
+prompt = """
 # Markdown Response Format Prompt
 
 Please provide your response in **strict markdown format** following these guidelines:
@@ -53,4 +55,4 @@ Final thoughts or conclusions
 
 ---
 
-[YOUR ACTUAL QUESTION/REQUEST HERE]
+{{args}}"""

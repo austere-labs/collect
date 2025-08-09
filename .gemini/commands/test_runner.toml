@@ -1,0 +1,8 @@
+description = "Run tests using uv run pytest"
+prompt = """Please run the tests in this file {{args}} using uv run
+
+This is an example: 
+
+```bash
+uv run pytest {{args}} -v -s
+```"""

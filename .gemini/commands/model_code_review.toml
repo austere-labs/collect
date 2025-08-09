@@ -1,4 +1,5 @@
-## Overview
+description = "Conduct comprehensive code reviews using multiple AI models for diverse perspectives"
+prompt = """## Overview
 
 Conduct comprehensive code reviews using multiple AI models to get diverse perspectives on code changes. This workflow leverages the MCP code review tools to analyze git diffs across multiple LLM providers.
 
@@ -160,4 +161,4 @@ Here's a complete example workflow:
 
 - **No git changes found**: Make sure you have staged changes (`git add`) or unstaged modifications
 - **Tool fails**: Check the `errors_timestamp.md` file for specific model failures
-- **Empty reviews**: Verify your diff contains meaningful code changes, not just whitespace
+- **Empty reviews**: Verify your diff contains meaningful code changes, not just whitespace"""
