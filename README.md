@@ -61,6 +61,75 @@ To enable the Gemini CLI to automatically start the `collect` MCP server, you ne
 
 This configuration tells the Gemini CLI how to launch the `collect` server, specifying the command, arguments, and working directory.
 
+### Command Category System
+
+The command category system dynamically creates categories based on subdirectories configured in the `.env` file. This approach allows for easy extension of command categories without code changes.
+
+#### How Categories Are Created
+
+1. **Configuration**: Command subdirectories are defined in the `.env` file:
+   ```
+   COMMAND_SUBDIRS=archive,go,js,mcp,python,tools
+   ```
+
+2. **Dynamic Enum Generation**: The `create_cmd_category_enum()` function in `repository/prompt_models.py` reads the `COMMAND_SUBDIRS` from the `.env` file via the `Config` class and dynamically creates a `CmdCategory` enum at runtime.
+
+3. **Directory Management**: When the `PromptService` initializes, the `cmd_check_dirs()` function in `repository/prompt_service.py`:
+   - Reads the subdirectory list from the config
+   - Checks for the existence of each configured subdirectory under both `.claude/commands/` and `.gemini/commands/`
+   - Automatically creates any missing directories
+   - Each subdirectory becomes a valid command category
+
+4. **Category Assignment**: When loading commands from disk:
+   - Files directly in `.claude/commands/` or `.gemini/commands/` are assigned the `UNCATEGORIZED` category
+   - Files in subdirectories are assigned the category matching the subdirectory name
+   - The category is stored as part of the prompt's metadata in the database
+
+#### Adding New Categories
+
+To add new command categories:
+1. Update the `COMMAND_SUBDIRS` line in the `.env` file with your new category
+2. The system will automatically create the directories and recognize them as valid categories on the next run
+3. Commands placed in those directories will be tagged with the new category
+
+#### Example
+
+To add a "rust" category:
+1. Edit `.env`:
+   ```
+   COMMAND_SUBDIRS=archive,go,js,mcp,python,tools,rust
+   ```
+2. Restart the service or run the prompt service
+3. The system will create:
+   - `.claude/commands/rust/`
+   - `.gemini/commands/rust/`
+4. Any `.md` files placed in these directories will be categorized as "rust" commands
+
+#### Current Directory Structure
+Based on the `.env` configuration (`COMMAND_SUBDIRS=archive,go,js,mcp,python,tools`), the directory structure is:
+
+```
+.claude/
+└── commands/
+    ├── archive/          # Archived commands
+    ├── go/               # Go-specific commands
+    ├── js/               # JavaScript commands
+    ├── mcp/              # MCP server commands
+    ├── python/           # Python-specific commands
+    └── tools/            # Tool-related commands
+
+.gemini/
+└── commands/
+    ├── archive/
+    ├── go/
+    ├── js/
+    ├── mcp/
+    ├── python/
+    └── tools/
+```
+
+Note: Files placed directly in `.claude/commands/` or `.gemini/commands/` (not in subdirectories) are automatically assigned the `UNCATEGORIZED` category.
+
 ### Prompt Management System
 
 The project includes a comprehensive system for managing prompts, which are categorized as either **Commands** (`CMD`) or **Plans** (`PLAN`). This system, located in the `repository/` directory, uses a SQLite database to store and version prompts, while also synchronizing them with the local filesystem.
