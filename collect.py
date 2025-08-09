@@ -14,6 +14,9 @@ from models.gemini_mcp import GeminiMCP
 from fetcher import Fetcher
 import pyperclip
 from reviewer.code_review import CodeReviewer
+import subprocess
+import atexit
+import time
 
 mcp = FastMCP("Collect")
 
@@ -508,6 +511,44 @@ async def generate_prompt(prompt: str, target_model: str = None) -> str:
 
 
 def main():
+    # Start the API server in the background
+    api_process = None
+    try:
+        # Launch API server as subprocess
+        api_process = subprocess.Popen(
+            ["uv", "run", "api.py"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
+        
+        # Wait for API to initialize
+        time.sleep(2)
+        
+        # Verify successful startup
+        if api_process.poll() is not None:
+            # Process ended unexpectedly
+            stderr = api_process.stderr.read()
+            print(f"API server failed to start: {stderr}")
+        else:
+            print(f"API server started with PID: {api_process.pid}")
+            
+            # Register cleanup handler
+            def cleanup_api():
+                if api_process and api_process.poll() is None:
+                    print("Shutting down API server...")
+                    api_process.terminate()
+                    try:
+                        api_process.wait(timeout=5)
+                    except subprocess.TimeoutExpired:
+                        api_process.kill()
+            
+            atexit.register(cleanup_api)
+    
+    except Exception as e:
+        print(f"Failed to start API server: {e}")
+    
+    # Continue with MCP server startup
     mcp.run(transport="stdio")
 
 
