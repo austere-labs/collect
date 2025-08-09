@@ -70,7 +70,7 @@ show_usage() {
     echo -e "  ${GREEN}✓${RESET} ${CYAN}movetools${RESET}              ${DIM}(single script, if available)${RESET}"
     echo -e "  ${GREEN}✓${RESET} ${CYAN}tools/*${RESET}                ${DIM}(all scripts from /tools/)${RESET}"
     echo -e "  ${GREEN}✓${RESET} ${CYAN}.claude/commands/*.md${RESET}  ${DIM}(command templates, recursive)${RESET}"
-    echo -e "  ${GREEN}✓${RESET} ${CYAN}.gemini/commands/*.md${RESET}  ${DIM}(Gemini templates, recursive)${RESET}"
+    echo -e "  ${GREEN}✓${RESET} ${CYAN}.gemini/commands/*.toml${RESET} ${DIM}(Gemini TOML configs, recursive)${RESET}"
     echo -e "  ${GREEN}✓${RESET} ${CYAN}guides/*.md${RESET}            ${DIM}(documentation guides)${RESET}"
     echo ""
     
@@ -78,7 +78,6 @@ show_usage() {
     echo -e "${BOLD}${BLUE}SPECIAL FEATURES:${RESET}"
     echo -e "  ${YELLOW}•${RESET} Auto-creates missing directories"
     echo -e "  ${YELLOW}•${RESET} Preserves directory structure for commands"
-    echo -e "  ${YELLOW}•${RESET} Auto-copies .claude → .gemini if needed"
     echo -e "  ${YELLOW}•${RESET} Sets executable permissions on scripts"
     echo -e "  ${YELLOW}•${RESET} Smart parent directory detection"
     echo ""
@@ -147,7 +146,7 @@ show_llm_usage() {
     echo -e "  ${GREEN}✓${RESET} ${CYAN}movetools${RESET}              ${DIM}→ Single script file (if available)${RESET}"
     echo -e "  ${GREEN}✓${RESET} ${CYAN}tools/*${RESET}                ${DIM}→ All scripts from /tools/ directory${RESET}"
     echo -e "  ${GREEN}✓${RESET} ${CYAN}.claude/commands/*.md${RESET}  ${DIM}→ Command template files (recursive)${RESET}"
-    echo -e "  ${GREEN}✓${RESET} ${CYAN}.gemini/commands/*.md${RESET}  ${DIM}→ Gemini command templates (recursive)${RESET}"
+    echo -e "  ${GREEN}✓${RESET} ${CYAN}.gemini/commands/*.toml${RESET} ${DIM}→ Gemini TOML configs (recursive)${RESET}"
     echo -e "  ${GREEN}✓${RESET} ${CYAN}guides/*.md${RESET}            ${DIM}→ Guide markdown files${RESET}"
     echo ""
     
@@ -182,7 +181,6 @@ show_llm_usage() {
     echo -e "  ${GREEN}•${RESET} Downloads multiple resource types in one execution"
     echo -e "  ${GREEN}•${RESET} Creates necessary directories automatically"
     echo -e "  ${GREEN}•${RESET} Preserves directory structure for commands"
-    echo -e "  ${GREEN}•${RESET} Auto-copies .claude → .gemini if needed"
     echo -e "  ${GREEN}•${RESET} Sets executable permissions for scripts"
     echo -e "  ${GREEN}•${RESET} Shows real-time progress indicators"
     echo -e "  ${GREEN}•${RESET} Provides category-based summary"
@@ -385,11 +383,12 @@ download_file() {
     fi
 }
 
-# Function to process a directory recursively for .md files
-process_md_directory() {
+# Function to process a directory recursively for specific file types
+process_directory() {
     local path="$1"
     local local_path="$2"
     local category="$3"
+    local extension="$4"  # File extension to filter (e.g., "md" or "toml")
     
     # Get contents of current directory
     local contents=$(gh api repos/$REPO/contents/$path 2>/dev/null)
@@ -410,9 +409,9 @@ process_md_directory() {
                 mkdir -p "$new_local_path"
             fi
             # Recursively process subdirectory
-            process_md_directory "$path/$name" "$new_local_path" "$category"
-        elif [ "$type" = "file" ] && [[ "$name" == *.md ]]; then
-            # Download the .md file
+            process_directory "$path/$name" "$new_local_path" "$category" "$extension"
+        elif [ "$type" = "file" ] && [[ "$name" == *.$extension ]]; then
+            # Download the file with matching extension
             download_file "$path/$name" "$local_path/$name" false "$category"
         fi
     done
@@ -449,62 +448,17 @@ fi
 echo ""
 
 # 3. Download .claude/commands/*.md
-print_info "Fetching .claude/commands..."
-process_md_directory ".claude/commands" "$BASE_DIR/.claude/commands" "commands"
+print_info "Fetching .claude/commands/*.md files..."
+process_directory ".claude/commands" "$BASE_DIR/.claude/commands" "commands" "md"
 
-# 4. Download .gemini/commands/*.md (if it exists in the repo)
+# 4. Download .gemini/commands/*.toml (if it exists in the repo)
 print_info "Checking for .gemini/commands in repository..."
 GEMINI_CHECK=$(gh api repos/$REPO/contents/.gemini/commands 2>/dev/null)
 if [ $? -eq 0 ]; then
-    print_info "Found .gemini/commands in repository, downloading..."
-    process_md_directory ".gemini/commands" "$BASE_DIR/.gemini/commands" "commands"
+    print_info "Found .gemini/commands in repository, downloading .toml files..."
+    process_directory ".gemini/commands" "$BASE_DIR/.gemini/commands" "commands" "toml"
 else
-    print_info ".gemini/commands not found in repository, will copy from .claude/commands..."
-fi
-
-# Check if .gemini/commands has any files, if not copy from .claude/commands
-# First ensure the directory exists
-if [ ! -d "$BASE_DIR/.gemini/commands" ]; then
-    mkdir -p "$BASE_DIR/.gemini/commands"
-fi
-
-GEMINI_FILE_COUNT=$(find "$BASE_DIR/.gemini/commands" -name "*.md" -type f 2>/dev/null | wc -l | tr -d ' ')
-print_info "Found $GEMINI_FILE_COUNT .md files in .gemini/commands"
-
-if [ "$GEMINI_FILE_COUNT" -eq 0 ]; then
-    print_info "Copying .claude/commands/*.md to .gemini/commands..."
-    if [ -d "$BASE_DIR/.claude/commands" ]; then
-        # Count files to copy
-        CLAUDE_FILE_COUNT=$(find "$BASE_DIR/.claude/commands" -name "*.md" -type f | wc -l | tr -d ' ')
-        print_info "Found $CLAUDE_FILE_COUNT .md files in .claude/commands to copy"
-        
-        # Find all .md files in .claude/commands (including subdirectories) and copy them
-        find "$BASE_DIR/.claude/commands" -name "*.md" -type f | while IFS= read -r file; do
-            # Get the relative path from .claude/commands
-            relative_path="${file#$BASE_DIR/.claude/commands/}"
-            target_file="$BASE_DIR/.gemini/commands/$relative_path"
-            target_dir=$(dirname "$target_file")
-            
-            # Create target directory if it doesn't exist
-            if [ ! -d "$target_dir" ]; then
-                mkdir -p "$target_dir"
-            fi
-            
-            # Copy the file
-            cp "$file" "$target_file"
-            if [ $? -eq 0 ]; then
-                echo -n "  $target_file... "
-                echo -e "${GREEN}✓${NC}"
-            else
-                echo -n "  $target_file... "
-                echo -e "${RED}✗${NC}"
-            fi
-        done
-    else
-        print_error "No .claude/commands directory found to copy from"
-    fi
-else
-    print_info "Found $GEMINI_FILE_COUNT files in .gemini/commands, skipping copy"
+    print_info ".gemini/commands not found in repository, skipping..."
 fi
 
 echo ""
