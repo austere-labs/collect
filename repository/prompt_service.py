@@ -21,8 +21,13 @@ from config import Config
 
 
 class PromptService:
-    def __init__(self, conn: sqlite3.Connection):
+    def __init__(
+            self,
+            conn: sqlite3.Connection,
+            config: Config
+    ):
         self.conn = conn
+        self.config = config
         self.plans_check_dirs()
         self.cmd_check_dirs()
 
@@ -330,6 +335,7 @@ class PromptService:
                                     prompt_content=file.read_text(),
                                     name=file.name,
                                     prompt_type=PromptType.PLAN,
+                                    github_url=self.config.github_url,
                                     cmd_category=cmd_category,
                                     status=status,
                                     project=project_dir.name,
@@ -362,7 +368,7 @@ class PromptService:
         # Check if it already has .md or .toml extension
         if normalized.endswith(".md") or normalized.endswith(".toml"):
             return normalized
-        
+
         # If it has another extension, replace it with .md
         if "." in normalized:
             normalized = normalized.rsplit(".", 1)[0] + ".md"
@@ -397,6 +403,7 @@ class PromptService:
         prompt_content: str,
         name: str,
         prompt_type: PromptType,
+        github_url: Optional[str] = None,
         cmd_category: Optional[CmdCategory] = None,
         status: PromptPlanStatus = PromptPlanStatus.DRAFT,
         project: Optional[str] = None,
@@ -444,6 +451,7 @@ class PromptService:
         prompt = Prompt(
             id=str(uuid.uuid4()),
             name=db_name,
+            github_url=github_url,
             data=prompt_data,
             version=1,
             content_hash=content_hash,
@@ -622,9 +630,16 @@ class PromptService:
                 cursor.execute(
                     """
                     INSERT INTO prompt(
-                    id, name, data, version, content_hash, created_at, updated_at
+                    id,
+                    name,
+                    data,
+                    version,
+                    content_hash,
+                    created_at,
+                    updated_at,
+                    github_url
                     )
-                    VALUES(?, ?, jsonb(?), ?, ?, ?, ?)
+                    VALUES(?, ?, jsonb(?), ?, ?, ?, ?,?)
                     """,
                     (
                         prompt.id,
@@ -634,6 +649,7 @@ class PromptService:
                         prompt.content_hash,
                         prompt.created_at,
                         prompt.updated_at,
+                        prompt.github_url
                     ),
                 )
 
@@ -647,9 +663,10 @@ class PromptService:
                     content_hash,
                     created_at,
                     archived_at,
-                    change_summary
+                    change_summary,
+                    github_url
                     )
-                    VALUES(?, ?, jsonb(?), ?, ?, ?, ?)
+                    VALUES(?, ?, jsonb(?), ?, ?, ?, ?, ?)
                     """,
                     (
                         prompt.id,
@@ -659,6 +676,7 @@ class PromptService:
                         prompt.created_at,
                         datetime.now(timezone.utc),
                         change_summary,
+                        prompt.github_url
                     ),
                 )
                 self.conn.commit()
@@ -727,7 +745,8 @@ class PromptService:
                     data = jsonb(?),
                     version = ?,
                     content_hash = ?,
-                    updated_at = ?
+                    updated_at = ?,
+                    github_url = ?
                 WHERE id = ?
                 """,
                 (
@@ -736,6 +755,7 @@ class PromptService:
                     prompt.version,
                     prompt.content_hash,
                     prompt.updated_at,
+                    prompt.github_url,
                     prompt.id,
                 ),
             )
@@ -750,8 +770,9 @@ class PromptService:
                 content_hash,
                 created_at,
                 archived_at,
-                change_summary)
-                VALUES(?, ?, jsonb(?), ?, ?, ?, ?)
+                change_summary,
+                github_url)
+                VALUES(?, ?, jsonb(?), ?, ?, ?, ?, ?)
                 """,
                 (
                     prompt.id,
@@ -761,6 +782,7 @@ class PromptService:
                     prompt.created_at,
                     datetime.now(timezone.utc),
                     change_summary,
+                    prompt.github_url,
                 ),
             )
 
@@ -799,7 +821,8 @@ class PromptService:
             version,
             content_hash,
             created_at,
-            updated_at
+            updated_at,
+            github_url
 
             FROM prompt
             WHERE id = ?
@@ -819,6 +842,7 @@ class PromptService:
         return Prompt(
             id=row["id"],
             name=row["name"],
+            github_url=row["github_url"],
             data=prompt_data,
             version=row["version"],
             content_hash=row["content_hash"],
@@ -847,7 +871,8 @@ class PromptService:
             version,
             content_hash,
             created_at,
-            updated_at
+            updated_at,
+            github_url
 
             FROM prompt
             WHERE name = ?
@@ -865,6 +890,7 @@ class PromptService:
         return Prompt(
             id=row["id"],
             name=row["name"],
+            github_url=row["github_url"],
             data=prompt_data,
             version=row["version"],
             content_hash=row["content_hash"],
@@ -886,8 +912,9 @@ class PromptService:
                 content_hash,
                 created_at,
                 archived_at,
-                change_summary)
-                SELECT id, version, data, content_hash, created_at, ?, ?
+                change_summary,
+                github_url)
+                SELECT id, version, data, content_hash, created_at, ?, ?, github_url
                 FROM prompt WHERE id = ?
             """,
                 (datetime.now(timezone.utc), "DELETED - Final Version", prompt_id),
@@ -969,7 +996,8 @@ class PromptService:
                     version,
                     content_hash,
                     created_at,
-                    updated_at
+                    updated_at,
+                    github_url
                 FROM prompt
                 WHERE data ->> '$.type' = 'cmd'
                 ORDER BY name
@@ -1005,6 +1033,7 @@ class PromptService:
                     prompt = Prompt(
                         id=row["id"],
                         name=row["name"],
+                        github_url=row["github_url"],
                         data=prompt_data,
                         version=row["version"],
                         content_hash=row["content_hash"],
@@ -1166,7 +1195,8 @@ class PromptService:
                     version,
                     content_hash,
                     created_at,
-                    updated_at
+                    updated_at,
+                    github_url
                 FROM prompt
                 WHERE data ->> '$.type' = 'plan'
                 ORDER BY name
@@ -1208,6 +1238,7 @@ class PromptService:
                     prompt = Prompt(
                         id=row["id"],
                         name=row["name"],
+                        github_url=row["github_url"],
                         data=prompt_data,
                         version=row["version"],
                         content_hash=row["content_hash"],
@@ -1231,6 +1262,7 @@ class PromptService:
                         )
                         continue
 
+                    # TODO: update this to use coordinate the github_url
                     if prompt.data.project != project_dir.name:
                         # Skip this prompt - it belongs to a different project
                         continue

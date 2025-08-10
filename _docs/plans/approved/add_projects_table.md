@@ -14,32 +14,28 @@ The migration should:
 
 ### 2. Create Projects Table
 ```sql
--- Create projects table
+-- Create projects table with github_url as primary key
 CREATE TABLE IF NOT EXISTS projects (
-    id TEXT PRIMARY KEY,
-    github_url TEXT NOT NULL,
+    github_url TEXT PRIMARY KEY,
     description TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-
--- Add index for github_url for efficient lookups
-CREATE INDEX IF NOT EXISTS idx_projects_github_url ON projects(github_url);
 ```
 
 ### 3. Update Prompt Table with Foreign Key
 ```sql
--- Add project_id column to prompt table (nullable for backwards compatibility)
-ALTER TABLE prompt ADD COLUMN project_id TEXT;
+-- Add github_url column to prompt table (nullable for backwards compatibility)
+ALTER TABLE prompt ADD COLUMN github_url TEXT;
 
 -- Add foreign key constraint
 ALTER TABLE prompt 
     ADD CONSTRAINT fk_prompt_project 
-    FOREIGN KEY (project_id) REFERENCES projects(id)
+    FOREIGN KEY (github_url) REFERENCES projects(github_url)
     ON DELETE SET NULL;
 
--- Add index for project_id for efficient joins
-CREATE INDEX IF NOT EXISTS idx_prompt_project_id ON prompt(project_id);
+-- Add index for github_url for efficient joins
+CREATE INDEX IF NOT EXISTS idx_prompt_github_url ON prompt(github_url);
 ```
 
 ### 4. Migration File Structure
@@ -48,50 +44,44 @@ The complete migration file should follow this structure:
 -- Add projects table and update prompt table with project reference
 -- depends: 20250727_01_create-prompt-tables
 
--- Projects table creation
+-- Projects table creation with github_url as primary key
 CREATE TABLE IF NOT EXISTS projects (
-    id TEXT PRIMARY KEY,
-    github_url TEXT NOT NULL,
+    github_url TEXT PRIMARY KEY,
     description TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Index for github_url
-CREATE INDEX IF NOT EXISTS idx_projects_github_url ON projects(github_url);
+-- Add github_url to prompt table
+ALTER TABLE prompt ADD COLUMN github_url TEXT REFERENCES projects(github_url) ON DELETE SET NULL;
 
--- Add project_id to prompt table
-ALTER TABLE prompt ADD COLUMN project_id TEXT REFERENCES projects(id) ON DELETE SET NULL;
-
--- Index for project_id foreign key
-CREATE INDEX IF NOT EXISTS idx_prompt_project_id ON prompt(project_id);
+-- Index for github_url foreign key
+CREATE INDEX IF NOT EXISTS idx_prompt_github_url ON prompt(github_url);
 
 -- Down migration (rollback)
--- DROP INDEX IF EXISTS idx_prompt_project_id;
--- ALTER TABLE prompt DROP COLUMN project_id;
--- DROP INDEX IF EXISTS idx_projects_github_url;
+-- DROP INDEX IF EXISTS idx_prompt_github_url;
+-- ALTER TABLE prompt DROP COLUMN github_url;
 -- DROP TABLE IF EXISTS projects;
 ```
 
 ## Key Features
-- **Projects table**: Stores project metadata with GitHub URL and description
-- **Optional foreign key**: `project_id` in prompt table is nullable for backwards compatibility
+- **Projects table**: Stores project metadata with GitHub URL as primary key and description
+- **Optional foreign key**: `github_url` in prompt table is nullable for backwards compatibility
 - **Referential integrity**: Foreign key constraint ensures valid project references
-- **Performance optimization**: Indexes on foreign key and github_url for efficient queries
+- **Performance optimization**: Index on github_url foreign key for efficient queries
 - **Rollback support**: Down migration steps commented for manual rollback if needed
 
 ## Testing Considerations
 - Verify existing prompts continue to work without project_id
 - Test inserting prompts with valid project_id references
-- Verify foreign key constraint prevents invalid project_id values
-- Test cascade behavior on project deletion (should set prompt.project_id to NULL)
+- Verify foreign key constraint prevents invalid github_url values
+- Test cascade behavior on project deletion (should set prompt.github_url to NULL)
 - Check index performance on joins between prompt and projects tables
 
 ## Example Usage
 ```python
 # Create a new project
 project = Project(
-    id="proj_123",
     github_url="https://github.com/user/repo",
     description="Example project"
 )
@@ -108,7 +98,7 @@ prompt = Prompt(
     id="prompt_456",
     name="example_prompt",
     data=prompt_data,
-    project_id="proj_123",  # Links to the project
+    github_url="https://github.com/user/repo",  # Links to the project
     version=1,
     content_hash="abc123",
     created_at=datetime.now(),
@@ -119,11 +109,12 @@ prompt = Prompt(
 ## Files to Modify
 - [ ] Create `migrations/20250810_01_add-projects-table.sql`
 - [✅] Update `repository/prompt_models.py` (already done by user)
-  - Added `Project` model
-  - Added `project_id: Optional[str]` to `Prompt` model
+  - Added `Project` model with `github_url` as primary identifier
+  - Added `github_url: Optional[str]` to `Prompt` model
 
 ## Notes
 - The Pydantic models have already been updated in `repository/prompt_models.py`
-- The migration maintains backwards compatibility by making `project_id` optional
+- The migration maintains backwards compatibility by making `github_url` optional
 - The `ON DELETE SET NULL` ensures prompts aren't orphaned when projects are deleted
+- Using `github_url` as primary key eliminates the need for a separate `id` field
 - Consider adding a trigger to update `updated_at` timestamp on projects table modifications
