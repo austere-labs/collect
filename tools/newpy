@@ -61,7 +61,8 @@ llm_usage() {
     echo ""
     echo "GENERATED FILES:"
     echo "  - main.py: FastAPI server entry point"
-    echo "  - config.py: Environment configuration with dotenv"
+    echo "  - config.py: Environment configuration with dotenv and SecretManager"
+    echo "  - secret_manager.py: Google Cloud Secret Manager integration"
     echo "  - yoyo.ini: Database migration configuration"
     echo "  - migrations/: Directory for database migration files"
     echo "  - baseservice/: Directory for base service components"
@@ -100,6 +101,7 @@ llm_usage() {
     echo "  - dspy: Framework for programming language models"
     echo "  - yoyo-migrations: Database migration tool"
     echo "  - python-json-logger: JSON structured logging"
+    echo "  - google-cloud-secret-manager: Secret management integration"
     echo ""
     echo "MAKEFILE COMMANDS:"
     echo "  - make marimo: Launch marimo notebook editor"
@@ -167,7 +169,7 @@ uv venv
 source .venv/bin/activate
 
 # 3. install your default deps
-uv add fastapi uvicorn ruff black pytest pytest-xdist python-dotenv requests pydantic marimo dspy yoyo-migrations python-json-logger
+uv add fastapi uvicorn ruff black pytest pytest-xdist python-dotenv requests pydantic marimo dspy yoyo-migrations python-json-logger google-cloud-secret-manager
 
 
 rm main.py
@@ -243,9 +245,27 @@ class SQLite3Database:
             conn.close()
 EOF
 
+cat > secret_manager.py <<EOF
+from google.cloud import secretmanager
+
+
+class SecretManager:
+    def __init__(
+        self,
+        project_id: str,
+    ) -> None:
+        self.project_id = project_id
+        self.gcp_client = secretmanager.SecretManagerServiceClient()
+
+    def get_secret(self, secret_name: str) -> str:
+        response = self.gcp_client.access_secret_version(request={"name": secret_name})
+        return response.payload.data.decode("UTF-8").strip()
+EOF
+
 cat > config.py <<EOF
 from dotenv import load_dotenv
 import os
+from secret_manager import SecretManager
 
 
 class Config:
@@ -257,6 +277,27 @@ class Config:
         self.port = os.getenv("PORT")
         self.db_path = os.getenv("DB_PATH", "data/$proj.db")
         self.github_url = os.getenv("GITHUB_URL", "")
+        self.gcp_project_id = os.getenv("GCP_PROJECT_ID")
+        
+        # Secret Manager integration (optional)
+        self.secret_manager = None
+        if self.gcp_project_id:
+            try:
+                self.secret_manager = SecretManager(self.gcp_project_id)
+            except Exception as e:
+                print(f"Warning: Could not initialize SecretManager: {e}")
+        
+        # Example secret paths - customize as needed
+        self.api_key_path = os.getenv("API_KEY_PATH")
+        
+    def get_secret(self, secret_path: str) -> str:
+        """Get a secret from Google Cloud Secret Manager"""
+        if self.secret_manager and secret_path:
+            try:
+                return self.secret_manager.get_secret(secret_path)
+            except Exception as e:
+                print(f"Error getting secret from {secret_path}: {e}")
+        return None
 EOF
 
 # create baseservice files
@@ -518,6 +559,8 @@ EOF
 cat > .env <<EOF
 PORT=8081
 GCP_PROJECT_ID=YOURGCPPROJECTIDHERE
+# Example secret path for Google Cloud Secret Manager
+# API_KEY_PATH=projects/YOUR_PROJECT_ID/secrets/api-key/versions/latest
 EOF
 
 cat > .env.local <<EOF
