@@ -348,24 +348,27 @@ class PromptService:
         return PromptLoadResult(loaded_prompts=prompts, errors=errors)
 
     def normalize_filename(self, filename: str) -> str:
-        """Normalize filename to use underscores and ensure .md extension
+        """Normalize filename to use underscores and ensure .md or .toml extension
 
         Args:
             filename: The original filename
 
         Returns:
-            Normalized filename with underscores and .md extension
+            Normalized filename with underscores and .md or .toml extension
         """
         # Replace hyphens with underscores
         normalized = filename.replace("-", "_")
 
-        # Ensure .md extension
-        if not normalized.endswith(".md"):
-            # Remove any existing extension and add .md
-            if "." in normalized:
-                normalized = normalized.rsplit(".", 1)[0] + ".md"
-            else:
-                normalized = normalized + ".md"
+        # Check if it already has .md or .toml extension
+        if normalized.endswith(".md") or normalized.endswith(".toml"):
+            return normalized
+        
+        # If it has another extension, replace it with .md
+        if "." in normalized:
+            normalized = normalized.rsplit(".", 1)[0] + ".md"
+        else:
+            # No extension, add .md as default
+            normalized = normalized + ".md"
 
         return normalized
 
