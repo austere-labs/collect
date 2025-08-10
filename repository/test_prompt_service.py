@@ -3,6 +3,7 @@ from typing import List
 from repository.database import SQLite3Database
 from repository.prompt_service import PromptService
 from repository.prompt_models import Prompt, PromptType, PromptPlanStatus, CmdCategory
+from config import Config
 
 
 @pytest.fixture
@@ -33,9 +34,10 @@ def prompt_service():
     the database connection will always be properly closed regardless of
     whether the test passes or fails.
     """
-    db = SQLite3Database(db_path="data/collect.db")
+    config = Config()
+    db = SQLite3Database(config.db_path)
     with db.get_connection() as conn:
-        cmd_service = PromptService(conn)
+        cmd_service = PromptService(conn, config)
 
         yield cmd_service
 
@@ -51,7 +53,7 @@ def test_load_cmds_from_disk(prompt_service: PromptService):
     assert (
         load_results.errors is None or len(load_results.errors) == 0
     ), f"Expected no errors, but found {
-            len(load_results.errors) if load_results.errors else 0} errors"
+        len(load_results.errors) if load_results.errors else 0} errors"
 
 
 def test_load_plans_from_disk(prompt_service: PromptService):
@@ -62,7 +64,7 @@ def test_load_plans_from_disk(prompt_service: PromptService):
     assert (
         load_results.errors is None or len(load_results.errors) == 0
     ), f"Expected no errors, but found {
-            len(load_results.errors) if load_results.errors else 0} errors"
+        len(load_results.errors) if load_results.errors else 0} errors"
 
 
 def create_test_prompts(prompt_service: PromptService) -> List[Prompt]:
@@ -137,7 +139,8 @@ def test_save_prompt_in_db(prompt_service: PromptService):
 
         # retrieve the prompt by name
         # and validate correct prompt retrieval
-        retrieved_prompt_by_name = prompt_service.get_prompt_by_name(cmd_prompt.name)
+        retrieved_prompt_by_name = prompt_service.get_prompt_by_name(
+            cmd_prompt.name)
         assert retrieved_prompt_by_name is not None
         assert retrieved_prompt_by_name.id == cmd_prompt.id
 

@@ -68,6 +68,7 @@ class PromptData(BaseModel):
 class Prompt(BaseModel):
     id: str
     name: str
+    project_id: Optional[str]
     data: PromptData  # Structured JSONB data
     version: int
     content_hash: str

@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, Request, HTTPException
 from repository.database import SQLite3Database
 from repository.prompt_service import PromptService
+from config import Config
 
 prompt_api_router = APIRouter()
 
@@ -18,7 +19,9 @@ def get_db_connection(request: Request):
 
 def get_prompt_service(conn=Depends(get_db_connection)):
     """Get prompt service instance with injected database connection"""
-    return PromptService(conn)
+
+    config = Config()
+    return PromptService(conn, config)
 
 
 @prompt_api_router.get("/")

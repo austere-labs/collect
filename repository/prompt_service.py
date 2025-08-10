@@ -21,7 +21,11 @@ from config import Config
 
 
 class PromptService:
-    def __init__(self, conn: sqlite3.Connection):
+    def __init__(
+            self,
+            conn: sqlite3.Connection,
+            config: Config
+    ):
         self.conn = conn
         self.plans_check_dirs()
         self.cmd_check_dirs()
@@ -362,7 +366,7 @@ class PromptService:
         # Check if it already has .md or .toml extension
         if normalized.endswith(".md") or normalized.endswith(".toml"):
             return normalized
-        
+
         # If it has another extension, replace it with .md
         if "." in normalized:
             normalized = normalized.rsplit(".", 1)[0] + ".md"
