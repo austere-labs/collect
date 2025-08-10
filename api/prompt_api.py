@@ -39,3 +39,5 @@ async def get_prompt(
     prompt = prompt_service.get_prompt_by_id(prompt_id)
     if not prompt:
         raise HTTPException(status_code=404, detail="prompt not found")
+
+    return prompt

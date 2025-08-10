@@ -64,6 +64,10 @@ llm_usage() {
     echo "  - config.py: Environment configuration with dotenv"
     echo "  - yoyo.ini: Database migration configuration"
     echo "  - migrations/: Directory for database migration files"
+    echo "  - baseservice/: Directory for base service components"
+    echo "  - baseservice/base_api.py: FastAPI router with base endpoints"
+    echo "  - baseservice/base_models.py: Pydantic models for data validation"
+    echo "  - baseservice/base_service.py: Business logic service layer"
     echo "  - repository/database.py: SQLite database connection class"
     echo "  - data/<project_name>.db: SQLite database file"
     echo "  - Makefile: Development and database commands"
@@ -88,24 +92,30 @@ llm_usage() {
     echo "  - ruff: Fast Python linter"
     echo "  - black: Code formatter"
     echo "  - pytest: Testing framework"
+    echo "  - pytest-xdist: Parallel test execution"
     echo "  - python-dotenv: Environment variable management"
     echo "  - requests: HTTP library"
     echo "  - pydantic: Data validation"
     echo "  - marimo: Interactive notebook environment"
     echo "  - dspy: Framework for programming language models"
     echo "  - yoyo-migrations: Database migration tool"
+    echo "  - python-json-logger: JSON structured logging"
     echo ""
     echo "MAKEFILE COMMANDS:"
+    echo "  - make marimo: Launch marimo notebook editor"
+    echo "  - make ensuregithub: Ensure GitHub URL is set"
     echo "  - make lint: Run ruff check"
     echo "  - make format: Run black formatter"
-    echo "  - make test: Run pytest"
+    echo "  - make test: Run pytest with parallel execution"
+    echo "  - make test-fast: Run tests excluding slow tests"
     echo "  - make check: Run all quality checks"
-    echo "  - make start: Start the FastAPI server"
+    echo "  - make start: Start the FastAPI server with uv run"
     echo "  - make migrate: Apply database migrations"
     echo "  - make migrate-rollback: Rollback database migrations"
     echo "  - make migrate-status: Check migration status"
     echo "  - make docker-build: Build Docker image"
     echo "  - make docker-run: Run Docker container"
+    echo "  - make create-kernal: Install Jupyter kernel"
     echo ""
     echo "REQUIREMENTS:"
     echo "  - UV must be installed and available in PATH"
@@ -157,7 +167,8 @@ uv venv
 source .venv/bin/activate
 
 # 3. install your default deps
-uv add fastapi uvicorn ruff black pytest python-dotenv requests pydantic marimo dspy yoyo-migrations
+uv add fastapi uvicorn ruff black pytest pytest-xdist python-dotenv requests pydantic marimo dspy yoyo-migrations python-json-logger
+
 
 rm main.py
 
@@ -167,6 +178,7 @@ mkdir -p .gemini/commands
 mkdir -p migrations
 mkdir -p data
 mkdir -p repository
+mkdir -p baseservice
 mkdir -p guides
 mkdir -p tools
 mkdir -p _docs/plans/drafts
@@ -243,21 +255,147 @@ class Config:
 
     def __init__(self) -> None:
         self.port = os.getenv("PORT")
+        self.db_path = os.getenv("DB_PATH", "data/$proj.db")
+        self.github_url = os.getenv("GITHUB_URL", "")
+EOF
+
+# create baseservice files
+cat > baseservice/base_models.py <<EOF
+from pydantic import BaseModel
+
+
+class User(BaseModel):
+    name: str
+EOF
+
+cat > baseservice/base_service.py <<EOF
+import sqlite3
+from config import Config
+from .base_models import User
+from typing import Optional
+
+
+class BaseService:
+    def __init__(
+            self,
+            conn: sqlite3.Connection,
+            config: Config
+    ):
+        self.conn = conn
+        self.config = config
+
+    def test(self) -> dict:
+        return {
+            "base project": f"Base project working...{self.config.github_url}"
+        }
+
+    def get_user(self, username: str) -> Optional[User]:
+        return User(name=username)
+EOF
+
+cat > baseservice/base_api.py <<EOF
+from fastapi import APIRouter, Depends, Request, HTTPException
+from repository.database import SQLite3Database
+from .base_service import BaseService
+from config import Config
+
+base_router = APIRouter()
+
+
+def get_db_conn(request: Request):
+    db_path = request.app.state.db_path
+    db = SQLite3Database(db_path=db_path)
+    with db.get_connection() as conn:
+        yield conn
+
+
+def get_base_service(request: Request, conn=Depends(get_db_conn)):
+    config = Config()
+    return BaseService(conn, config)
+
+
+@base_router.get("/")
+async def home(baseservice: BaseService = Depends(get_base_service)) -> dict:
+    try:
+        return baseservice.test()
+    except Exception:
+        raise HTTPException(status_code=404, detail="prompt not found")
+
+
+@base_router.get("/health")
+async def health_check() -> dict:
+    """Health check endpoint"""
+    return {"status": "healthy", "service": "$proj_api"}
+
+
+@base_router.get("/user/{username}")
+async def get_user(
+        username: str,
+        baseservice: BaseService = Depends(get_base_service),
+):
+    return baseservice.get_user(username)
 EOF
 
 cat > main.py <<EOF
 from config import Config
 import uvicorn
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+import logging
+from pythonjsonlogger.json import JsonFormatter
+import sys
+from contextlib import asynccontextmanager
+from baseservice.base_api import base_router
 
-app = FastAPI()
+# Configure JSON logging
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
+handler = logging.StreamHandler(stream=sys.stdout)
+handler.setFormatter(JsonFormatter())
+handler.setLevel(logging.INFO)
+logger.addHandler(handler)
+
+config = Config()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # startup
+    logger.info("Starting $proj service...")
+    app.state.db_path = config.db_path
+    logger.info(f"database path set to: {app.state.db_path}")
+    logger.info(f"service running on port: {config.port}")
+
+    yield
+
+    # shutdown
+    logger.info("Shutting down service...")
+
+
+app = FastAPI(
+    title="$proj service api",
+    description="template service for building python projects",
+    version="1.0.0",
+    lifespan=lifespan,
+)
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:*", "http://127.0.0.1:*"],
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_headers=["*"],
+)
+
+app.include_router(base_router, tags=["base_api"])
 
 
 def main():
-    print("Hello from $proj!")
+    logger.info("Hello from $proj!", extra={"more_data": True})
 
-    config = Config()
-    print(config.port)
+    logger.info("Server configuration", extra={"port": config.port})
     uvicorn.run("main:app", host="0.0.0.0", port=int(config.port))
 
 
@@ -329,26 +467,33 @@ EOF
 cat > Makefile <<EOF
 PROJECT_NAME := $proj
 
+marimo:
+	uv run marimo edit
+
+.PHONY: ensuregithub
+ensuregithub:
+	./tools/ensure-github-url
+
 lint:
 	ruff check .
 
 format:
 	black .
 
-test:
-	pytest -v -s
+test: 
+	uv run pytest -v -s -n auto
 
-export-pip:
-	uv pip freeze > requirements.txt
+test-fast:
+	uv run pytest -v -n auto -m "not slow"
 
 check:
 	make lint
 	make format
+	make ensuregithub
 	make test
-	make export-pip
 
 start:
-	python main.py
+	uv run main.py
 
 docker-build:
 	docker build -t \$(PROJECT_NAME) .
@@ -368,9 +513,6 @@ migrate-rollback:
 
 migrate-status:
 	yoyo list --config yoyo.ini
-
-setup:
-	pip install -r requirements.txt
 EOF
 
 cat > .env <<EOF

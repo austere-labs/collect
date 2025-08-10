@@ -9,6 +9,7 @@ class Config:
     def __init__(self) -> None:
         self.project_id = os.getenv("GCP_PROJECT_ID")
         self.port = os.getenv("PORT")
+        self.db_path = os.getenv("DB_PATH")
         self.anthropic_key_path = os.getenv("ANTHROPIC_API_KEY_PATH")
         self.anthropic_model_opus = os.getenv("ANTHROPIC_MODEL_OPUS")
         self.anthropic_model_sonnet = os.getenv("ANTHROPIC_MODEL_SONNET")
@@ -26,7 +27,8 @@ class Config:
         self.anthropic_default_code_review_model = os.getenv(
             "ANTHROPIC_DEFAULT_CODE_REVIEW_MODEL"
         )
-        self.xai_default_code_review_model = os.getenv("XAI_DEFAULT_CODE_REVIEW_MODEL")
+        self.xai_default_code_review_model = os.getenv(
+            "XAI_DEFAULT_CODE_REVIEW_MODEL")
 
         # GitHub configuration
         self.github_url = os.getenv("GITHUB_URL")

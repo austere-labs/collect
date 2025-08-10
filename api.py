@@ -8,21 +8,19 @@ import uvicorn
 
 import sys
 import logging
-from pythonjsonlogger import jsonlogger
+from pythonjsonlogger.json import JsonFormatter
 from contextlib import asynccontextmanager
 
-# Module-level logger configuration
-logger = logging.getLogger("prompt_api")
-logger.setLevel(logging.DEBUG)
-stdout_handler = logging.StreamHandler(stream=sys.stdout)
-stdout_handler.setLevel(logging.DEBUG)
 
-fmt = jsonlogger.JsonFormatter(
-    "%(name)s %(asctime)s %(levelname)s %(filename)s %(lineno)s %(process)d %(message)s",
-    rename_fields={"levelname": "severity", "asctime": "timestamp"},
-)
-stdout_handler.setFormatter(fmt)
-logger.addHandler(stdout_handler)
+# Configure JSON logging
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
+handler = logging.StreamHandler(stream=sys.stdout)
+handler.setFormatter(JsonFormatter())
+handler.setLevel(logging.INFO)
+
+logger.addHandler(handler)
 
 # Load configuration
 config = Config()
@@ -32,9 +30,7 @@ config = Config()
 async def lifespan(app: FastAPI):
     # Startup
     logger.info("Starting prompt API service...")
-    app.state.db_path = (
-        config.db_path if hasattr(config, "db_path") else "data/collect.db"
-    )
+    app.state.db_path = config.db_path
     app.state.config = config
     logger.info(f"Database path set to: {app.state.db_path}")
     logger.info(f"Service running on port: {config.port}")
