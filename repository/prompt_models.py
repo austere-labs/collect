@@ -46,9 +46,10 @@ CmdCategory = create_cmd_category_enum()
 
 
 class Project(BaseModel):
-    id: str
     github_url: str
     description: str
+    created_at: datetime
+    updated_at: datetime
 
 
 class PromptData(BaseModel):
@@ -68,7 +69,7 @@ class PromptData(BaseModel):
 class Prompt(BaseModel):
     id: str
     name: str
-    project_id: Optional[str]
+    github_url: Optional[str]
     data: PromptData  # Structured JSONB data
     version: int
     content_hash: str
