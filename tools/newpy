@@ -366,7 +366,7 @@ async def home(baseservice: BaseService = Depends(get_base_service)) -> dict:
 @base_router.get("/health")
 async def health_check() -> dict:
     """Health check endpoint"""
-    return {"status": "healthy", "service": "$proj_api"}
+    return {"status": "healthy", "service": "$proj"}
 
 
 @base_router.get("/user/{username}")
@@ -621,9 +621,47 @@ htmlcov/
 # uv.lock
 EOF
 
+# Create README.md file
+cat > README.md <<EOF
+# $proj
+
+A Python project built with FastAPI and UV dependency management.
+
+## Setup
+
+\`\`\`bash
+# Install dependencies
+uv sync
+
+# Start the server
+make start
+\`\`\`
+
+## Development
+
+\`\`\`bash
+# Run tests
+make test
+
+# Check code quality
+make check
+
+# Database migrations
+make migrate
+\`\`\`
+
+## API
+
+- Health check: \`GET /health\`
+- API documentation: \`GET /docs\` (when server is running)
+
+Generated with [Claude Code](https://claude.ai/code)
+EOF
+
 echo
 echo "✅  UV project '$proj' created in '$BASE/$proj'"
 echo "✅  Makefile generated"
+echo "✅  README.md created"
 
 # Fetch fetchall script from GitHub using gh CLI
 echo
@@ -656,7 +694,20 @@ if command -v gh &> /dev/null; then
             # Run fetchall to download additional resources
             echo
             echo "→ running fetchall to download resources..."
-            ./tools/fetchall
+            
+            # Check if jq is available (required by fetchall)
+            if ! command -v jq &> /dev/null; then
+                echo "⚠️  jq not found - fetchall requires jq to be installed"
+                echo "   Install jq from: https://stedolan.github.io/jq/download/"
+                echo "   Skipping fetchall execution..."
+            else
+                if ./tools/fetchall; then
+                    echo "✅  fetchall completed successfully"
+                else
+                    echo "✗  fetchall failed with exit code $?"
+                    echo "   Continuing with project setup..."
+                fi
+            fi
         else
             echo "✗  Failed to decode fetchall script"
             rm -f "./tools/fetchall"  # Clean up any partial file
