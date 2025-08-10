@@ -21,11 +21,7 @@ from config import Config
 
 
 class PromptService:
-    def __init__(
-            self,
-            conn: sqlite3.Connection,
-            config: Config
-    ):
+    def __init__(self, conn: sqlite3.Connection, config: Config):
         self.conn = conn
         self.config = config
         self.plans_check_dirs()
@@ -435,8 +431,7 @@ class PromptService:
             tags=all_tags,
         )
 
-        content_hash = hashlib.sha256(
-            prompt_content.encode("utf-8")).hexdigest()
+        content_hash = hashlib.sha256(prompt_content.encode("utf-8")).hexdigest()
 
         timestamp = datetime.now(timezone.utc)
 
@@ -649,7 +644,7 @@ class PromptService:
                         prompt.content_hash,
                         prompt.created_at,
                         prompt.updated_at,
-                        prompt.github_url
+                        prompt.github_url,
                     ),
                 )
 
@@ -676,7 +671,7 @@ class PromptService:
                         prompt.created_at,
                         datetime.now(timezone.utc),
                         change_summary,
-                        prompt.github_url
+                        prompt.github_url,
                     ),
                 )
                 self.conn.commit()
@@ -1089,8 +1084,7 @@ class PromptService:
                             )
 
                             # Ensure parent directory exists
-                            target_path.parent.mkdir(
-                                parents=True, exist_ok=True)
+                            target_path.parent.mkdir(parents=True, exist_ok=True)
 
                             # Write content to file
                             target_path.write_text(
@@ -1288,8 +1282,7 @@ class PromptService:
                         target_path.parent.mkdir(parents=True, exist_ok=True)
 
                         # Write content to file
-                        target_path.write_text(
-                            prompt.data.content, encoding="utf-8")
+                        target_path.write_text(prompt.data.content, encoding="utf-8")
 
                         results.append(
                             PromptFlattenResult(

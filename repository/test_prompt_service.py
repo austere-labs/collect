@@ -139,8 +139,7 @@ def test_save_prompt_in_db(prompt_service: PromptService):
 
         # retrieve the prompt by name
         # and validate correct prompt retrieval
-        retrieved_prompt_by_name = prompt_service.get_prompt_by_name(
-            cmd_prompt.name)
+        retrieved_prompt_by_name = prompt_service.get_prompt_by_name(cmd_prompt.name)
         assert retrieved_prompt_by_name is not None
         assert retrieved_prompt_by_name.id == cmd_prompt.id
 
