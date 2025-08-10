@@ -1,6 +1,45 @@
-## Read the plan provided: $ARGUMENTS
+## Execute the implementation plan: $ARGUMENTS
 
-### IMPORTANT INSTRUCTIONS
-- Do not attempt to modify any other code outside of the modifications that are present in the plan provided  
-- If you believe there should be other changes, you can suggest potential changes after you have run the plan and executed the changes. 
-- ONLY make the modifications provided in the plan
+### WORKFLOW:
+
+1. **Plan Validation**:
+   - Verify the plan exists in `@_docs/plans/approved/` directory
+   - If not in approved/, prompt user to move it from drafts/ or update the plan
+   - Validate plan follows the documented format from CLAUDE.md
+   - Ensure plan contains specific implementation details (file paths, function signatures, error handling)
+
+2. **Pre-Implementation**:
+   - Create comprehensive TodoList using TodoWrite tool mapping all plan steps
+   - Verify all dependencies are available: `uv sync`
+
+3. **Implementation**:
+   - Execute ONLY the modifications specified in the plan
+   - Mark each step as in_progress/completed in TodoWrite as you work
+   - Follow existing code conventions and patterns in the codebase
+   - Add error handling and logging where specified in the plan
+   - Use `uv run` for all Python executions
+
+4. **Verification**:
+   - Run tests after each major change: `uv run pytest [specific_test] -v -s`
+   - Run full test suite: `make test-fast`
+   - Run code quality checks: `make lint` and `make format`
+   - Verify all plan requirements are met
+
+5. **Documentation**:
+   - Update the plan status to COMPLETED with implementation summary
+   - Document any deviations or additional changes made
+   - List all modified files with status indicators (✅/❌)
+   - Move completed plan to `@_docs/plans/completed/` directory
+
+### CONSTRAINTS:
+
+- **STRICT SCOPE**: Only implement what's explicitly defined in the plan
+- **NO FEATURE CREEP**: Do not add extra functionality beyond plan specifications  
+- **TESTING REQUIRED**: All changes must pass existing tests
+- **CODE QUALITY**: Must pass lint and format checks before completion
+
+### POST-IMPLEMENTATION:
+
+- Provide brief summary of what was implemented
+- Suggest potential future enhancements (but don't implement them)
+- Confirm all TodoWrite items are marked as completed
