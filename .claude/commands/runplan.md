@@ -1,3 +1,8 @@
+---
+allowed-tools: Bash
+argument-hint: plan [filepath]
+model: opus
+---
 ## Execute the implementation plan: $ARGUMENTS
 
 ### WORKFLOW:
