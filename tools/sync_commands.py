@@ -12,9 +12,16 @@ import json
 import subprocess
 import base64
 import sys
+import hashlib
+import time
 from pathlib import Path
-from typing import Dict, List, Tuple
-from dataclasses import dataclass
+from typing import Dict, List, Tuple, Optional
+from dataclasses import dataclass, asdict
+
+try:
+    import aiohttp
+except ImportError:
+    aiohttp = None
 
 # No longer need project-specific dependencies - using gemini CLI directly
 
@@ -110,6 +117,7 @@ def show_help():
     {Colors.BRIGHT_RED}•{Colors.RESET} {Colors.WHITE}GitHub CLI ({Colors.BRIGHT_GREEN}gh{Colors.WHITE}) - for repository access{Colors.RESET}
     {Colors.BRIGHT_RED}•{Colors.RESET} {Colors.WHITE}Gemini CLI ({Colors.BRIGHT_GREEN}gemini{Colors.WHITE}) - for AI conversion{Colors.RESET}
     {Colors.BRIGHT_RED}•{Colors.RESET} {Colors.WHITE}Python 3.7+ with standard library{Colors.RESET}
+    {Colors.BRIGHT_RED}•{Colors.RESET} {Colors.WHITE}aiohttp ({Colors.BRIGHT_GREEN}pip install aiohttp{Colors.WHITE}) - optional for faster concurrent downloads{Colors.RESET}
 
 {Colors.DIM}For more information, visit: https://github.com/google-gemini/gemini-cli{Colors.RESET}
 """
@@ -143,7 +151,25 @@ class FileInfo:
     name: str
     path: str
     download_url: str
+    sha: str = ""
     content: str = ""
+
+
+@dataclass
+class CacheEntry:
+    """Cache entry for file metadata"""
+    
+    sha: str
+    path: str
+    last_synced: float
+    converted: bool = False
+    
+    @classmethod
+    def from_dict(cls, data: dict) -> 'CacheEntry':
+        return cls(**data)
+    
+    def to_dict(self) -> dict:
+        return asdict(self)
 
 
 class GitHubCommandsSyncer:
@@ -151,6 +177,52 @@ class GitHubCommandsSyncer:
 
     def __init__(self, source_repo: str = "austere-labs/collect"):
         self.source_repo = source_repo
+        self.cache_file = Path(".sync_cache.json")
+        self.cache: Dict[str, CacheEntry] = {}
+        self._load_cache()
+        # Semaphore to limit concurrent operations
+        self.gemini_semaphore = asyncio.Semaphore(3)  # Limit Gemini calls
+        self.github_semaphore = asyncio.Semaphore(10)  # Limit GitHub API calls
+
+    def _load_cache(self):
+        """Load cache from disk"""
+        if self.cache_file.exists():
+            try:
+                with open(self.cache_file, 'r') as f:
+                    cache_data = json.load(f)
+                    self.cache = {
+                        path: CacheEntry.from_dict(entry) 
+                        for path, entry in cache_data.items()
+                    }
+            except Exception as e:
+                print(f"Warning: Could not load cache: {e}")
+                self.cache = {}
+
+    def _save_cache(self):
+        """Save cache to disk"""
+        try:
+            cache_data = {
+                path: entry.to_dict() 
+                for path, entry in self.cache.items()
+            }
+            with open(self.cache_file, 'w') as f:
+                json.dump(cache_data, f, indent=2)
+        except Exception as e:
+            print(f"Warning: Could not save cache: {e}")
+
+    async def _run_gh_command_async(self, args: List[str]) -> Tuple[str, int]:
+        """Run a GitHub CLI command asynchronously and return output and return code"""
+        async with self.github_semaphore:
+            try:
+                process = await asyncio.create_subprocess_exec(
+                    "gh", *args,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE
+                )
+                stdout, stderr = await process.communicate()
+                return stdout.decode().strip(), process.returncode
+            except Exception as e:
+                raise RuntimeError(f"GitHub CLI command failed: {e}")
 
     def _run_gh_command(self, args: List[str]) -> Tuple[str, int]:
         """Run a GitHub CLI command and return output and return code"""
@@ -161,6 +233,24 @@ class GitHubCommandsSyncer:
             return result.stdout.strip(), result.returncode
         except subprocess.SubprocessError as e:
             raise RuntimeError(f"GitHub CLI command failed: {e}")
+
+    async def _run_gemini_command_async(self, prompt: str, model: str = "gemini-2.5-flash") -> str:
+        """Run a gemini CLI command asynchronously and return the response"""
+        async with self.gemini_semaphore:
+            try:
+                process = await asyncio.create_subprocess_exec(
+                    "gemini", "-p", prompt, "--model", model,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE
+                )
+                stdout, stderr = await process.communicate()
+                
+                if process.returncode != 0:
+                    raise RuntimeError(f"Gemini CLI command failed: {stderr.decode()}")
+
+                return stdout.decode().strip()
+            except Exception as e:
+                raise RuntimeError(f"Gemini CLI command failed: {e}")
 
     def _run_gemini_command(self, prompt: str, model: str = "gemini-2.5-flash") -> str:
         """Run a gemini CLI command and return the response"""
@@ -185,6 +275,108 @@ class GitHubCommandsSyncer:
                 "Gemini CLI not found. Please install it with: brew install gemini-cli"
             )
 
+    async def fetch_all_files_optimized(self, base_path: str = ".claude/commands") -> List[FileInfo]:
+        """Optimized method to fetch all markdown files using single recursive tree API call"""
+        args = ["api", f"repos/{self.source_repo}/git/trees/HEAD?recursive=1"]
+        output, returncode = await self._run_gh_command_async(args)
+
+        if returncode != 0:
+            raise RuntimeError(f"Failed to get recursive tree: {output}")
+
+        try:
+            data = json.loads(output)
+            files = []
+
+            for item in data.get("tree", []):
+                if (
+                    item["type"] == "blob"
+                    and item["path"].startswith(base_path)
+                    and item["path"].endswith(".md")
+                ):
+                    files.append(FileInfo(
+                        name=Path(item["path"]).name,
+                        path=item["path"],
+                        download_url=f"https://raw.githubusercontent.com/{self.source_repo}/HEAD/{item['path']}",
+                        sha=item["sha"]
+                    ))
+
+            return files
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Invalid JSON response from GitHub API: {e}")
+
+    async def get_directories_from_files(self, files: List[FileInfo]) -> List[str]:
+        """Extract unique directories from file paths"""
+        directories = set()
+        for file_info in files:
+            dir_path = str(Path(file_info.path).parent)
+            if dir_path != ".claude/commands":
+                directories.add(dir_path)
+        return list(directories)
+
+    async def download_file_content_async(self, file_info: FileInfo) -> str:
+        """Download file content using aiohttp if available, fallback to gh CLI"""
+        # Check cache first
+        cached_entry = self.cache.get(file_info.path)
+        if cached_entry and cached_entry.sha == file_info.sha:
+            print(f"  → Cache hit for {file_info.path}")
+            # Read from local file if it exists
+            local_path = Path(file_info.path)
+            if local_path.exists():
+                return local_path.read_text(encoding="utf-8")
+
+        if aiohttp and file_info.download_url:
+            try:
+                return await self._download_with_aiohttp(file_info)
+            except Exception as e:
+                print(f"  → aiohttp failed for {file_info.path}, falling back to gh CLI: {e}")
+
+        # Fallback to GitHub CLI
+        return await self._download_with_gh_cli(file_info.path)
+
+    async def _download_with_aiohttp(self, file_info: FileInfo) -> str:
+        """Download file using aiohttp for better performance"""
+        async with self.github_semaphore:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(file_info.download_url) as response:
+                    if response.status == 200:
+                        content = await response.text()
+                        # Update cache
+                        self.cache[file_info.path] = CacheEntry(
+                            sha=file_info.sha,
+                            path=file_info.path,
+                            last_synced=time.time()
+                        )
+                        return content
+                    else:
+                        raise RuntimeError(f"HTTP {response.status}: {await response.text()}")
+
+    async def _download_with_gh_cli(self, file_path: str) -> str:
+        """Download file using GitHub CLI as fallback"""
+        args = ["api", f"repos/{self.source_repo}/contents/{file_path}"]
+        output, returncode = await self._run_gh_command_async(args)
+
+        if returncode != 0:
+            raise RuntimeError(f"Failed to download file {file_path}: {output}")
+
+        try:
+            data = json.loads(output)
+            if data.get("encoding") == "base64":
+                content = base64.b64decode(data["content"]).decode("utf-8")
+                # Update cache
+                self.cache[file_path] = CacheEntry(
+                    sha=data.get("sha", ""),
+                    path=file_path,
+                    last_synced=time.time()
+                )
+                return content
+            else:
+                raise ValueError(f"Unexpected encoding: {data.get('encoding')}")
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Invalid JSON response from GitHub API: {e}")
+        except Exception as e:
+            raise RuntimeError(f"Failed to decode file content: {e}")
+
+    # Keep old methods for backwards compatibility
     def fetch_directory_tree(self, path: str = ".claude/commands") -> List[Dict]:
         """Use GitHub CLI to get directory structure"""
         args = ["api", f"repos/{self.source_repo}/contents/{path}"]
@@ -198,40 +390,13 @@ class GitHubCommandsSyncer:
         except json.JSONDecodeError as e:
             raise ValueError(f"Invalid JSON response from GitHub API: {e}")
 
-    def list_subdirectories(self, base_path: str = ".claude/commands") -> List[str]:
-        """Recursively discover all subdirectories using GitHub CLI"""
-        args = ["api", f"repos/{self.source_repo}/git/trees/HEAD?recursive=1"]
-        output, returncode = self._run_gh_command(args)
-
-        if returncode != 0:
-            raise RuntimeError(f"Failed to get recursive tree: {output}")
-
-        try:
-            data = json.loads(output)
-            directories = []
-
-            for item in data.get("tree", []):
-                if (
-                    item["type"] == "tree"
-                    and item["path"].startswith(base_path)
-                    and item["path"] != base_path
-                ):
-                    directories.append(item["path"])
-
-            return directories
-        except json.JSONDecodeError as e:
-            raise ValueError(f"Invalid JSON response from GitHub API: {e}")
-
     def download_file_content(self, file_path: str) -> str:
         """Download individual file content using GitHub CLI"""
         args = ["api", f"repos/{self.source_repo}/contents/{file_path}"]
         output, returncode = self._run_gh_command(args)
 
         if returncode != 0:
-            raise RuntimeError(
-                f"Failed to download file {
-                    file_path}: {output}"
-            )
+            raise RuntimeError(f"Failed to download file {file_path}: {output}")
 
         try:
             data = json.loads(output)
@@ -239,10 +404,7 @@ class GitHubCommandsSyncer:
                 content = base64.b64decode(data["content"]).decode("utf-8")
                 return content
             else:
-                raise ValueError(
-                    f"Unexpected encoding: {
-                        data.get('encoding')}"
-                )
+                raise ValueError(f"Unexpected encoding: {data.get('encoding')}")
         except json.JSONDecodeError as e:
             raise ValueError(f"Invalid JSON response from GitHub API: {e}")
         except Exception as e:
@@ -275,6 +437,31 @@ class GitHubCommandsSyncer:
                         print(f"Created directory: {local_dir}")
                     else:
                         print(f"Would create directory: {local_dir}")
+
+    async def convert_markdown_to_toml_async(self, markdown_content: str, file_path: str) -> str:
+        """Convert markdown command to TOML format using Gemini CLI asynchronously"""
+        # Check if already converted in cache
+        cached_entry = self.cache.get(file_path)
+        if cached_entry and cached_entry.converted:
+            gemini_path = Path(file_path.replace(".claude/commands/", ".gemini/commands/")).with_suffix(".toml")
+            if gemini_path.exists():
+                print(f"  → Using cached conversion for {file_path}")
+                return gemini_path.read_text(encoding="utf-8")
+
+        conversion_prompt = f"""Convert the following markdown command to TOML format while preserving all semantic meaning and functionality:
+
+{markdown_content}
+
+Output should be valid TOML with appropriate sections and key-value pairs that represent the same information structure as the original markdown. Focus on maintaining the command structure, parameters, descriptions, and any metadata present in the markdown format. Only output the TOML content, no explanations."""
+
+        try:
+            result = await self._run_gemini_command_async(conversion_prompt, "gemini-2.5-flash")
+            # Update cache to mark as converted
+            if file_path in self.cache:
+                self.cache[file_path].converted = True
+            return result
+        except Exception as e:
+            raise RuntimeError(f"Failed to convert markdown to TOML: {e}")
 
     def convert_markdown_to_toml(self, markdown_content: str) -> str:
         """Convert markdown command to TOML format using Gemini CLI"""
@@ -330,80 +517,115 @@ Output should be valid TOML with appropriate sections and key-value pairs that r
 
         return all_files
 
+    async def sync_and_convert_commands_optimized(
+        self, dry_run: bool = False, convert_only: bool = False
+    ) -> Dict[str, int]:
+        """Optimized main orchestration function with concurrent processing"""
+        results = {"synced": 0, "converted": 0, "errors": 0, "cached": 0}
+        start_time = time.time()
+
+        try:
+            print(f"🚀 Starting optimized sync from {self.source_repo}")
+            
+            if aiohttp:
+                print("✅ Using aiohttp for concurrent downloads")
+            else:
+                print("⚠️  aiohttp not available, install with: pip install aiohttp")
+
+            # Get all markdown files using optimized single API call
+            print("📁 Fetching file tree...")
+            markdown_files = await self.fetch_all_files_optimized()
+            print(f"📄 Found {len(markdown_files)} markdown files")
+
+            # Get directories from file paths and create local structure
+            if not convert_only:
+                directories = await self.get_directories_from_files(markdown_files)
+                print(f"📂 Creating {len(directories)} directories...")
+                self.create_local_directories(directories, dry_run)
+
+            # Process files concurrently
+            semaphore = asyncio.Semaphore(8)  # Limit concurrent file processing
+            tasks = []
+            
+            for file_info in markdown_files:
+                task = self._process_single_file_async(
+                    file_info, semaphore, dry_run, results
+                )
+                tasks.append(task)
+
+            # Execute all tasks concurrently with progress tracking
+            print(f"⚡ Processing {len(tasks)} files concurrently...")
+            await asyncio.gather(*tasks, return_exceptions=True)
+
+            # Save cache
+            self._save_cache()
+            
+            elapsed = time.time() - start_time
+            print(f"\n✅ Completed in {elapsed:.1f}s: {results['synced']} synced, "
+                  f"{results['converted']} converted, {results['cached']} cached, "
+                  f"{results['errors']} errors")
+            
+            return results
+
+        except Exception as e:
+            print(f"💥 Fatal error during sync: {e}")
+            results["errors"] += 1
+            return results
+
+    async def _process_single_file_async(
+        self, file_info: FileInfo, semaphore: asyncio.Semaphore, 
+        dry_run: bool, results: Dict[str, int]
+    ):
+        """Process a single file with error handling"""
+        async with semaphore:
+            try:
+                print(f"🔄 Processing {file_info.path}")
+
+                # Download content (with caching)
+                file_info.content = await self.download_file_content_async(file_info)
+                
+                # Check if this was a cache hit
+                cached_entry = self.cache.get(file_info.path)
+                if cached_entry and cached_entry.sha == file_info.sha:
+                    results["cached"] += 1
+
+                # Write to .claude/commands
+                local_claude_path = Path(file_info.path)
+                if not dry_run:
+                    local_claude_path.parent.mkdir(parents=True, exist_ok=True)
+                    local_claude_path.write_text(file_info.content, encoding="utf-8")
+                    results["synced"] += 1
+                    print(f"  ✅ Synced to {local_claude_path}")
+                else:
+                    print(f"  🔍 Would sync to {local_claude_path}")
+
+                # Convert and write to .gemini/commands concurrently
+                gemini_path = Path(
+                    file_info.path.replace(".claude/commands/", ".gemini/commands/")
+                ).with_suffix(".toml")
+
+                if not dry_run:
+                    converted_content = await self.convert_markdown_to_toml_async(
+                        file_info.content, file_info.path
+                    )
+                    gemini_path.parent.mkdir(parents=True, exist_ok=True)
+                    gemini_path.write_text(converted_content, encoding="utf-8")
+                    results["converted"] += 1
+                    print(f"  🔄 Converted to {gemini_path}")
+                else:
+                    print(f"  🔍 Would convert to {gemini_path}")
+
+            except Exception as e:
+                print(f"  ❌ Error processing {file_info.path}: {e}")
+                results["errors"] += 1
+
+    # Keep old method for backwards compatibility
     async def sync_and_convert_commands(
         self, dry_run: bool = False, convert_only: bool = False
     ) -> Dict[str, int]:
         """Main orchestration function to sync and convert commands"""
-        results = {"synced": 0, "converted": 0, "errors": 0}
-
-        try:
-            print(f"Starting sync from {self.source_repo}")
-
-            # Get all directories and create local structure
-            if not convert_only:
-                directories = self.list_subdirectories()
-                print(f"Found {len(directories)} subdirectories")
-                self.create_local_directories(directories, dry_run)
-
-            # Get all markdown files
-            markdown_files = self.get_all_markdown_files()
-            print(f"Found {len(markdown_files)} markdown files")
-
-            # Process each file
-            for file_info in markdown_files:
-                try:
-                    print(f"Processing {file_info.path}")
-
-                    # Download content
-                    file_info.content = self.download_file_content(
-                        file_info.path)
-
-                    # Write to .claude/commands
-                    local_claude_path = Path(file_info.path)
-                    if not dry_run:
-                        local_claude_path.parent.mkdir(
-                            parents=True, exist_ok=True)
-                        local_claude_path.write_text(
-                            file_info.content, encoding="utf-8"
-                        )
-                        results["synced"] += 1
-                        print(f"  → Synced to {local_claude_path}")
-                    else:
-                        print(f"  → Would sync to {local_claude_path}")
-
-                    # Convert and write to .gemini/commands
-                    gemini_path = Path(
-                        file_info.path.replace(
-                            ".claude/commands/", ".gemini/commands/")
-                    )
-                    gemini_path = gemini_path.with_suffix(".toml")
-
-                    if not dry_run:
-                        converted_content = self.convert_markdown_to_toml(
-                            file_info.content
-                        )
-                        gemini_path.parent.mkdir(parents=True, exist_ok=True)
-                        gemini_path.write_text(
-                            converted_content, encoding="utf-8")
-                        results["converted"] += 1
-                        print(f"  → Converted to {gemini_path}")
-                    else:
-                        print(f"  → Would convert to {gemini_path}")
-
-                except Exception as e:
-                    print(f"  ✗ Error processing {file_info.path}: {e}")
-                    results["errors"] += 1
-
-            print(
-                f"\nCompleted: {results['synced']} synced, {
-                    results['converted']} converted, {results['errors']} errors"
-            )
-            return results
-
-        except Exception as e:
-            print(f"Fatal error during sync: {e}")
-            results["errors"] += 1
-            return results
+        # Use optimized version
+        return await self.sync_and_convert_commands_optimized(dry_run, convert_only)
 
 
 async def main():
