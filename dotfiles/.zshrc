@@ -55,7 +55,8 @@ db() {
 alias ask='claude -p '
 alias editmcp='nvim ~/Library/Application\ Support/Claude/claude_desktop_config.json'
 alias rip='claude --dangerously-skip-permissions'
-alias cmds='cd .claude/commands && ls -l --color'
+alias cmds='cd "$(git rev-parse --show-toplevel)/.claude/commands" && ls -l --color'
+alias gms='cd "$(git rev-parse --show-toplevel)/.gemini/commands" && ls -l --color'
 
 # git shortcuts
 alias gs='git status'
