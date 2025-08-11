@@ -1,0 +1,604 @@
+#!/usr/bin/env python3
+"""
+Build Source XML Tool (buildsrc)
+
+Creates a source.xml file containing all project files, respecting .gitignore patterns
+and excluding specified directories. Automatically detects project root via git repository.
+
+Usage:
+    buildsrc [--output OUTPUT] [--dry-run] [--verbose]
+"""
+
+import argparse
+import os
+import xml.etree.ElementTree as ET
+from pathlib import Path
+from typing import List, Set, Iterator
+import pathspec
+import sys
+from dataclasses import dataclass
+from rich.console import Console
+from rich.text import Text
+from rich.panel import Panel
+from rich.table import Table
+from rich.syntax import Syntax
+from rich import box
+
+
+@dataclass
+class ProcessingStats:
+    """Statistics for file processing."""
+    files_processed: int = 0
+    files_skipped: int = 0
+    total_size: int = 0
+    directories_excluded: int = 0
+    skipped_files: list = None
+    
+    def __post_init__(self):
+        if self.skipped_files is None:
+            self.skipped_files = []
+
+
+class ColorfulHelpFormatter(argparse.HelpFormatter):
+    """Custom help formatter that uses Rich for colorful output."""
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.console = Console()
+    
+    def format_help(self):
+        """Format help message with rich formatting."""
+        # Create the main help display
+        self._show_colorful_help()
+        return ""  # Return empty string since we've already printed
+    
+    def _show_colorful_help(self):
+        """Display the colorful help menu."""
+        console = Console()
+        
+        # Header
+        title = Text("🔨 Build Source XML", style="bold bright_blue")
+        subtitle = Text("Generate XML file containing all project source code", style="italic cyan")
+        
+        header_panel = Panel.fit(
+            Text.assemble(title, "\n", subtitle),
+            border_style="bright_blue",
+            padding=(1, 2)
+        )
+        console.print("\n")
+        console.print(header_panel)
+        
+        # Description
+        description = Panel(
+            Text.assemble(
+                "This script reads all project files (respecting .gitignore patterns) and\n",
+                "concatenates them into a single XML document with proper file path headers.\n\n",
+                Text("🚫 Automatically excludes:", style="bold red"),
+                "\n  • data/ directory",
+                "\n  • .claude/commands directory", 
+                "\n  • .gemini/commands directory",
+                "\n  • tools/ directory",
+                "\n  • guides/ directory",
+                "\n  • _docs/ directory",
+                "\n  • All .gitignore patterns",
+                "\n  • Binary and cache files"
+            ),
+            title="📋 Description",
+            title_align="left",
+            border_style="green",
+            padding=(1, 2)
+        )
+        console.print(description)
+        
+        # Usage examples
+        usage_table = Table(
+            show_header=True,
+            header_style="bold magenta",
+            box=box.ROUNDED,
+            title="🚀 Usage Examples",
+            title_style="bold cyan"
+        )
+        usage_table.add_column("Command", style="bright_green", no_wrap=True)
+        usage_table.add_column("Description", style="white")
+        
+        usage_table.add_row(
+            "buildsrc",
+            "Generate source.xml with all project files"
+        )
+        usage_table.add_row(
+            "buildsrc --dry-run",
+            "Preview which files would be included (no output generated)"
+        )
+        usage_table.add_row(
+            "buildsrc --verbose",
+            "Show detailed processing information"
+        )
+        usage_table.add_row(
+            "buildsrc -o custom.xml",
+            "Generate XML with custom filename"
+        )
+        usage_table.add_row(
+            "buildsrc --dry-run --verbose",
+            "Preview files with detailed output"
+        )
+        
+        console.print(usage_table)
+        
+        # Options table
+        options_table = Table(
+            show_header=True,
+            header_style="bold yellow",
+            box=box.ROUNDED,
+            title="⚙️  Command Options",
+            title_style="bold cyan"
+        )
+        options_table.add_column("Option", style="bright_yellow", no_wrap=True)
+        options_table.add_column("Description", style="white")
+        options_table.add_column("Default", style="dim")
+        
+        options_table.add_row(
+            "-o, --output FILE",
+            "Specify output filename",
+            "source.xml"
+        )
+        options_table.add_row(
+            "--dry-run",
+            "Show which files would be processed without creating output",
+            "False"
+        )
+        options_table.add_row(
+            "-v, --verbose", 
+            "Display detailed processing information",
+            "False"
+        )
+        options_table.add_row(
+            "-h, --help",
+            "Show this colorful help message",
+            ""
+        )
+        
+        console.print(options_table)
+        
+        # XML structure example
+        xml_example = '''<?xml version="1.0" encoding="UTF-8"?>
+<source_code project="collect">
+  <file path="collect.py">
+    #!/usr/bin/env python3
+    import asyncio
+    # ... file content ...
+  </file>
+  <file path="models/anthropic_mcp.py">
+    from typing import Dict, Any
+    # ... file content ...
+  </file>
+</source_code>'''
+        
+        xml_panel = Panel(
+            Syntax(xml_example, "xml", theme="monokai", line_numbers=True),
+            title="📄 Generated XML Structure",
+            title_align="left", 
+            border_style="bright_magenta",
+            padding=(1, 2)
+        )
+        console.print(xml_panel)
+        
+        # Footer
+        footer_text = Text.assemble(
+            "💡 ", ("Tip: ", "bold bright_yellow"),
+            "Use --dry-run first to preview which files will be included!\n",
+            "🎯 ", ("Output: ", "bold bright_green"), 
+            "Creates well-formed XML with UTF-8 encoding\n",
+            "⚡ ", ("Performance: ", "bold bright_cyan"),
+            "Processes large codebases efficiently with progress tracking"
+        )
+        
+        footer_panel = Panel.fit(
+            footer_text,
+            border_style="bright_yellow",
+            padding=(1, 2)
+        )
+        console.print(footer_panel)
+        console.print("")
+
+
+class GitignoreFilter:
+    """Handles .gitignore pattern matching."""
+    
+    def __init__(self, project_root: Path):
+        self.project_root = project_root
+        self.spec = self._load_gitignore()
+    
+    def _load_gitignore(self) -> pathspec.PathSpec:
+        """Load and parse .gitignore file."""
+        gitignore_path = self.project_root / '.gitignore'
+        patterns = []
+        
+        if gitignore_path.exists():
+            with open(gitignore_path, 'r', encoding='utf-8') as f:
+                patterns = f.read().splitlines()
+        
+        # Add standard Python cache patterns if not present
+        additional_patterns = [
+            '__pycache__/',
+            '*.pyc',
+            '*.pyo',
+            '.pytest_cache/',
+            '.coverage',
+            'htmlcov/',
+        ]
+        
+        return pathspec.PathSpec.from_lines('gitwildmatch', patterns + additional_patterns)
+    
+    def should_ignore(self, path: Path) -> bool:
+        """Check if path should be ignored according to gitignore rules."""
+        relative_path = path.relative_to(self.project_root)
+        return self.spec.match_file(str(relative_path))
+
+
+class FileProcessor:
+    """Processes individual files for XML generation."""
+    
+    def __init__(self, project_root: Path):
+        self.project_root = project_root
+    
+    def is_text_file(self, file_path: Path) -> bool:
+        """Check if file is likely a text file."""
+        try:
+            # Check file extension first
+            text_extensions = {
+                '.py', '.md', '.txt', '.yml', '.yaml', '.json', '.toml', '.ini',
+                '.sql', '.sh', '.lua', '.js', '.ts', '.html', '.css', '.xml',
+                '.cfg', '.conf', '.gitignore', '.env', '.lock'
+            }
+            
+            if file_path.suffix.lower() in text_extensions:
+                return True
+            
+            # For files without extension, try to read a small sample
+            if not file_path.suffix:
+                try:
+                    with open(file_path, 'rb') as f:
+                        sample = f.read(1024)
+                        # Check if sample contains null bytes (binary indicator)
+                        return b'\x00' not in sample
+                except:
+                    return False
+            
+            return False
+        except:
+            return False
+    
+    def read_file_content(self, file_path: Path) -> str:
+        """Read file content with proper encoding handling."""
+        encodings = ['utf-8', 'utf-8-sig', 'latin1', 'cp1252']
+        
+        for encoding in encodings:
+            try:
+                with open(file_path, 'r', encoding=encoding) as f:
+                    return f.read()
+            except (UnicodeDecodeError, UnicodeError):
+                continue
+            except Exception as e:
+                return f"[ERROR: Could not read file - {str(e)}]"
+        
+        return "[ERROR: Could not decode file with any supported encoding]"
+    
+    def get_relative_path(self, file_path: Path) -> str:
+        """Get relative path from project root."""
+        return str(file_path.relative_to(self.project_root))
+
+
+class SourceXMLBuilder:
+    """Main class for building the source XML."""
+    
+    def __init__(self, project_root: Path, output_file: str = 'source.xml'):
+        self.project_root = project_root
+        self.output_file = output_file
+        self.gitignore_filter = GitignoreFilter(project_root)
+        self.file_processor = FileProcessor(project_root)
+        self.stats = ProcessingStats()
+        
+        # Directories to exclude
+        self.excluded_dirs = {
+            'data',
+            '.claude/commands',
+            '.gemini/commands', 
+            'tools',
+            'guides',
+            '__pycache__',
+            '.pytest_cache',
+            '.git',
+            '.venv',
+            'venv',
+            'env',
+            'htmlcov',
+            'build',
+            'dist',
+            '*.egg-info'
+        }
+    
+    def should_exclude_directory(self, dir_path: Path) -> bool:
+        """Check if directory should be excluded."""
+        relative_path = str(dir_path.relative_to(self.project_root))
+        
+        # Check exact matches
+        if relative_path in self.excluded_dirs:
+            return True
+        
+        # Check if any part of the path matches excluded directories
+        path_parts = Path(relative_path).parts
+        for part in path_parts:
+            if part in self.excluded_dirs:
+                return True
+        
+        # Check specific path patterns
+        excluded_patterns = [
+            'data',
+            '.claude/commands',
+            '.gemini/commands',
+            'tools',
+            'guides',
+            '_docs'
+        ]
+        
+        for pattern in excluded_patterns:
+            if relative_path == pattern or relative_path.startswith(pattern + '/'):
+                return True
+        
+        return False
+    
+    def collect_files(self) -> Iterator[Path]:
+        """Collect all files that should be included in the XML."""
+        for root, dirs, files in os.walk(self.project_root):
+            root_path = Path(root)
+            
+            # Skip if current directory should be excluded
+            if self.should_exclude_directory(root_path):
+                self.stats.directories_excluded += 1
+                dirs.clear()  # Don't recurse into this directory
+                continue
+            
+            # Filter out excluded directories from further traversal
+            dirs[:] = [d for d in dirs if not self.should_exclude_directory(root_path / d)]
+            
+            for file_name in files:
+                file_path = root_path / file_name
+                
+                # Skip if file matches gitignore patterns
+                if self.gitignore_filter.should_ignore(file_path):
+                    self.stats.files_skipped += 1
+                    rel_path = self.file_processor.get_relative_path(file_path)
+                    self.stats.skipped_files.append((rel_path, "gitignore pattern"))
+                    continue
+                
+                # Skip if not a text file
+                if not self.file_processor.is_text_file(file_path):
+                    self.stats.files_skipped += 1
+                    rel_path = self.file_processor.get_relative_path(file_path)
+                    self.stats.skipped_files.append((rel_path, "binary/non-text file"))
+                    continue
+                
+                yield file_path
+    
+    def build_xml(self, dry_run: bool = False, verbose: bool = False) -> str:
+        """Build the XML content."""
+        if verbose:
+            print(f"Scanning project: {self.project_root}")
+        
+        # Create root element
+        root = ET.Element('source_code')
+        root.set('project', str(self.project_root.name))
+        
+        files_to_process = list(self.collect_files())
+        
+        if dry_run:
+            print(f"Would process {len(files_to_process)} files:")
+            for file_path in files_to_process:
+                rel_path = self.file_processor.get_relative_path(file_path)
+                print(f"  - {rel_path}")
+            return ""
+        
+        for file_path in files_to_process:
+            if verbose:
+                rel_path = self.file_processor.get_relative_path(file_path)
+                print(f"Processing: {rel_path}")
+            
+            # Create file element
+            file_element = ET.SubElement(root, 'file')
+            rel_path = self.file_processor.get_relative_path(file_path)
+            file_element.set('path', rel_path)
+            
+            # Read and add file content
+            content = self.file_processor.read_file_content(file_path)
+            file_element.text = content
+            
+            self.stats.files_processed += 1
+            self.stats.total_size += len(content)
+        
+        # Create XML string
+        ET.indent(root, space="  ", level=0)
+        xml_str = ET.tostring(root, encoding='unicode', xml_declaration=True)
+        
+        return xml_str
+    
+    def write_xml(self, xml_content: str) -> None:
+        """Write XML content to file."""
+        output_path = self.project_root / self.output_file
+        
+        with open(output_path, 'w', encoding='utf-8') as f:
+            f.write(xml_content)
+        
+        console = Console()
+        
+        # Success message with file info
+        file_size_kb = len(xml_content) / 1024
+        success_text = Text.assemble(
+            "✅ ", ("Success! ", "bold bright_green"),
+            "XML file generated successfully\n\n",
+            "📄 ", ("File: ", "bold bright_blue"), f"{output_path}\n",
+            "📊 ", ("Size: ", "bold bright_cyan"), f"{file_size_kb:.1f} KB ({len(xml_content):,} characters)"
+        )
+        
+        success_panel = Panel.fit(
+            success_text,
+            title="🎉 Build Complete",
+            title_align="left",
+            border_style="bright_green",
+            padding=(1, 2)
+        )
+        
+        console.print(success_panel)
+    
+    def print_stats(self) -> None:
+        """Print processing statistics."""
+        console = Console()
+        
+        # Create statistics table
+        stats_table = Table(
+            show_header=True,
+            header_style="bold magenta",
+            box=box.ROUNDED,
+            title="📈 Processing Statistics",
+            title_style="bold bright_yellow"
+        )
+        
+        stats_table.add_column("Metric", style="bright_cyan", no_wrap=True)
+        stats_table.add_column("Count", style="bright_green", justify="right")
+        stats_table.add_column("Details", style="dim white")
+        
+        # Add rows with emojis and formatting
+        stats_table.add_row(
+            "✅ Files Processed", 
+            f"{self.stats.files_processed:,}",
+            "Successfully included in XML"
+        )
+        
+        stats_table.add_row(
+            "⏭  Files Skipped", 
+            f"{self.stats.files_skipped:,}",
+            "Binary files, gitignore matches"
+        )
+        
+        stats_table.add_row(
+            "🚫 Directories Excluded", 
+            f"{self.stats.directories_excluded:,}",
+            "Matched exclusion patterns"
+        )
+        
+        # Format content size with appropriate units
+        size_mb = self.stats.total_size / (1024 * 1024)
+        if size_mb >= 1:
+            size_display = f"{size_mb:.1f} MB"
+        else:
+            size_kb = self.stats.total_size / 1024
+            size_display = f"{size_kb:.1f} KB"
+            
+        stats_table.add_row(
+            "📊 Total Content", 
+            f"{self.stats.total_size:,}",
+            f"{size_display} of source code"
+        )
+        
+        console.print("")  # Add some spacing
+        console.print(stats_table)
+        
+        # Show skipped files if any
+        if self.stats.skipped_files:
+            console.print("")  # Add spacing
+            
+            skipped_table = Table(
+                show_header=True,
+                header_style="bold red",
+                box=box.ROUNDED,
+                title="⚠️  Skipped Files",
+                title_style="bold bright_red"
+            )
+            
+            skipped_table.add_column("File", style="dim white", no_wrap=False)
+            skipped_table.add_column("Reason", style="bright_red", justify="left")
+            
+            # Group by reason for better display
+            by_reason = {}
+            for file_path, reason in self.stats.skipped_files:
+                if reason not in by_reason:
+                    by_reason[reason] = []
+                by_reason[reason].append(file_path)
+            
+            # Add rows grouped by reason
+            for reason, files in by_reason.items():
+                for i, file_path in enumerate(files):
+                    if i == 0:
+                        skipped_table.add_row(file_path, reason)
+                    else:
+                        skipped_table.add_row(file_path, "")
+                
+                # Add separator between different reasons
+                if reason != list(by_reason.keys())[-1]:
+                    skipped_table.add_row("", "")
+            
+            console.print(skipped_table)
+
+
+def find_project_root() -> Path:
+    """Find the project root by looking for git repository or other markers."""
+    current = Path.cwd().resolve()
+    
+    # Walk up the directory tree looking for .git directory
+    while current != current.parent:
+        if (current / '.git').exists():
+            return current
+        current = current.parent
+    
+    # If no .git found, fall back to current working directory
+    return Path.cwd().resolve()
+
+
+def main():
+    """Main entry point."""
+    parser = argparse.ArgumentParser(
+        description='Build source code XML file',
+        formatter_class=ColorfulHelpFormatter,
+        add_help=False  # We'll handle help ourselves
+    )
+    
+    # Add help argument manually to control its behavior
+    parser.add_argument('-h', '--help', action='help',
+                       help='Show colorful help message and exit')
+    
+    parser.add_argument('--output', '-o', default='source.xml', 
+                       metavar='FILE',
+                       help='Output file name (default: source.xml)')
+    parser.add_argument('--dry-run', action='store_true',
+                       help='Show which files would be processed without creating output')
+    parser.add_argument('--verbose', '-v', action='store_true',
+                       help='Verbose output showing file processing')
+    
+    args = parser.parse_args()
+    
+    # Find project root by looking for git repository
+    project_root = find_project_root()
+    
+    # Create builder
+    builder = SourceXMLBuilder(project_root, args.output)
+    
+    try:
+        # Build XML
+        xml_content = builder.build_xml(dry_run=args.dry_run, verbose=args.verbose)
+        
+        if not args.dry_run:
+            # Write to file
+            builder.write_xml(xml_content)
+        
+        # Print statistics
+        builder.print_stats()
+        
+    except KeyboardInterrupt:
+        print("\nOperation cancelled by user.")
+        sys.exit(1)
+    except Exception as e:
+        print(f"Error: {e}")
+        sys.exit(1)
+
+
+if __name__ == '__main__':
+    main()

@@ -7,6 +7,9 @@ marimo:
 movetools:
 	./movetools
 
+.PHONY: buildsrc
+buildsrc: 
+	./tools/buildsrc
 
 .PHONY: ensuregithub
 ensuregithub:
@@ -35,6 +38,7 @@ check:
 	make format
 	make movetools
 	make ensuregithub
+	make buildsrc
 
 migrate:
 	uv run yoyo apply --config yoyo.ini --batch
