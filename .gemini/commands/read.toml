@@ -1,11 +1,23 @@
-description = "Read a file and display its contents"
-prompt = """Read the file at the path: {{args}}
+Loaded cached credentials.
+```toml
+[command]
+name = "read_file_and_display"
+description = "Reads the content of a specified file and displays it without further action."
 
-IMPORTANT INSTRUCTIONS:
-- ONLY use the Read tool to read the specified file
-- DO NOT make any edits or changes
-- DO NOT create any new files
-- DO NOT run any commands
-- DO NOT analyze or comment on the contents
-- Simply read the file and display its contents
-- After reading, stop immediately without any additional explanation or summary"""
+[command.parameters]
+file_name = { type = "string", description = "The absolute path to the file to read." }
+
+[command.instructions]
+only_use_read_tool = true
+no_edits_or_changes = true
+no_new_files = true
+no_commands = true
+no_analysis_or_comments = true
+simply_read_and_display = true
+stop_immediately_after_reading = true
+
+[command.tool_code]
+code = """
+print(default_api.read_file(absolute_path=file_name))
+"""
+```

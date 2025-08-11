@@ -1,72 +1,49 @@
-description = "Extract code functions for analysis only - no modifications allowed"
-prompt = """# Build Context - Code Extraction Only
-
-**⚠️ CRITICAL INSTRUCTION: DO NOT TAKE ANY ACTIONS BEYOND CONTEXT BUILDING ⚠️**
-
+Loaded cached credentials.
+```toml
+name = "Build Context - Code Extraction Only"
+description = """
 You are ONLY extracting code for analysis. Do not:
 - Make any changes to files
-- Run tests or builds  
+- Run tests or builds
 - Create new files
 - Suggest improvements
 - Execute any commands except the extract tool
 
 Your sole purpose is to gather relevant code using the @tools/extract script.
+"""
 
-## Current Task
+usage = "@build_context {{file_path}} {{function_signature}}"
 
-Extract the following function based on the provided arguments: {{args}}
+execute = "@tools/extract \"{{file_path}}\" \"{{function_signature}}\""
 
-Parse the arguments to determine:
-- **File/Directory**: The path to search
-- **Function Signature**: The exact function signature to find
+[parameters.file_or_directory]
+description = "Path to search (single file or directory)"
+type = "string"
 
-Execute the appropriate extract command:
-```bash
-@tools/extract "file_or_directory" "function_signature"
+[parameters.function_signature]
+description = "Exact function signature to find (must be quoted)"
+type = "string"
+
+[language_support]
+python = "Indentation-based extraction"
+javascript = "Brace-based extraction"
+go = "Brace-based extraction"
+
+[examples.python_function]
+command = "@build_context . \"async def fetch_urls(urls: List[str], ctx: Context = None) -> str:\""
+
+[examples.javascript_function]
+command = "@build_context app.js \"function processData(items) {\""
+
+[examples.go_function]
+command = "@build_context main.go \"func handleRequest(w http.ResponseWriter, r *http.Request) {\""
+
+[examples.class_method]
+command = "@build_context models/ \"def send_message(self, prompt: str) -> str:\""
+
+[notes]
+signature_sensitivity = "Function signatures are case-sensitive and whitespace-sensitive"
+whitespace_trimming = "Leading whitespace is automatically trimmed"
+scope = "Can extract from single files or entire directories"
+quoting = "Use quotes around function signatures to handle special characters"
 ```
-
-## Parameters
-
-- **file_or_directory**: Path to search (single file or directory)
-- **function_signature**: Exact function signature to find (must be quoted)
-
-## Language Support
-
-- **Python**: Indentation-based extraction
-- **JavaScript**: Brace-based extraction  
-- **Go**: Brace-based extraction
-
-## Example Usage
-
-**Python Function:**
-```
-@tools/extract . "async def fetch_urls(urls: List[str], ctx: Context = None) -> str:"
-```
-
-**JavaScript Function:**
-```
-@tools/extract app.js "function processData(items) {"
-```
-
-**Go Function:**
-```
-@tools/extract main.go "func handleRequest(w http.ResponseWriter, r *http.Request) {"
-```
-
-**Class Method:**
-```
-@tools/extract models/ "def send_message(self, prompt: str) -> str:"
-```
-
-## Instructions
-
-1. Execute the extract command with the provided arguments
-2. Present the extracted code without commentary
-3. Stop - do not analyze or suggest changes
-
-## Notes
-
-- Function signatures are case-sensitive and whitespace-sensitive
-- Leading whitespace is automatically trimmed
-- Can extract from single files or entire directories
-- Use quotes around function signatures to handle special characters"""

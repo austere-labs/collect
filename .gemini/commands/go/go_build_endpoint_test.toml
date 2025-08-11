@@ -1,28 +1,28 @@
-description = "Create a Go test for an HTTP endpoint using fasthttp and pkg/assert"
-prompt = """# Create a test for the following endpoint func {{args}}
+Loaded cached credentials.
+```toml
+name = "create_go_endpoint_test"
+description = "Create a test for a given Go HTTP endpoint function in a specified file."
 
-## Context
+[parameters]
+endpoint_func = { type = "string", description = "The name of the endpoint function to test." }
+file_path = { type = "string", description = "The path to the file containing the endpoint function." }
 
-You are a senior software engineer with extensive experience in golang and you are using fasthttp for http requests. You are given a file with a http endpoint and you are asked to create a test for it.
+[context]
+role = "You are a senior software engineer with extensive experience in golang and you are using fasthttp for http requests."
+task = "You are given a file with a http endpoint and you are asked to create a test for it."
 
-## Tasks:
+[tasks]
+- "Please do not use any external libraries or packages for the actual testing."
+- "Use pkg/assert/assert.go for assertions. Do not try to use any other packages for assertions."
+- "Use the following function in pkg/assert/assert.go to serve the request and response:\n```go\nassert.Serve(app.BuildRoutes(), req, resp)\n```\nto serve the request and response."
+- "Please use the test examples above to create the test."
+- "Please verify the status code just like the examples above."
+- "Please verify the expected body just like the examples above."
 
-* Please do not use any external libraries or packages for the actual testing.
-* Use pkg/assert/assert.go for assertions. Do not try to use any other packages for assertions.
-* Use the following function in pkg/assert/assert.go to serve the request and response:
-```go
-assert.Serve(app.BuildRoutes(), req, resp)
-```
-to serve the request and response.
-* Please use the test examples above to create the test.
-* Please verify the status code just like the examples above.
-* Please verify the expected body just like the examples above.
-
-## Test 1
-
-Please use the following test examples to create a test for the http endpoint:
-
-```go
+[[examples]]
+name = "Test 1"
+description = "Example for testing the Index endpoint."
+code = """
 // go test -v '-run=^TestIndex$'
 func TestIndex(t *testing.T) {
 	url := "http://localhost:80" + HomeURL
@@ -45,11 +45,12 @@ func TestIndex(t *testing.T) {
 	assert.Equal(t, "blonk blonk ... Mandelstam is my lawyer ... blonk blonk", body)
 	assert.Equal(t, 200, resp.StatusCode())
 }
-```
+"""
 
-## Test 2
-
-```go
+[[examples]]
+name = "Test 2"
+description = "Example for testing the Hello endpoint."
+code = """
 // go test -v '-run=^TestHello$'
 func TestHello(t *testing.T) {
 	url := "http://localhost" + "/api/v1/user/ben"
@@ -70,4 +71,5 @@ func TestHello(t *testing.T) {
 	assert.Equal(t, "Hello ben!", body)
 	assert.Equal(t, 200, res.StatusCode())
 }
-```"""
+"""
+```

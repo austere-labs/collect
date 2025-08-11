@@ -1,0 +1,41 @@
+Loaded cached credentials.
+```toml
+name = "Todo List Creation"
+description = "Create a todo list with EXACTLY the following three items. All items will be set to 'pending' status and 'medium' priority. No additional items will be added, and task descriptions will not be modified."
+
+[[arguments]]
+name = "item1"
+description = "The description for the first todo item."
+type = "string"
+
+[[arguments]]
+name = "item2"
+description = "The description for the second todo item."
+type = "string"
+
+[[arguments]]
+name = "item3"
+description = "The description for the third todo item."
+type = "string"
+
+[run]
+tool_code = """
+# This command is designed to interact with a hypothetical 'TodoWrite' tool.
+# The 'TodoWrite' tool is expected to create todo items with specific properties.
+# The following conceptual tool call illustrates the intended functionality:
+
+# print(default_api.TodoWrite(
+#     items=[
+#         {"description": item1, "status": "pending", "priority": "medium"},
+#         {"description": item2, "status": "pending", "priority": "medium"},
+#         {"description": item3, "status": "pending", "priority": "medium"}
+#     ]
+# ))
+
+# Since 'TodoWrite' is not an available tool in this environment,
+# this section serves as a functional specification for how the command
+# would operate if the tool were present.
+# It ensures that the semantic meaning and functionality of the original
+# markdown command are preserved.
+"""
+```

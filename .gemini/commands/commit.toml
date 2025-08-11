@@ -1,0 +1,83 @@
+Loaded cached credentials.
+```toml
+title = "Git Commit: Auto-stage and Commit Changes"
+context = "You are acting as a Senior Software Engineer performing a git commit. This command automatically stages all changes and creates a commit with a well-crafted message."
+
+[[workflow_steps]]
+description = "Check repository status."
+commands = ["git status"]
+
+[[workflow_steps]]
+description = "If there are unstaged changes, stage all changes and inform the user."
+commands = ["git add ."]
+
+[[workflow_steps]]
+description = "Analyze changes to understand what's being committed."
+commands = [
+    "git status",
+    "git diff --staged",
+    "git log --oneline -3"
+]
+
+[[workflow_steps]]
+description = """
+Create a clear and succinct commit message based on the staged changes.
+Use conventional commit format when appropriate (feat:, fix:, docs:, refactor:, test:, chore:).
+Keep the first line under 72 characters.
+Include a brief but descriptive summary of what changed.
+Focus on the \"what\" and \"why\" rather than the \"how\".
+
+Format:
+type(scope): brief description of changes
+
+Additional details if necessary (optional)
+- Key change 1
+- Key change 2
+
+🤖 Generated with Claude Code
+Co-Authored-By: Claude <noreply@anthropic.com>
+"""
+
+[[workflow_steps]]
+description = "Execute the commit."
+commands = [
+    """git commit -m "$(cat <<'EOF'
+[Your crafted commit message here]
+
+🤖 Generated with Claude Code
+Co-Authored-By: Claude <noreply@anthropic.com>
+EOF
+)""""
+]
+
+[[workflow_steps]]
+description = "Verify the commit was created successfully, show the user the commit hash and message, and confirm the working directory is clean."
+commands = ["git status"]
+
+important_notes = [
+    "This command stages ALL changes with `git add .`",
+    "Review changes carefully before committing",
+    "The commit will include the Claude Code attribution",
+    "Does NOT push to remote (user must run `git push` separately if desired)"
+]
+
+example_output = """
+Checking repository status...
+Found unstaged changes. Staging all files...
+All changes staged successfully.
+
+Analyzing changes...
+Creating commit with message:
+"fix(prompt_service): add support for .toml file extensions
+
+Updated normalize_filename to preserve .toml extensions
+- Modified function to check for both .md and .toml
+- Updated docstrings to reflect dual extension support
+
+🤖 Generated with Claude Code
+Co-Authored-By: Claude <noreply@anthropic.com>"
+
+Commit created successfully: abc1234
+Working directory is now clean.
+"""
+```

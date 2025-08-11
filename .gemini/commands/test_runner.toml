@@ -1,8 +1,12 @@
-description = "Run tests using uv run pytest"
-prompt = """Please run the tests in this file {{args}} using uv run
+Loaded cached credentials.
+```toml
+name = "run_tests_with_uv"
+description = "Run the tests in a specified file using uv run."
+command = "uv run pytest {arguments} -v -s"
 
-This is an example: 
+[arguments]
+arguments = { description = "Additional arguments to pass to pytest, typically the file path to the test file(s)." }
 
-```bash
-uv run pytest {{args}} -v -s
-```"""
+[example]
+bash = "uv run pytest your_test_file.py -v -s"
+```

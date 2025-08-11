@@ -1,58 +1,64 @@
-description = "Create git commit and pull request from staged changes with automated workflow"
-prompt = """# Git Workflow: Staged Changes Commit and Pull Request Creation
+Loaded cached credentials.
+```toml
+title = "Git Workflow: Staged Changes Commit and Pull Request Creation"
 
-## Context:
+context = """
 You are acting as a Senior Principal Software Engineer reviewing staged code changes. Analyze only the staged modifications and take appropriate git actions based on the current repository state and branch configuration.
 
-**IMPORTANT: This command only works with staged changes. If no changes are staged, inform the user to stage their changes first.**
+IMPORTANT: This command only works with staged changes. If no changes are staged, inform the user to stage their changes first.
 
-**IMPORTANT: If we are on the main branch DO NOT create a branch and do try to create a pr.**
+IMPORTANT: If we are on the main branch DO NOT create a branch and do try to create a pr.
+"""
 
-## Workflow Steps:
+[workflow_steps.step_1_repository_state_analysis]
+description = "Run these commands in parallel to understand the current state:"
+commands = [
+    "`git status` - Check working tree status and current branch",
+    "`git diff --staged` - Analyze staged changes (PRIMARY FOCUS)",
+    "`git log --oneline -5` - Review recent commit history for context",
+    "`git branch -a` - List all branches to understand branching strategy"
+]
+exit_early_condition = "Exit early if no staged changes are found - inform user to run `git add <files>` first."
 
-### Step 1: Repository State Analysis
-Run these commands in parallel to understand the current state:
-- `git status` - Check working tree status and current branch
-- `git diff --staged` - Analyze staged changes (PRIMARY FOCUS)
-- `git log --oneline -5` - Review recent commit history for context
-- `git branch -a` - List all branches to understand branching strategy
+[workflow_steps.step_2_staged_changes_analysis]
+description = "Perform thorough analysis of only the staged changes:"
+analysis_points = [
+    "Scope: Identify staged files modified, added, or deleted",
+    "Purpose: Determine if staged changes represent new features, bug fixes, refactoring, or documentation updates",
+    "Impact: Assess potential effects on existing functionality from staged changes only",
+    "Quality: Check staged code for style consistency and best practices",
+    "Security: Identify any potential security implications in staged changes"
+]
 
-**Exit early if no staged changes are found** - inform user to run `git add <files>` first.
+[workflow_steps.step_3_decision_logic]
+description = "Based on your analysis of staged changes, choose the appropriate action:"
 
-### Step 2: Staged Changes Analysis
-Perform thorough analysis of **only the staged changes**:
-- **Scope**: Identify staged files modified, added, or deleted
-- **Purpose**: Determine if staged changes represent new features, bug fixes, refactoring, or documentation updates
-- **Impact**: Assess potential effects on existing functionality from staged changes only
-- **Quality**: Check staged code for style consistency and best practices
-- **Security**: Identify any potential security implications in staged changes
+[workflow_steps.step_3_decision_logic.option_a_direct_commit]
+description = "If working directly on the main branch with staged changes:"
+steps = [
+    "Create a comprehensive commit message following conventional commit format:",
+    "Commit the staged changes with `git commit`",
+    "Push changes with `git push`"
+]
+commit_message_example = """
+type(scope): brief description
 
-### Step 3: Decision Logic
-Based on your analysis of staged changes, choose the appropriate action:
+Detailed explanation of what and why
+- Specific change 1
+- Specific change 2
 
-#### Option A: Direct Commit (when on main/master branch)
-If working directly on the main branch with staged changes:
-1. Create a comprehensive commit message following conventional commit format:
-   ```
-   type(scope): brief description
-   
-   Detailed explanation of what and why
-   - Specific change 1
-   - Specific change 2
-   
-   🤖 Generated with Claude Code
-   Co-Authored-By: Claude <noreply@anthropic.com>
-   ```
-2. Commit the staged changes with `git commit`
-3. Push changes with `git push`
+🤖 Generated with Claude Code
+Co-Authored-By: Claude <noreply@anthropic.com>
+"""
 
-#### Option B: Pull Request Creation (when on feature branch)
-If on a feature branch:
-1. Commit the staged changes with a clear commit message
-2. Push branch to remote with `git push -u origin <branch-name>` if needed
-3. Create PR with structured format based on the staged changes and capture the PR URL:
-
-```bash
+[workflow_steps.step_3_decision_logic.option_b_pull_request_creation]
+description = "If on a feature branch:"
+steps = [
+    "Commit the staged changes with a clear commit message",
+    "Push branch to remote with `git push -u origin <branch-name>` if needed",
+    "Create PR with structured format based on the staged changes and capture the PR URL:"
+]
+pr_creation_command = """
 gh pr create --title "Clear, actionable title describing the change" --body "$(cat <<'EOF'
 ## Summary
 - Concise bullet points explaining what was changed and why
@@ -77,29 +83,42 @@ gh pr create --title "Clear, actionable title describing the change" --body "$(c
 🤖 Generated with Claude Code
 EOF
 )"
-```
-4. After PR is successfully created, use `copy_clipboard` MCP tool to copy the PR URL to clipboard
+"""
+copy_pr_url_command = """
+echo {url} | pbcopy
+"""
+tool_call_after_pr_creation = {
+    "tool_name": "copy_clipboard",
+    "parameters": {
+        "text": "{url}"
+    },
+    "description": "Copy the URL of the created pull request to the clipboard."
+}
 
-### Step 4: Quality Assurance
-After taking action:
-- Verify the commit/PR was created successfully
-- Confirm all staged changes are included in the commit
-- Check that commit messages accurately reflect the staged changes
-- Ensure branch protection rules are respected
-- **If a PR was created**: Use the `copy_clipboard` MCP tool to copy the PR URL to clipboard for easy sharing
+[workflow_steps.step_4_quality_assurance]
+description = "After taking action:"
+checks = [
+    "Verify the commit/PR was created successfully",
+    "Confirm all staged changes are included in the commit",
+    "Check that commit messages accurately reflect the staged changes",
+    "Ensure branch protection rules are respected",
+    "If a PR was created: Use the `copy_clipboard` MCP tool to copy the PR URL to clipboard for easy sharing"
+]
 
-## Best Practices:
-- **Staged Changes Only**: Never include unstaged changes in commits
-- **Commit Messages**: Use conventional commit format (feat:, fix:, docs:, etc.) based on staged changes
-- **PR Titles**: Start with action verb, be specific about staged changes
-- **PR Bodies**: Include context and testing notes for staged modifications only
-- **Scope**: Ensure staged changes are focused and atomic
-- **Pre-commit Checks**: Verify staged changes pass linting and tests before committing
+[best_practices]
+items = [
+    "Staged Changes Only: Never include unstaged changes in commits",
+    "Commit Messages: Use conventional commit format (feat:, fix:, docs:, etc.) based on staged changes",
+    "PR Titles: Start with action verb, be specific about staged changes",
+    "PR Bodies: Include context and testing notes for staged modifications only",
+    "Scope: Ensure staged changes are focused and atomic",
+    "Pre-commit Checks: Verify staged changes pass linting and tests before committing"
+]
 
-## Examples:
-
-**Good Commit Message (based on staged changes):**
-```
+[examples]
+[examples.good_commit_message]
+title = "Good Commit Message (based on staged changes):"
+content = """
 feat(api): add user authentication middleware
 
 Implements JWT-based authentication for protected routes
@@ -109,10 +128,11 @@ Implements JWT-based authentication for protected routes
 
 🤖 Generated with Claude Code
 Co-Authored-By: Claude <noreply@anthropic.com>
-```
+"""
 
-**Good PR Title & Body (based on staged changes):**
-```bash
+[examples.good_pr_title_body]
+title = "Good PR Title & Body (based on staged changes):"
+content = """
 gh pr create --title "Add user authentication middleware to API endpoints" --body "$(cat <<'EOF'
 ## Summary  
 - Implements JWT-based authentication system for API security
@@ -136,11 +156,13 @@ All changes have been staged and are ready for review. No unstaged modifications
 🤖 Generated with Claude Code
 EOF
 )"
-```
+"""
 
-## Pre-Flight Checklist:
-Before running this command, ensure:
-- [ ] Your intended changes are staged with `git add <files>`
-- [ ] You have reviewed staged changes with `git diff --staged`
-- [ ] Staged changes are complete and ready for commit
-- [ ] No additional unstaged changes should be included"""
+[pre_flight_checklist]
+items = [
+    "Your intended changes are staged with `git add <files>`",
+    "You have reviewed staged changes with `git diff --staged`",
+    "Staged changes are complete and ready for commit",
+    "No additional unstaged changes should be included"
+]
+```

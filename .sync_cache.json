@@ -1,0 +1,128 @@
+{
+  ".claude/commands/go/go_build_endpoint_test.md": {
+    "sha": "bb6aa9bffab635d3455caf7cfa59fc4f43036aac",
+    "path": ".claude/commands/go/go_build_endpoint_test.md",
+    "last_synced": 1754870996.5877829,
+    "converted": true
+  },
+  ".claude/commands/archive/build_context.md": {
+    "sha": "d976db85985179f771925095a73d98142d3ab30b",
+    "path": ".claude/commands/archive/build_context.md",
+    "last_synced": 1754870996.598152,
+    "converted": true
+  },
+  ".claude/commands/commit.md": {
+    "sha": "891c52b5b372e6fffd161dcf9b55930755d9fbf3",
+    "path": ".claude/commands/commit.md",
+    "last_synced": 1754870996.614573,
+    "converted": true
+  },
+  ".claude/commands/go/create_go_structs.md": {
+    "sha": "56a5e5dc2abb511b98b2e1147d428551610aa49e",
+    "path": ".claude/commands/go/create_go_structs.md",
+    "last_synced": 1754870996.625781,
+    "converted": true
+  },
+  ".claude/commands/diff_code_review.md": {
+    "sha": "6ef1818de14d6d1e994d9fd4841bc5486c4d6f20",
+    "path": ".claude/commands/diff_code_review.md",
+    "last_synced": 1754870996.635034,
+    "converted": true
+  },
+  ".claude/commands/convert_to_toml.md": {
+    "sha": "7bdd42b1ffeee07bd06ed5b4b97e99381c8052e9",
+    "path": ".claude/commands/convert_to_toml.md",
+    "last_synced": 1754870996.642501,
+    "converted": true
+  },
+  ".claude/commands/create_checklist_3.md": {
+    "sha": "27f4fa9841078c71d9490d9ef2c967970c053bbf",
+    "path": ".claude/commands/create_checklist_3.md",
+    "last_synced": 1754870996.688289,
+    "converted": true
+  },
+  ".claude/commands/go/create_go_structsV1.md": {
+    "sha": "d7e28d7eb8dee775f9416574d8f06ef11ca42158",
+    "path": ".claude/commands/go/create_go_structsV1.md",
+    "last_synced": 1754870996.692773,
+    "converted": true
+  },
+  ".claude/commands/go/go_update_config.md": {
+    "sha": "3cbaf390b5abd45230dde54705958bd873f16ebc",
+    "path": ".claude/commands/go/go_update_config.md",
+    "last_synced": 1754871010.753632,
+    "converted": true
+  },
+  ".claude/commands/mcp/copy_to_clipboard.md": {
+    "sha": "aad8af9420d4a80933aaf12accfe7a8450679f32",
+    "path": ".claude/commands/mcp/copy_to_clipboard.md",
+    "last_synced": 1754871011.429687,
+    "converted": true
+  },
+  ".claude/commands/mcp/get_docs.md": {
+    "sha": "9e27863768032379a1798cf6da1a881720ed65bf",
+    "path": ".claude/commands/mcp/get_docs.md",
+    "last_synced": 1754871012.238699,
+    "converted": true
+  },
+  ".claude/commands/model_code_review.md": {
+    "sha": "8bc222f49f8587a01362d06ff6475cb8e46ace2e",
+    "path": ".claude/commands/model_code_review.md",
+    "last_synced": 1754871023.324787,
+    "converted": true
+  },
+  ".claude/commands/pr.md": {
+    "sha": "0e8a152f358b515f158d5025428db18847101fc0",
+    "path": ".claude/commands/pr.md",
+    "last_synced": 1754871024.7506702,
+    "converted": true
+  },
+  ".claude/commands/prime_webapp.md": {
+    "sha": "c6f4cfe53f2aa92e1ac5661138989c9f9ff3ec42",
+    "path": ".claude/commands/prime_webapp.md",
+    "last_synced": 1754871038.662535,
+    "converted": true
+  },
+  ".claude/commands/python/python_update_config.md": {
+    "sha": "8562257de3a622c1aefb06be4c78a4ce9c580e2a",
+    "path": ".claude/commands/python/python_update_config.md",
+    "last_synced": 1754871042.126036,
+    "converted": true
+  },
+  ".claude/commands/read.md": {
+    "sha": "524139e35449b4f5c0a88b206699cec5d2f1409b",
+    "path": ".claude/commands/read.md",
+    "last_synced": 1754871043.723397,
+    "converted": true
+  },
+  ".claude/commands/response_in_markdown.md": {
+    "sha": "a540be858d83e4b65df8dd2a23e3656bbdce8ee7",
+    "path": ".claude/commands/response_in_markdown.md",
+    "last_synced": 1754871049.784717,
+    "converted": true
+  },
+  ".claude/commands/runplan.md": {
+    "sha": "08d9b2d8c3bd445c55170adec7e80b9d3733e27a",
+    "path": ".claude/commands/runplan.md",
+    "last_synced": 1754871056.6670442,
+    "converted": true
+  },
+  ".claude/commands/test_runner.md": {
+    "sha": "28e088b2d155b9eca391add1bc75cdf701a3a4d8",
+    "path": ".claude/commands/test_runner.md",
+    "last_synced": 1754871059.413824,
+    "converted": true
+  },
+  ".claude/commands/tools/create_database.md": {
+    "sha": "fcfeeb2b78e39ecf0a1b8b4a85735dd83fa1c8f1",
+    "path": ".claude/commands/tools/create_database.md",
+    "last_synced": 1754871070.783872,
+    "converted": true
+  },
+  ".claude/commands/tools/extract.md": {
+    "sha": "e8946fb23beb24cd8e8689c48cd21b155dfa10a6",
+    "path": ".claude/commands/tools/extract.md",
+    "last_synced": 1754871074.061621,
+    "converted": true
+  }
+}

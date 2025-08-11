@@ -1,31 +1,35 @@
-description = "Format response in strict markdown format"
-prompt = """
-# Markdown Response Format Prompt
+Loaded cached credentials.
+```toml
+title = "Markdown Response Format Prompt"
 
-Please provide your response in **strict markdown format** following these guidelines:
+[response_format_requirements]
+heading = "Response Format Requirements"
+important_note = "Your entire response must be valid markdown. Do not include any text outside of markdown formatting."
 
-## Response Format Requirements
+  [response_format_requirements.required_structure]
+  heading = "Required Structure"
+  items = [
+    "Use proper headings (`#`, `##`, `###`) to organize content",
+    "Bold important terms using `**text**`",
+    "Use code blocks with language specification for any code: ```language",
+    "Create lists with `-` or `1.` for organization",
+    "Use tables when presenting structured data",
+    "Include links in `[text](url)` format when referencing external resources"
+  ]
 
-**IMPORTANT: Your entire response must be valid markdown. Do not include any text outside of markdown formatting.**
+  [response_format_requirements.formatting_examples]
+  heading = "Formatting Examples"
+  items = [
+    "Emphasis: Use `**bold**` and `*italic*` appropriately",
+    "Code: Inline code with `backticks` and blocks with triple backticks",
+    "Quotes: Use `>` for blockquotes",
+    "Tables: Use proper table syntax with `|` separators",
+    "Lists: Use `-` for bullets, `1.` for numbered items"
+  ]
 
-### Required Structure:
-1. **Use proper headings** (`#`, `##`, `###`) to organize content
-2. **Bold important terms** using `**text**` 
-3. **Use code blocks** with language specification for any code: ```language
-4. **Create lists** with `-` or `1.` for organization
-5. **Use tables** when presenting structured data
-6. **Include links** in `[text](url)` format when referencing external resources
-
-### Formatting Examples:
-- **Emphasis**: Use `**bold**` and `*italic*` appropriately
-- **Code**: Inline code with `backticks` and blocks with triple backticks
-- **Quotes**: Use `>` for blockquotes
-- **Tables**: Use proper table syntax with `|` separators
-- **Lists**: Use `-` for bullets, `1.` for numbered items
-
-### Content Organization:
-```markdown
-# Main Topic
+  [response_format_requirements.content_organization]
+  heading = "Content Organization"
+  example_markdown = """# Main Topic
 
 ## Overview
 Brief introduction or summary
@@ -49,10 +53,7 @@ code here
 
 ## Summary
 Final thoughts or conclusions
+"""
+
+validation = "Ensure your response renders correctly as markdown in any standard markdown viewer."
 ```
-
-**Validation**: Ensure your response renders correctly as markdown in any standard markdown viewer.
-
----
-
-{{args}}"""
