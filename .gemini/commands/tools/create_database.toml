@@ -1,38 +1,36 @@
-Loaded cached credentials.
-```toml
-allowed-tools = "Bash(createdb:*)"
+allowed-tools = ["Bash(createdb:*)"]
 description = "Create a new SQLite database in the data/ directory"
-
-[command]
-name = "Create SQLite Database Tool"
-description = "This command helps you create a new SQLite database in the data/ directory using the createdb bash script."
-
-[command.tool_definition]
-description = "The createdb script is a bash tool that:\n- Creates a new SQLite database file in the `data/` directory\n- Automatically adds the `.db` extension\n- Sets appropriate file permissions (644)\n- Prevents overwriting existing databases"
-
-[command.usage_instructions]
-description = "Use the Bash tool to execute the createdb script with the database name from `$ARGUMENTS`."
-command_format = "createdb <database_name>"
-
-[command.usage_instructions.parameters.database_name]
-description = "Name for the database (without .db extension)"
-
-[command.usage_instructions.example_commands]
-example1 = "# Create a database named \"myapp.db\"\ncreatedb myapp"
-example2 = "# Create a database named \"users.db\"\ncreatedb users"
-
-[command.best_practices]
-description = [
-    "**Check existence first**: Verify the database doesn't already exist to avoid errors",
-    "**Use descriptive names**: Choose clear, meaningful database names",
-    "**Follow naming conventions**: Use lowercase with underscores for multi-word names",
-    "**Document purpose**: Consider adding a comment about the database's purpose"
+summary = "This command helps you create a new SQLite database in the data/ directory using the createdb bash script."
+[tool_definition]
+description = "The createdb script is a bash tool that:"
+features = [
+    "Creates a new SQLite database file in the `data/` directory"
+    "Automatically adds the `.db` extension"
+    "Sets appropriate file permissions (644)"
+    "Prevents overwriting existing databases"
 ]
-
-[command.error_handling]
-description = "The script will fail if:\n- No database name is provided\n- The database already exists\n- sqlite3 is not installed\n- Insufficient permissions in the current directory"
-
-[command.task]
-description = "Based on the database name provided in `$ARGUMENTS[0]`, execute the createdb script to create a new SQLite database in the data/ directory. The script will handle the creation, extension, and permissions automatically."
+[usage_instructions]
+description = "Use the Bash tool to execute the createdb script with the database name from $ARGUMENTS."
+command_format = "createdb <database_name>"
+example_commands = [
+    "createdb myapp"
+    "createdb users"
+]
+[[usage_instructions.parameters]]
+name = "database_name"
+description = "Name for the database (without .db extension)"
+best_practices = [
+    "Check existence first: Verify the database doesn't already exist to avoid errors"
+    "Use descriptive names: Choose clear, meaningful database names"
+    "Follow naming conventions: Use lowercase with underscores for multi-word names"
+    "Document purpose: Consider adding a comment about the database's purpose"
+]
+error_handling = [
+    "No database name is provided"
+    "The database already exists"
+    "sqlite3 is not installed"
+    "Insufficient permissions in the current directory"
+]
+[task]
+description = "Based on the database name provided in $ARGUMENTS[0], execute the createdb script to create a new SQLite database in the data/ directory. The script will handle the creation, extension, and permissions automatically."
 execute = "createdb $ARGUMENTS[0]"
-```

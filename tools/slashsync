@@ -12,11 +12,32 @@ import json
 import subprocess
 import base64
 import sys
-import hashlib
 import time
+import re
 from pathlib import Path
 from typing import Dict, List, Tuple, Optional
 from dataclasses import dataclass, asdict
+
+try:
+    import tomllib
+except ImportError:
+    import tomli as tomllib
+
+try:
+    import tomli_w
+except ImportError:
+    tomli_w = None
+
+# Import TOML validator from separate module
+try:
+    import sys
+    from pathlib import Path
+    parent_dir = str(Path(__file__).parent.parent)
+    if parent_dir not in sys.path:
+        sys.path.insert(0, parent_dir)
+    from toml_validator import TomlValidator as ImportedTomlValidator
+except ImportError:
+    ImportedTomlValidator = None
 
 try:
     import aiohttp
@@ -158,18 +179,392 @@ class FileInfo:
 @dataclass
 class CacheEntry:
     """Cache entry for file metadata"""
-    
+
     sha: str
     path: str
     last_synced: float
     converted: bool = False
-    
+
     @classmethod
     def from_dict(cls, data: dict) -> 'CacheEntry':
         return cls(**data)
-    
+
     def to_dict(self) -> dict:
         return asdict(self)
+
+
+class TomlValidator:
+    """TOML validation and automatic fixing utility"""
+
+    def __init__(self):
+        if tomli_w is None:
+            print("Warning: tomli-w not available, TOML writing functionality limited")
+
+    def validate_toml(self, content: str) -> Tuple[bool, List[str]]:
+        """
+        Validate TOML content and return success status with error messages.
+
+        Args:
+            content: Raw TOML content string
+
+        Returns:
+            Tuple of (is_valid, error_messages)
+        """
+        errors = []
+
+        if not content.strip():
+            errors.append("Empty TOML content")
+            return False, errors
+
+        try:
+            tomllib.loads(content)
+            return True, []
+        except tomllib.TOMLDecodeError as e:
+            errors.append(f"TOML parsing error: {e}")
+            return False, errors
+        except Exception as e:
+            errors.append(f"Unexpected error parsing TOML: {e}")
+            return False, errors
+
+    def clean_gemini_artifacts(self, content: str) -> str:
+        """
+        Remove common artifacts from Gemini AI output that break TOML parsing.
+
+        Args:
+            content: Raw content from Gemini conversion
+
+        Returns:
+            Cleaned content with artifacts removed
+        """
+        lines = content.split('\n')
+        cleaned_lines = []
+        in_toml_block = False
+
+        for line in lines:
+            line_strip = line.strip()
+
+            # Skip common Gemini artifacts
+            if line_strip in ["Loaded cached credentials.", ""]:
+                continue
+
+            # Handle markdown code fences
+            if line_strip == "```toml":
+                in_toml_block = True
+                continue
+            elif line_strip == "```" and in_toml_block:
+                in_toml_block = False
+                continue
+            elif line_strip.startswith("```"):
+                # Skip other code blocks
+                continue
+
+            # Skip status/error messages that aren't TOML
+            if line_strip.startswith("I need the actual file path") or \
+               line_strip.startswith("Please provide the path"):
+                continue
+
+            cleaned_lines.append(line)
+
+        return '\n'.join(cleaned_lines).strip()
+
+    def extract_toml_from_markdown(self, content: str) -> str:
+        """
+        Extract TOML content from markdown blocks if present.
+
+        Args:
+            content: Content that might contain TOML in markdown blocks
+
+        Returns:
+            Extracted TOML content
+        """
+        # Look for ```toml blocks
+        toml_block_pattern = r'```toml\s*\n(.*?)\n```'
+        matches = re.findall(toml_block_pattern, content, re.DOTALL)
+
+        if matches:
+            return matches[0].strip()
+
+        # Look for ``` blocks that might contain TOML
+        code_block_pattern = r'```\s*\n(.*?)\n```'
+        matches = re.findall(code_block_pattern, content, re.DOTALL)
+
+        for match in matches:
+            # Test if this block contains valid TOML
+            is_valid, _ = self.validate_toml(match.strip())
+            if is_valid:
+                return match.strip()
+
+        return content
+
+    def fix_common_toml_issues(self, content: str) -> str:
+        """
+        Attempt to fix common TOML syntax issues.
+
+        Args:
+            content: TOML content with potential issues
+
+        Returns:
+            Fixed TOML content
+        """
+        # First, try to fix unclosed multiline strings and arrays
+        content = self._fix_unclosed_structures(content)
+        
+        lines = content.split('\n')
+        fixed_lines = []
+
+        for line in lines:
+            line = line.strip()
+            if not line:
+                fixed_lines.append("")
+                continue
+
+            # Skip comments
+            if line.startswith('#'):
+                fixed_lines.append(line)
+                continue
+
+            # Fix unquoted string values in key-value pairs
+            if '=' in line and not line.startswith('['):
+                key, value = line.split('=', 1)
+                key = key.strip()
+                value = value.strip()
+
+                # If value is not quoted and not a number/boolean/array/inline table
+                if value and not (
+                    value.startswith('"') or value.startswith("'") or
+                    value.startswith('[') or value.startswith('{') or
+                    value.lower() in ['true', 'false'] or
+                    value.replace('.', '').replace('-', '').isdigit()
+                ):
+                    # Quote the value
+                    value = f'"{value}"'
+
+                fixed_lines.append(f"{key} = {value}")
+            else:
+                fixed_lines.append(line)
+
+        return '\n'.join(fixed_lines)
+
+    def fix_toml(self, content: str) -> str:
+        """
+        Attempt to automatically fix TOML content.
+
+        Args:
+            content: Raw content that may need fixing
+
+        Returns:
+            Fixed TOML content
+        """
+        # Step 1: Clean Gemini artifacts
+        content = self.clean_gemini_artifacts(content)
+
+        # Step 2: Extract from markdown if needed
+        content = self.extract_toml_from_markdown(content)
+
+        # Step 3: Fix common TOML issues
+        content = self.fix_common_toml_issues(content)
+        
+        # Step 4: If still invalid, try aggressive fixes
+        is_valid, _ = self.validate_toml(content)
+        if not is_valid:
+            content = self._aggressive_fix_toml(content)
+
+        return content
+        
+    def _aggressive_fix_toml(self, content: str) -> str:
+        """
+        Apply aggressive fixes for severely malformed TOML.
+        """
+        # Fix unterminated multiline strings by closing them at the end
+        if content.count('"""') % 2 == 1:
+            content = content + '\n"""'
+        if content.count("'''") % 2 == 1:
+            content = content + "\n'''"
+            
+        # Fix unterminated arrays
+        open_brackets = content.count('[') - content.count(']')
+        for _ in range(open_brackets):
+            content = content + '\n]'
+            
+        return content
+    
+    def _fix_unclosed_structures(self, content: str) -> str:
+        """
+        Fix unclosed strings, arrays, and other TOML structures.
+        
+        Args:
+            content: TOML content with potential unclosed structures
+            
+        Returns:
+            Fixed TOML content
+        """
+        # Fix unclosed triple-quoted strings
+        content = self._fix_unclosed_multiline_strings(content)
+        
+        # Fix unclosed arrays  
+        content = self._fix_unclosed_arrays(content)
+        
+        # Fix malformed string endings
+        content = self._fix_malformed_strings(content)
+        
+        return content
+    
+    def _fix_unclosed_multiline_strings(self, content: str) -> str:
+        """Fix unclosed triple-quoted strings."""
+        lines = content.split('\n')
+        fixed_lines = []
+        in_multiline_string = False
+        quote_type = None  # Track whether we're in """ or '''
+        
+        for i, line in enumerate(lines):
+            # Check if we're starting a multiline string
+            if not in_multiline_string:
+                # Look for the start of a multiline string
+                if '"""' in line and line.count('"""') == 1:
+                    in_multiline_string = True
+                    quote_type = '"""'
+                elif "'''" in line and line.count("'''") == 1:
+                    in_multiline_string = True  
+                    quote_type = "'''"
+                # Handle case where the line has both start and end quotes
+                elif '"""' in line and line.count('"""') == 2:
+                    # Complete multiline string on one line, keep as is
+                    pass
+                elif "'''" in line and line.count("'''") == 2:
+                    # Complete multiline string on one line, keep as is
+                    pass
+                fixed_lines.append(line)
+            else:
+                # We're inside a multiline string, look for closing quotes
+                # Check if this line only contains the closing quotes (like isolated """)
+                stripped = line.strip()
+                if stripped == quote_type:
+                    # This is a standalone closing quote - remove it and continue parsing
+                    in_multiline_string = False
+                    quote_type = None
+                    # Don't add this line, continue processing normally
+                    continue
+                elif quote_type in line:
+                    # Normal closing quote
+                    in_multiline_string = False
+                    quote_type = None
+                    fixed_lines.append(line)
+                else:
+                    # Check if this looks like the end of the structure
+                    if (stripped.startswith('[') or 
+                        stripped.startswith('#') or
+                        ('=' in stripped and not stripped.startswith(' '))):
+                        # This looks like a new TOML structure, close the string
+                        fixed_lines.append(f'{quote_type}')
+                        fixed_lines.append(line)
+                        in_multiline_string = False
+                        quote_type = None
+                    else:
+                        fixed_lines.append(line)
+        
+        # If we reach the end and still in a multiline string, close it
+        if in_multiline_string and quote_type:
+            fixed_lines.append(quote_type)
+            
+        return '\n'.join(fixed_lines)
+    
+    def _fix_unclosed_arrays(self, content: str) -> str:
+        """Fix unclosed arrays."""
+        lines = content.split('\n')
+        fixed_lines = []
+        open_brackets = 0
+        
+        for line in lines:
+            stripped = line.strip()
+            
+            # Count opening and closing brackets (not in strings)
+            in_string = False
+            escape_next = False
+            
+            for char in stripped:
+                if escape_next:
+                    escape_next = False
+                    continue
+                    
+                if char == '\\':
+                    escape_next = True
+                    continue
+                    
+                if char in ['"', "'"]:
+                    in_string = not in_string
+                    continue
+                    
+                if not in_string:
+                    if char == '[':
+                        open_brackets += 1
+                    elif char == ']':
+                        open_brackets -= 1
+            
+            fixed_lines.append(line)
+            
+            # If we have unclosed brackets and this looks like end of array context
+            if (open_brackets > 0 and 
+                (stripped.startswith('[') and '[[' not in stripped) or
+                stripped.startswith('#') or 
+                (not stripped and len(fixed_lines) > 1)):
+                # Add closing brackets
+                for _ in range(open_brackets):
+                    fixed_lines.append(']')
+                open_brackets = 0
+        
+        # Close any remaining open brackets at end
+        for _ in range(open_brackets):
+            fixed_lines.append(']')
+            
+        return '\n'.join(fixed_lines)
+    
+    def _fix_malformed_strings(self, content: str) -> str:
+        """Fix strings that end with unmatched quotes."""
+        lines = content.split('\n')
+        fixed_lines = []
+        
+        for line in lines:
+            # Look for lines that end with unmatched quotes
+            if (line.strip().endswith('",') or 
+                line.strip().endswith('"",') or
+                line.strip().endswith('`","')):
+                # Remove the problematic ending and close properly
+                line = line.rstrip().rstrip('",').rstrip('"') + '"'
+            
+            # Fix lines that have unclosed quotes at the end
+            if line.count('"') % 2 == 1 and not line.strip().endswith('"""'):
+                # Add closing quote
+                line = line + '"'
+                
+            fixed_lines.append(line)
+            
+        return '\n'.join(fixed_lines)
+
+    def validate_and_fix(self, content: str) -> Tuple[str, bool, List[str]]:
+        """
+        Validate TOML content and attempt to fix if invalid.
+
+        Args:
+            content: Raw TOML content
+
+        Returns:
+            Tuple of (fixed_content, is_valid, error_messages)
+        """
+        # First, try to validate as-is
+        is_valid, errors = self.validate_toml(content)
+        if is_valid:
+            return content, True, []
+
+        # Attempt to fix
+        fixed_content = self.fix_toml(content)
+
+        # Validate the fixed content
+        is_valid_fixed, fixed_errors = self.validate_toml(fixed_content)
+
+        if is_valid_fixed:
+            return fixed_content, True, []
+        else:
+            return fixed_content, False, fixed_errors
 
 
 class GitHubCommandsSyncer:
@@ -183,6 +578,9 @@ class GitHubCommandsSyncer:
         # Semaphore to limit concurrent operations
         self.gemini_semaphore = asyncio.Semaphore(3)  # Limit Gemini calls
         self.github_semaphore = asyncio.Semaphore(10)  # Limit GitHub API calls
+        # TOML validator for fixing generated files
+        self.toml_validator = ImportedTomlValidator(
+        ) if ImportedTomlValidator else TomlValidator()
 
     def _load_cache(self):
         """Load cache from disk"""
@@ -191,7 +589,7 @@ class GitHubCommandsSyncer:
                 with open(self.cache_file, 'r') as f:
                     cache_data = json.load(f)
                     self.cache = {
-                        path: CacheEntry.from_dict(entry) 
+                        path: CacheEntry.from_dict(entry)
                         for path, entry in cache_data.items()
                     }
             except Exception as e:
@@ -202,7 +600,7 @@ class GitHubCommandsSyncer:
         """Save cache to disk"""
         try:
             cache_data = {
-                path: entry.to_dict() 
+                path: entry.to_dict()
                 for path, entry in self.cache.items()
             }
             with open(self.cache_file, 'w') as f:
@@ -244,9 +642,10 @@ class GitHubCommandsSyncer:
                     stderr=asyncio.subprocess.PIPE
                 )
                 stdout, stderr = await process.communicate()
-                
+
                 if process.returncode != 0:
-                    raise RuntimeError(f"Gemini CLI command failed: {stderr.decode()}")
+                    raise RuntimeError(f"Gemini CLI command failed: {
+                                       stderr.decode()}")
 
                 return stdout.decode().strip()
             except Exception as e:
@@ -296,7 +695,8 @@ class GitHubCommandsSyncer:
                     files.append(FileInfo(
                         name=Path(item["path"]).name,
                         path=item["path"],
-                        download_url=f"https://raw.githubusercontent.com/{self.source_repo}/HEAD/{item['path']}",
+                        download_url=f"https://raw.githubusercontent.com/{
+                            self.source_repo}/HEAD/{item['path']}",
                         sha=item["sha"]
                     ))
 
@@ -328,7 +728,8 @@ class GitHubCommandsSyncer:
             try:
                 return await self._download_with_aiohttp(file_info)
             except Exception as e:
-                print(f"  → aiohttp failed for {file_info.path}, falling back to gh CLI: {e}")
+                print(f"  → aiohttp failed for {
+                      file_info.path}, falling back to gh CLI: {e}")
 
         # Fallback to GitHub CLI
         return await self._download_with_gh_cli(file_info.path)
@@ -356,7 +757,8 @@ class GitHubCommandsSyncer:
         output, returncode = await self._run_gh_command_async(args)
 
         if returncode != 0:
-            raise RuntimeError(f"Failed to download file {file_path}: {output}")
+            raise RuntimeError(f"Failed to download file {
+                               file_path}: {output}")
 
         try:
             data = json.loads(output)
@@ -370,7 +772,8 @@ class GitHubCommandsSyncer:
                 )
                 return content
             else:
-                raise ValueError(f"Unexpected encoding: {data.get('encoding')}")
+                raise ValueError(f"Unexpected encoding: {
+                                 data.get('encoding')}")
         except json.JSONDecodeError as e:
             raise ValueError(f"Invalid JSON response from GitHub API: {e}")
         except Exception as e:
@@ -396,7 +799,8 @@ class GitHubCommandsSyncer:
         output, returncode = self._run_gh_command(args)
 
         if returncode != 0:
-            raise RuntimeError(f"Failed to download file {file_path}: {output}")
+            raise RuntimeError(f"Failed to download file {
+                               file_path}: {output}")
 
         try:
             data = json.loads(output)
@@ -404,7 +808,8 @@ class GitHubCommandsSyncer:
                 content = base64.b64decode(data["content"]).decode("utf-8")
                 return content
             else:
-                raise ValueError(f"Unexpected encoding: {data.get('encoding')}")
+                raise ValueError(f"Unexpected encoding: {
+                                 data.get('encoding')}")
         except json.JSONDecodeError as e:
             raise ValueError(f"Invalid JSON response from GitHub API: {e}")
         except Exception as e:
@@ -443,7 +848,8 @@ class GitHubCommandsSyncer:
         # Check if already converted in cache
         cached_entry = self.cache.get(file_path)
         if cached_entry and cached_entry.converted:
-            gemini_path = Path(file_path.replace(".claude/commands/", ".gemini/commands/")).with_suffix(".toml")
+            gemini_path = Path(file_path.replace(
+                ".claude/commands/", ".gemini/commands/")).with_suffix(".toml")
             if gemini_path.exists():
                 print(f"  → Using cached conversion for {file_path}")
                 return gemini_path.read_text(encoding="utf-8")
@@ -452,14 +858,33 @@ class GitHubCommandsSyncer:
 
 {markdown_content}
 
-Output should be valid TOML with appropriate sections and key-value pairs that represent the same information structure as the original markdown. Focus on maintaining the command structure, parameters, descriptions, and any metadata present in the markdown format. Only output the TOML content, no explanations."""
+IMPORTANT: Output only valid TOML content. Do not include:
+- Any explanatory text or status messages
+- Markdown code fences (```toml or ```)
+- Status messages like "Loaded cached credentials."
+- Any non-TOML content
+
+Output should be valid TOML with appropriate sections and key-value pairs that represent the same information structure as the original markdown. Focus on maintaining the command structure, parameters, descriptions, and any metadata present in the markdown format."""
 
         try:
             result = await self._run_gemini_command_async(conversion_prompt, "gemini-2.5-flash")
+
+            # Validate and fix the TOML content
+            fixed_content, is_valid, errors = self.toml_validator.validate_and_fix(
+                result)
+
+            if not is_valid:
+                print(f"  ⚠️  TOML validation failed for {
+                      file_path}: {'; '.join(errors)}")
+                print(f"  🔧 Attempting to use fixed version...")
+            else:
+                print(f"  ✅ TOML validation passed for {file_path}")
+
             # Update cache to mark as converted
             if file_path in self.cache:
                 self.cache[file_path].converted = True
-            return result
+
+            return fixed_content
         except Exception as e:
             raise RuntimeError(f"Failed to convert markdown to TOML: {e}")
 
@@ -469,10 +894,27 @@ Output should be valid TOML with appropriate sections and key-value pairs that r
 
 {markdown_content}
 
-Output should be valid TOML with appropriate sections and key-value pairs that represent the same information structure as the original markdown. Focus on maintaining the command structure, parameters, descriptions, and any metadata present in the markdown format. Only output the TOML content, no explanations."""
+IMPORTANT: Output only valid TOML content. Do not include:
+- Any explanatory text or status messages
+- Markdown code fences (```toml or ```)
+- Status messages like "Loaded cached credentials."
+- Any non-TOML content
+
+Output should be valid TOML with appropriate sections and key-value pairs that represent the same information structure as the original markdown. Focus on maintaining the command structure, parameters, descriptions, and any metadata present in the markdown format."""
 
         try:
-            return self._run_gemini_command(conversion_prompt, "gemini-2.5-flash")
+            result = self._run_gemini_command(
+                conversion_prompt, "gemini-2.5-flash")
+
+            # Validate and fix the TOML content
+            fixed_content, is_valid, errors = self.toml_validator.validate_and_fix(
+                result)
+
+            if not is_valid:
+                print(f"  ⚠️  TOML validation failed: {'; '.join(errors)}")
+                print(f"  🔧 Using fixed version...")
+
+            return fixed_content
         except Exception as e:
             raise RuntimeError(f"Failed to convert markdown to TOML: {e}")
 
@@ -521,12 +963,13 @@ Output should be valid TOML with appropriate sections and key-value pairs that r
         self, dry_run: bool = False, convert_only: bool = False
     ) -> Dict[str, int]:
         """Optimized main orchestration function with concurrent processing"""
-        results = {"synced": 0, "converted": 0, "errors": 0, "cached": 0}
+        results = {"synced": 0, "converted": 0, "errors": 0,
+                   "cached": 0, "toml_fixed": 0, "toml_valid": 0}
         start_time = time.time()
 
         try:
             print(f"🚀 Starting optimized sync from {self.source_repo}")
-            
+
             if aiohttp:
                 print("✅ Using aiohttp for concurrent downloads")
             else:
@@ -544,9 +987,10 @@ Output should be valid TOML with appropriate sections and key-value pairs that r
                 self.create_local_directories(directories, dry_run)
 
             # Process files concurrently
-            semaphore = asyncio.Semaphore(8)  # Limit concurrent file processing
+            # Limit concurrent file processing
+            semaphore = asyncio.Semaphore(8)
             tasks = []
-            
+
             for file_info in markdown_files:
                 task = self._process_single_file_async(
                     file_info, semaphore, dry_run, results
@@ -559,12 +1003,16 @@ Output should be valid TOML with appropriate sections and key-value pairs that r
 
             # Save cache
             self._save_cache()
-            
+
             elapsed = time.time() - start_time
-            print(f"\n✅ Completed in {elapsed:.1f}s: {results['synced']} synced, "
-                  f"{results['converted']} converted, {results['cached']} cached, "
-                  f"{results['errors']} errors")
-            
+            print(f"\n✅ Completed in {elapsed:.1f}s:")
+            print(f"   📁 {results['synced']} files synced")
+            print(f"   🔄 {results['converted']} files converted")
+            print(f"   💾 {results['cached']} files from cache")
+            print(f"   ✅ {results['toml_valid']} TOML files valid")
+            print(f"   🔧 {results['toml_fixed']} TOML files fixed")
+            print(f"   ❌ {results['errors']} errors")
+
             return results
 
         except Exception as e:
@@ -573,7 +1021,7 @@ Output should be valid TOML with appropriate sections and key-value pairs that r
             return results
 
     async def _process_single_file_async(
-        self, file_info: FileInfo, semaphore: asyncio.Semaphore, 
+        self, file_info: FileInfo, semaphore: asyncio.Semaphore,
         dry_run: bool, results: Dict[str, int]
     ):
         """Process a single file with error handling"""
@@ -583,7 +1031,7 @@ Output should be valid TOML with appropriate sections and key-value pairs that r
 
                 # Download content (with caching)
                 file_info.content = await self.download_file_content_async(file_info)
-                
+
                 # Check if this was a cache hit
                 cached_entry = self.cache.get(file_info.path)
                 if cached_entry and cached_entry.sha == file_info.sha:
@@ -593,7 +1041,8 @@ Output should be valid TOML with appropriate sections and key-value pairs that r
                 local_claude_path = Path(file_info.path)
                 if not dry_run:
                     local_claude_path.parent.mkdir(parents=True, exist_ok=True)
-                    local_claude_path.write_text(file_info.content, encoding="utf-8")
+                    local_claude_path.write_text(
+                        file_info.content, encoding="utf-8")
                     results["synced"] += 1
                     print(f"  ✅ Synced to {local_claude_path}")
                 else:
@@ -601,13 +1050,42 @@ Output should be valid TOML with appropriate sections and key-value pairs that r
 
                 # Convert and write to .gemini/commands concurrently
                 gemini_path = Path(
-                    file_info.path.replace(".claude/commands/", ".gemini/commands/")
+                    file_info.path.replace(
+                        ".claude/commands/", ".gemini/commands/")
                 ).with_suffix(".toml")
 
                 if not dry_run:
-                    converted_content = await self.convert_markdown_to_toml_async(
-                        file_info.content, file_info.path
+                    # Convert and validate TOML
+                    raw_result = await self._run_gemini_command_async(
+                        f"""Convert the following markdown command to TOML format while preserving all semantic meaning and functionality:
+
+{file_info.content}
+
+IMPORTANT: Output only valid TOML content. Do not include:
+- Any explanatory text or status messages
+- Markdown code fences (```toml or ```)
+- Status messages like "Loaded cached credentials."
+- Any non-TOML content
+
+Output should be valid TOML with appropriate sections and key-value pairs that represent the same information structure as the original markdown. Focus on maintaining the command structure, parameters, descriptions, and any metadata present in the markdown format.""",
+                        "gemini-2.5-flash"
                     )
+
+                    # Validate and fix the TOML content
+                    converted_content, is_valid, errors = self.toml_validator.validate_and_fix(
+                        raw_result)
+
+                    if is_valid and raw_result == converted_content:
+                        results["toml_valid"] += 1
+                        print(f"  ✅ TOML validation passed")
+                    elif is_valid:
+                        results["toml_fixed"] += 1
+                        print(f"  🔧 TOML fixed automatically")
+                    else:
+                        print(f"  ❌ TOML validation failed: {
+                              '; '.join(errors)}")
+                        results["errors"] += 1
+
                     gemini_path.parent.mkdir(parents=True, exist_ok=True)
                     gemini_path.write_text(converted_content, encoding="utf-8")
                     results["converted"] += 1

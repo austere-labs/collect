@@ -1,38 +1,34 @@
-Loaded cached credentials.
-```toml
 name = "Extract Documentation from URLs"
 description = "Use the `get_docs` MCP tool to extract specific documentation sections from web pages using Gemini 2.5 Flash."
-
-[usage]
-description = """Use the get_docs tool with:
-- url: $ARGUMENTS[0] (The URL of the documentation page)
-- extract_value: $ARGUMENTS[1] (The specific section/function/topic to extract)"""
-example = "get_docs($ARGUMENTS[0], $ARGUMENTS[1])"
-
 [details]
-what_it_does = """This tool:
+what_it_does = """
+This tool:
 1. Fetches content from the specified URL
 2. Uses Gemini 2.5 Flash Preview to intelligently extract documentation for the requested section
-3. Returns the relevant documentation as clean, readable text"""
+3. Returns the relevant documentation as clean, readable text
+"""
 best_for = [
-    "API documentation extraction",
-    "Function/method documentation",
-    "Specific topic documentation from larger pages",
-    "Technical documentation that needs focused extraction",
+    "API documentation extraction"
+    "Function/method documentation"
+    "Specific topic documentation from larger pages"
+    "Technical documentation that needs focused extraction"
 ]
-
-[examples.python_json_dumps]
+[template]
+command = "get_docs($ARGUMENTS[0], $ARGUMENTS[1])"
+[[arguments]]
+name = "url"
+description = "The URL of the documentation page"
+index = 0
+[[arguments]]
+name = "extract_value"
+description = "The specific section/function/topic to extract"
+index = 1
+[[examples]]
 description = "Extract Python json.dumps documentation:"
 command = "get_docs(\"https://docs.python.org/3/library/json.html\", \"json.dumps\")"
-
-[examples.react_use_effect]
+[[examples]]
 description = "Extract React useEffect documentation:"
 command = "get_docs(\"https://react.dev/reference/react/useEffect\", \"useEffect\")"
-
-[examples.aws_s3_bucket_policies]
+[[examples]]
 description = "Extract specific AWS service documentation:"
 command = "get_docs(\"https://docs.aws.amazon.com/s3/latest/userguide/\", \"bucket policies\")"
-
-[command_template]
-execute = "get_docs($ARGUMENTS[0], $ARGUMENTS[1])"
-```

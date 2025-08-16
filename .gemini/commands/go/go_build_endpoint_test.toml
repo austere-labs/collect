@@ -1,75 +1,64 @@
-Loaded cached credentials.
-```toml
-name = "create_go_endpoint_test"
-description = "Create a test for a given Go HTTP endpoint function in a specified file."
-
-[parameters]
-endpoint_func = { type = "string", description = "The name of the endpoint function to test." }
-file_path = { type = "string", description = "The path to the file containing the endpoint function." }
-
-[context]
-role = "You are a senior software engineer with extensive experience in golang and you are using fasthttp for http requests."
-task = "You are given a file with a http endpoint and you are asked to create a test for it."
-
-[tasks]
-- "Please do not use any external libraries or packages for the actual testing."
-- "Use pkg/assert/assert.go for assertions. Do not try to use any other packages for assertions."
-- "Use the following function in pkg/assert/assert.go to serve the request and response:\n```go\nassert.Serve(app.BuildRoutes(), req, resp)\n```\nto serve the request and response."
-- "Please use the test examples above to create the test."
-- "Please verify the status code just like the examples above."
-- "Please verify the expected body just like the examples above."
-
-[[examples]]
-name = "Test 1"
-description = "Example for testing the Index endpoint."
-code = """
-// go test -v '-run=^TestIndex$'
+[command]
+name = "create_test_for_endpoint"
+description = "Create a test for the following endpoint func {endpoint_func} in the file {file_path}"
+[[command.parameters]]
+name = "endpoint_func"
+type = "string"
+description = "The name of the endpoint function."
+[[command.parameters]]
+name = "file_path"
+type = "string"
+description = "The path to the file containing the endpoint."
+context = """
+You are a senior software engineer with extensive experience in golang and you are using fasthttp for http requests. You are given a file with a http endpoint and you are asked to create a test for it.
+"""
+instructions = """
+"""
+## Tasks:
+* Please do not use any external libraries or packages for the actual testing.
+* Use pkg/assert/assert.go for assertions. Do not try to use any other packages for assertions.
+* Use the following function in pkg/assert/assert.go to serve the request and response:
+assert.Serve(app.BuildRoutes(), req, resp)
+to serve the request and response.
+* Please use the test examples above to create the test.
+* Please verify the status code just like the examples above.
+* Please verify the expected body just like the examples above.
+## Test 1
+Please use the following test examples to create a test for the http endpoint:
+// go test -v '-run = "^TestIndex$'"
 func TestIndex(t *testing.T) {
-	url := "http://localhost:80" + HomeURL
-	req := fasthttp.AcquireRequest()
-	defer fasthttp.ReleaseRequest(req)
-
+url : = "http://localhost:80" + HomeURL
+req : = "fasthttp.AcquireRequest()"
+defer = "fasthttp.ReleaseRequest(req)"
 	req.SetRequestURI(url)
 	req.Header.SetMethod("GET")
-
-	resp := fasthttp.AcquireResponse()
-	defer fasthttp.ReleaseResponse(resp)
-
-	err := assert.Serve(app.BuildRoutes(), req, resp)
-	if err != nil {
+resp : = "fasthttp.AcquireResponse()"
+defer = "fasthttp.ReleaseResponse(resp)"
+err : = "assert.Serve(app.BuildRoutes(), req, resp)"
+if err ! = "nil {"
 		t.Errorf("error serving request %v", err)
 	}
-
-	body := string(resp.Body())
-
+body : = "string(resp.Body())"
 	assert.Equal(t, "blonk blonk ... Mandelstam is my lawyer ... blonk blonk", body)
 	assert.Equal(t, 200, resp.StatusCode())
 }
-"""
-
-[[examples]]
-name = "Test 2"
-description = "Example for testing the Hello endpoint."
-code = """
-// go test -v '-run=^TestHello$'
+## Test 2
+// go test -v '-run = "^TestHello$'"
 func TestHello(t *testing.T) {
-	url := "http://localhost" + "/api/v1/user/ben"
-	req := fasthttp.AcquireRequest()
-	defer fasthttp.ReleaseRequest(req)
-
+url : = "http://localhost" + "/api/v1/user/ben"
+req : = "fasthttp.AcquireRequest()"
+defer = "fasthttp.ReleaseRequest(req)"
 	req.SetRequestURI(url)
 	req.Header.SetMethod("GET")
-	res := fasthttp.AcquireResponse()
-	defer fasthttp.ReleaseResponse(res)
-
-	err := assert.Serve(app.BuildRoutes(), req, res)
-	if err != nil {
+res : = "fasthttp.AcquireResponse()"
+defer = "fasthttp.ReleaseResponse(res)"
+err : = "assert.Serve(app.BuildRoutes(), req, res)"
+if err ! = "nil {"
 		t.Errorf("error serving request %v", err)
 	}
-	body := string(res.Body())
-
+body : = "string(res.Body())"
 	assert.Equal(t, "Hello ben!", body)
 	assert.Equal(t, 200, res.StatusCode())
 }
 """
-```
+"""

@@ -1,12 +1,3 @@
-Loaded cached credentials.
-```toml
-name = "run_tests_with_uv"
-description = "Run the tests in a specified file using uv run."
-command = "uv run pytest {arguments} -v -s"
-
-[arguments]
-arguments = { description = "Additional arguments to pass to pytest, typically the file path to the test file(s)." }
-
-[example]
-bash = "uv run pytest your_test_file.py -v -s"
-```
+description = "Please run the tests in this file $ARGUMENTS using uv run"
+command = "uv run pytest $ARGUMENTS -v -s"
+example = "uv run pytest $ARGUMENTS -v -s"

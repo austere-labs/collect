@@ -1,49 +1,52 @@
-Loaded cached credentials.
-```toml
+[command]
 name = "Build Context - Code Extraction Only"
 description = """
+⚠️ CRITICAL INSTRUCTION: DO NOT TAKE ANY ACTIONS BEYOND CONTEXT BUILDING ⚠️
 You are ONLY extracting code for analysis. Do not:
 - Make any changes to files
 - Run tests or builds
 - Create new files
 - Suggest improvements
 - Execute any commands except the extract tool
-
 Your sole purpose is to gather relevant code using the @tools/extract script.
 """
-
-usage = "@build_context {{file_path}} {{function_signature}}"
-
-execute = "@tools/extract \"{{file_path}}\" \"{{function_signature}}\""
-
-[parameters.file_or_directory]
+usage_template = "@build_context {{file_path}} {{function_signature}}"
+task_description = """
+Extract the following function:
+- File/Directory: {{file_path}}
+- Function Signature: {{function_signature}}
+"""
+execution_command = "@tools/extract \"{{file_path}}\" \"{{function_signature}}\""
+[[command.parameters]]
+name = "file_or_directory"
 description = "Path to search (single file or directory)"
-type = "string"
-
-[parameters.function_signature]
+[[command.parameters]]
+name = "function_signature"
 description = "Exact function signature to find (must be quoted)"
-type = "string"
-
-[language_support]
+[command.language_support]
 python = "Indentation-based extraction"
 javascript = "Brace-based extraction"
 go = "Brace-based extraction"
-
-[examples.python_function]
+[[command.examples]]
+description = "Python Function"
 command = "@build_context . \"async def fetch_urls(urls: List[str], ctx: Context = None) -> str:\""
-
-[examples.javascript_function]
+[[command.examples]]
+description = "JavaScript Function"
 command = "@build_context app.js \"function processData(items) {\""
-
-[examples.go_function]
-command = "@build_context main.go \"func handleRequest(w http.ResponseWriter, r *http.Request) {\""
-
-[examples.class_method]
+[[command.examples]]
+description = "Go Function"
+command = "@build_context main.go \"func handleRequest(w http.ResponseWriter, r http.Request) {\""
+[[command.examples]]
+description = "Class Method"
 command = "@build_context models/ \"def send_message(self, prompt: str) -> str:\""
-
-[notes]
-signature_sensitivity = "Function signatures are case-sensitive and whitespace-sensitive"
-whitespace_trimming = "Leading whitespace is automatically trimmed"
-scope = "Can extract from single files or entire directories"
-quoting = "Use quotes around function signatures to handle special characters"
-```
+post_execution_instructions = """
+1. Execute the extract command shown above
+2. Present the extracted code without commentary
+3. Stop - do not analyze or suggest changes
+"""
+notes = """
+- Function signatures are case-sensitive and whitespace-sensitive
+- Leading whitespace is automatically trimmed
+- Can extract from single files or entire directories
+- Use quotes around function signatures to handle special characters
+"""

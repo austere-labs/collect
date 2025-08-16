@@ -1,80 +1,55 @@
-Loaded cached credentials.
-```toml
-allowed-tools = "Bash(extract:*)"
+allowed-tools = ["Bash(extract:*)"]
 description = "Extract complete function or method definitions from source code"
-
 [command]
 name = "Extract Function"
 description = "Extract a complete function or method from source code using the `extract` command."
 usage = "extract {{fileName}} {{functionSignature}}"
-
 [[command.arguments]]
 name = "fileName"
 description = "Path to the file or directory containing the function (e.g., `repository/plan_service.py` or `.` for current directory)"
-
 [[command.arguments]]
 name = "functionSignature"
 description = "The exact function signature to search for (must be quoted)"
-
-[command.examples]
-title = "Examples with expanded variables of {{fileName}} {{functionSignature}}"
-
-[[command.examples.python]]
+[command.examples.python]
+description = "Examples with expanded variables of {{fileName}} {{functionSignature}}"
+[[command.examples.python.snippets]]
+command = "extract repository/plan_service.py \"def load_files(self):\""
 description = "Search in a specific file"
-code = """extract repository/plan_service.py "def load_files(self):"
-extract fetcher.py "async def fetch_urls(self, urls: List[str]) -> str:\""""
-
-[[command.examples.python]]
+[[command.examples.python.snippets]]
+command = "extract fetcher.py \"async def fetch_urls(self, urls: List[str]) -> str:\""
+[[command.examples.python.snippets]]
+command = "extract . \"def sync_plans(self) -> Dict[str, Any]:\""
 description = "Search in current directory"
-code = """extract . "def sync_plans(self) -> Dict[str, Any]:\""""
-
-[[command.examples.javascript]]
-code = """extract app.js "async function processData(items) {"
-extract src/ "function handleClick(event) {"""
-
-[[command.examples.go]]
-code = """extract main.go "func handleRequest(w http.ResponseWriter, r *http.Request) {"
-extract . "func NewServer() *Server {"""
-
+[command.examples.javascript]
+[[command.examples.javascript.snippets]]
+command = "extract app.js \"async function processData(items) {\""
+[[command.examples.javascript.snippets]]
+command = "extract src/ \"function handleClick(event) {\""
+[command.examples.go]
+[[command.examples.go.snippets]]
+command = "extract main.go \"func handleRequest(w http.ResponseWriter, r *http.Request) {\""
+[[command.examples.go.snippets]]
+command = "extract . \"func NewServer() *Server {\""
 [command.details]
-description = """This command uses ripgrep to locate and extract complete function or method definitions from source files. The `extract` command is available in your PATH and supports:
-
+description = """This command uses ripgrep to locate and extract complete function or method definitions from source files. The `extract` command is available in your PATH and supports:"
 - **Python**: Indentation-based extraction (handles nested functions, decorators, and docstrings)
 - **JavaScript**: Brace-based extraction (handles arrow functions and closures)
 - **Go**: Brace-based extraction (handles methods and interfaces)"""
-
-output = """The extracted function is displayed with:
+output = """The extracted function is displayed with:"
 - File location and line number (e.g., `repository/plan_service.py:45`)
 - Detected language (Python, JavaScript, or Go)
 - Complete function code with original formatting preserved
 - Colorized output for better readability"""
-
 [command.notes]
-important = """This is a **read-only** operation that extracts and displays function code. After the extraction completes, **wait for further instructions** before taking any actions or making decisions based on the extracted code."""
-
-[[command.notes.items]]
-title = "Exact Match Required"
-description = "Function signatures must match exactly (case-sensitive and whitespace-sensitive)"
-
-[[command.notes.items]]
-title = "Leading Whitespace"
-description = "Any leading whitespace in the signature is automatically trimmed"
-
-[[command.notes.items]]
-title = "Search Scope"
-description = "Can search a single file or recursively search directories"
-
-[[command.notes.items]]
-title = "Supported Extensions"
-description = "`.py` (Python), `.js` (JavaScript), `.go` (Go)"
-
-[command.troubleshooting]
-[[command.troubleshooting.items]]
-description = "If function is not found, verify the exact signature by checking the source file"
-
-[[command.troubleshooting.items]]
-description = "For methods, include `self` or class parameters in the signature"
-
-[[command.troubleshooting.items]]
-description = "For decorated functions, use the function definition line, not the decorator"
-```
+important = [
+    "Exact Match Required: Function signatures must match exactly (case-sensitive and whitespace-sensitive)"
+    "Leading Whitespace: Any leading whitespace in the signature is automatically trimmed"
+    "Search Scope: Can search a single file or recursively search directories"
+    "Supported Extensions: `.py` (Python), `.js` (JavaScript), `.go` (Go)"
+]
+troubleshooting = [
+    "If function is not found, verify the exact signature by checking the source file"
+    "For methods, include `self` or class parameters in the signature"
+    "For decorated functions, use the function definition line, not the decorator"
+]
+final_important = "This is a **read-only** operation that extracts and displays function code. After the extraction completes, **wait for further instructions** before taking any actions or making decisions based on the extracted code."

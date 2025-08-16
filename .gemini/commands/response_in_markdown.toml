@@ -1,59 +1,39 @@
-Loaded cached credentials.
-```toml
 title = "Markdown Response Format Prompt"
-
+description = "Please provide your response in strict markdown format following these guidelines."
 [response_format_requirements]
-heading = "Response Format Requirements"
-important_note = "Your entire response must be valid markdown. Do not include any text outside of markdown formatting."
-
   [response_format_requirements.required_structure]
-  heading = "Required Structure"
-  items = [
-    "Use proper headings (`#`, `##`, `###`) to organize content",
-    "Bold important terms using `**text**`",
-    "Use code blocks with language specification for any code: ```language",
-    "Create lists with `-` or `1.` for organization",
-    "Use tables when presenting structured data",
-    "Include links in `[text](url)` format when referencing external resources"
+items = [
+    "Use proper headings (#, ##, ###) to organize content"
+    "Bold important terms using **text**"
+    "Use code blocks with language specification for any code: ```language"
+    "Create lists with - or 1. for organization"
+    "Use tables when presenting structured data"
+    "Include links in [text](url) format when referencing external resources"
   ]
-
   [response_format_requirements.formatting_examples]
-  heading = "Formatting Examples"
-  items = [
-    "Emphasis: Use `**bold**` and `*italic*` appropriately",
-    "Code: Inline code with `backticks` and blocks with triple backticks",
-    "Quotes: Use `>` for blockquotes",
-    "Tables: Use proper table syntax with `|` separators",
-    "Lists: Use `-` for bullets, `1.` for numbered items"
-  ]
-
-  [response_format_requirements.content_organization]
-  heading = "Content Organization"
-  example_markdown = """# Main Topic
-
+emphasis = "Use **bold** and *italic* appropriately"
+code = "Inline code with `backticks` and blocks with triple backticks"
+quotes = "Use > for blockquotes"
+tables = "Use proper table syntax with | separators"
+lists = "Use - for bullets, 1. for numbered items"
+content_organization_template = '''
+'''
+# Main Topic
 ## Overview
 Brief introduction or summary
-
 ## Key Points
 - Point 1 with **emphasis**
 - Point 2 with `inline code`
 - Point 3 with [link](url)
-
 ## Detailed Analysis
 ### Subsection 1
-Content here...
-
+Content = "here..."
 ### Subsection 2
-More content...
-
+More = "content..."
 ## Code Examples (if applicable)
-```language
-code here
-```
-
+code = "here"
 ## Summary
 Final thoughts or conclusions
-"""
-
+'''
+'''
 validation = "Ensure your response renders correctly as markdown in any standard markdown viewer."
-```

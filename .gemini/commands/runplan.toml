@@ -1,67 +1,59 @@
-Loaded cached credentials.
-```toml
-name = "execute_implementation_plan"
-description = "Executes an implementation plan based on a provided plan name."
-
-[parameters]
-arguments = { type = "string", description = "The name of the implementation plan to execute." }
-
-[[workflow]]
+allowed-tools = ["Bash"]
+argument-hint = "plan [filepath]"
+model = "opus"
+[command]
+name = "Execute the implementation plan"
+description = "Execute the implementation plan: $ARGUMENTS"
+[[command.workflow_steps]]
 title = "Plan Validation"
 details = [
-    "Verify the plan exists in `@_docs/plans/approved/` directory",
-    "If not in approved/, prompt user to move it from drafts/ or update the plan",
-    "Validate plan follows the documented format from CLAUDE.md",
+    "Verify the plan exists in `@_docs/plans/approved/` directory"
+    "If not in approved/, prompt user to move it from drafts/ or update the plan"
+    "Validate plan follows the documented format from CLAUDE.md"
     "Ensure plan contains specific implementation details (file paths, function signatures, error handling)"
 ]
-
-[[workflow]]
+[[command.workflow_steps]]
 title = "Pre-Implementation"
 details = [
-    "Create comprehensive TodoList using TodoWrite tool mapping all plan steps",
+    "Create comprehensive TodoList using TodoWrite tool mapping all plan steps"
     "Verify all dependencies are available: `uv sync`"
 ]
-
-[[workflow]]
+[[command.workflow_steps]]
 title = "Implementation"
 details = [
-    "Execute ONLY the modifications specified in the plan",
-    "Mark each step as in_progress/completed in TodoWrite as you work",
-    "Follow existing code conventions and patterns in the codebase",
-    "Add error handling and logging where specified in the plan",
+    "Execute ONLY the modifications specified in the plan"
+    "Mark each step as in_progress/completed in TodoWrite as you work"
+    "Follow existing code conventions and patterns in the codebase"
+    "Add error handling and logging where specified in the plan"
     "Use `uv run` for all Python executions"
 ]
-
-[[workflow]]
+[[command.workflow_steps]]
 title = "Verification"
 details = [
-    "Run tests after each major change: `uv run pytest [specific_test] -v -s`",
-    "Run full test suite: `make test-fast`",
-    "Run code quality checks: `make lint` and `make format`",
+"Run tests after each major change: `uv run pytest [specific_test]
+-v = "-s`""
+    "Run full test suite: `make test-fast`"
+    "Run code quality checks: `make lint` and `make format`"
     "Verify all plan requirements are met"
 ]
-
-[[workflow]]
+[[command.workflow_steps]]
 title = "Documentation"
 details = [
-    "Update the plan status to COMPLETED with implementation summary",
-    "Document any deviations or additional changes made",
-    "List all modified files with status indicators (✅/❌)",
+    "Update the plan status to COMPLETED with implementation summary"
+    "Document any deviations or additional changes made"
+    "List all modified files with status indicators (✅/❌)"
     "Move completed plan to `@_docs/plans/completed/` directory"
 ]
-
-[constraints]
+[command.constraints]
 items = [
-    "STRICT SCOPE: Only implement what's explicitly defined in the plan",
-    "NO FEATURE CREEP: Do not add extra functionality beyond plan specifications",
-    "TESTING REQUIRED: All changes must pass existing tests",
+    "STRICT SCOPE: Only implement what's explicitly defined in the plan"
+    "NO FEATURE CREEP: Do not add extra functionality beyond plan specifications"
+    "TESTING REQUIRED: All changes must pass existing tests"
     "CODE QUALITY: Must pass lint and format checks before completion"
 ]
-
-[post_implementation]
+[command.post_implementation]
 items = [
-    "Provide brief summary of what was implemented",
-    "Suggest potential future enhancements (but don't implement them)",
+    "Provide brief summary of what was implemented"
+    "Suggest potential future enhancements (but don't implement them)"
     "Confirm all TodoWrite items are marked as completed"
 ]
-```

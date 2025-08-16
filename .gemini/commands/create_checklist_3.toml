@@ -1,41 +1,38 @@
-Loaded cached credentials.
-```toml
-name = "Todo List Creation"
-description = "Create a todo list with EXACTLY the following three items. All items will be set to 'pending' status and 'medium' priority. No additional items will be added, and task descriptions will not be modified."
-
-[[arguments]]
+name = "create_todo_list"
+description = "Create a todo list with EXACTLY three items, setting them to 'pending' status and 'medium' priority."
+[[parameters]]
 name = "item1"
-description = "The description for the first todo item."
 type = "string"
-
-[[arguments]]
+description = "The first todo list item."
+[[parameters]]
 name = "item2"
-description = "The description for the second todo item."
 type = "string"
-
-[[arguments]]
+description = "The second todo list item."
+[[parameters]]
 name = "item3"
-description = "The description for the third todo item."
 type = "string"
-
-[run]
+description = "The third todo list item."
 tool_code = """
-# This command is designed to interact with a hypothetical 'TodoWrite' tool.
-# The 'TodoWrite' tool is expected to create todo items with specific properties.
-# The following conceptual tool call illustrates the intended functionality:
-
+"""
+# This command is designed to create a todo list using a conceptual 'TodoWrite' tool.
+# The items are:
+# 1. {item1}
+# 2. {item2}
+# 3. {item3}
+# Instructions for the conceptual 'TodoWrite' tool:
+# - Use the TodoWrite tool to create these items
+# - Set all items to "pending" status
+# - Set all items to "medium" priority
+# - Do NOT add any additional items
+# - Do NOT modify the task descriptions
+# Example conceptual call if 'TodoWrite' were available:
 # print(default_api.TodoWrite(
 #     items=[
+]
 #         {"description": item1, "status": "pending", "priority": "medium"},
 #         {"description": item2, "status": "pending", "priority": "medium"},
 #         {"description": item3, "status": "pending", "priority": "medium"}
 #     ]
 # ))
-
-# Since 'TodoWrite' is not an available tool in this environment,
-# this section serves as a functional specification for how the command
-# would operate if the tool were present.
-# It ensures that the semantic meaning and functionality of the original
-# markdown command are preserved.
 """
-```
+"""

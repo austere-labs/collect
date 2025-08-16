@@ -12,10 +12,10 @@
     "converted": true
   },
   ".claude/commands/commit.md": {
-    "sha": "891c52b5b372e6fffd161dcf9b55930755d9fbf3",
+    "sha": "920e206a3342009c9c51244f1b6a82bbf30c8a5c",
     "path": ".claude/commands/commit.md",
-    "last_synced": 1754870996.614573,
-    "converted": true
+    "last_synced": 1755380765.49509,
+    "converted": false
   },
   ".claude/commands/go/create_go_structs.md": {
     "sha": "56a5e5dc2abb511b98b2e1147d428551610aa49e",
@@ -90,10 +90,10 @@
     "converted": true
   },
   ".claude/commands/read.md": {
-    "sha": "524139e35449b4f5c0a88b206699cec5d2f1409b",
+    "sha": "f92fa2ea3c4a3cce1c9693069d9012d2df72e73d",
     "path": ".claude/commands/read.md",
-    "last_synced": 1754871043.723397,
-    "converted": true
+    "last_synced": 1755380765.507684,
+    "converted": false
   },
   ".claude/commands/response_in_markdown.md": {
     "sha": "a540be858d83e4b65df8dd2a23e3656bbdce8ee7",
@@ -102,10 +102,10 @@
     "converted": true
   },
   ".claude/commands/runplan.md": {
-    "sha": "08d9b2d8c3bd445c55170adec7e80b9d3733e27a",
+    "sha": "9e02c188c9b5619be715a3b6e3c32959994c3856",
     "path": ".claude/commands/runplan.md",
-    "last_synced": 1754871056.6670442,
-    "converted": true
+    "last_synced": 1755380765.4708118,
+    "converted": false
   },
   ".claude/commands/test_runner.md": {
     "sha": "28e088b2d155b9eca391add1bc75cdf701a3a4d8",
@@ -124,5 +124,11 @@
     "path": ".claude/commands/tools/extract.md",
     "last_synced": 1754871074.061621,
     "converted": true
+  },
+  ".claude/commands/sync_gemini.md": {
+    "sha": "7efb2b46ade315e1e855e6a9e130fece12541349",
+    "path": ".claude/commands/sync_gemini.md",
+    "last_synced": 1755380765.495295,
+    "converted": false
   }
 }

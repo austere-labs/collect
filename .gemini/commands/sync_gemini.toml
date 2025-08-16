@@ -1,0 +1,53 @@
+allowed-tools = ["Bash(cat:*)", "Bash(gemini --prompt * cat:*)", "TodoWrite", "Read", "Write"]
+description = "IMPORTANT- There is a hook that runs that deletes the CLAUDE_DRAFT.md file and then this prompt will analyze code the code base with gemini and sync *.md files"
+model = "claude-sonnet-4-20250514"
+[workflow_instructions]
+todo_list_task = "Use TodoWrite tool to create a todo list with these 4 tasks, then execute them sequentially:"
+tasks = [
+    "Run the provided bash/cli command."
+    "Compare and analyze the differences between CLAUDE.md and the output from the first Todo."
+    "Generate proposed changes to CLAUDE.md"
+    "Write those changes to a CLAUDE_DRAFT.md file and provide a summary"
+]
+[[steps]]
+name = "STEP 1"
+description = "Run this bash command:"
+type = "bash_command"
+command = '''gemini --prompt "Please read provided data here:"
+<source-directory-structure>
+$(cat dir_structure.md)
+<source-directory-structure>
+<source code>
+$(cat source.md)
+</source code>
+**IMPORTANT:** DO NOT under any circumstances try to analyze the current git repository.
+Your only job is to analyze the provided data in the prompt which provides the entire source tree and source code with supplied xml tags specifying the file and its directory structure and then understand the project structure, technologies, conventions, key files, and architecture.
+Focus on identifying:
+- Project Overview and purpose
+- Complete technology stack
+- Key technologies used
+- Languages, libraries and frameworks used
+- Building and running instructions, make sure you look at the Makefile for this
+- Development conventions
+- Architecture details
+- Main entry points and core files
+- Development commands and workflows
+- Database structure and migrations
+- Testing approaches,
+- Directory organization and purpose of each major component.
+IMPORTANT: Do not overwrite the existing GEMINI.md file or try to create it.
+Based on your analysis, output comprehensive GEMINI.md content in markdown format suitable for the Gemini Code Assistant context.
+"'''"
+notes = "When this tool call completes, you should assume it was successful and run #### STEP 2:"
+[[steps]]
+name = "STEP 2"
+description = "- Take the output from `STEP 1` and COMPARE CLAUDE.md to that output andand analyze the differences and look for alignment opportunities"
+type = "analysis_step"
+[[steps]]
+name = "STEP 3"
+description = "- Generate proposed changes to CLAUDE.md based on the insights in GEMINI.md\n- Identify missing sections, outdated information or improvements needed"
+type = "generation_step"
+[[steps]]
+name = "STEP 4"
+description = "- WRITE those changes to a file called `CLAUDE_DRAFT.md`\n- GENERATE a summary of the changes proposed that exist in `CLAUDE_DRAFT.md`"
+type = "write_and_summarize_step"
