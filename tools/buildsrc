@@ -300,7 +300,7 @@ class FileProcessor:
 class SourceXMLBuilder:
     """Main class for building the source XML."""
 
-    def __init__(self, project_root: Path, output_file: str = 'source.xml'):
+    def __init__(self, project_root: Path, output_file: str = 'source.md'):
         self.project_root = project_root
         self.output_file = output_file
         self.gitignore_filter = GitignoreFilter(project_root)
@@ -695,9 +695,9 @@ def main():
     parser.add_argument('-h', '--help', action='help',
                         help='Show colorful help message and exit')
 
-    parser.add_argument('--output', '-o', default='source.xml',
+    parser.add_argument('--output', '-o', default='source.md',
                         metavar='FILE',
-                        help='Output file name (default: source.xml)')
+                        help='Output file name (default: source.md)')
     parser.add_argument('--dry-run', action='store_true',
                         help='Show which files would be processed without creating output')
     parser.add_argument('--verbose', '-v', action='store_true',

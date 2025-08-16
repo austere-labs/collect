@@ -12,7 +12,6 @@
 ├── CLAUDE.md
 ├── collect.py
 ├── config.py
-├── dir_structure.md
 ├── dotfiles
 │   ├── ghostty
 │   │   ├── config
@@ -87,5 +86,5 @@
 ├── uv.lock
 └── yoyo.ini
 
-16 directories, 69 files
+16 directories, 68 files
 ```

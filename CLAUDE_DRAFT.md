@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This project is a Python-based MCP (Model Context Protocol) server named "Collect". Its primary purpose is to fetch web content, process it, and facilitate multi-model AI analysis workflows. It provides a unified interface to interact with various AI models (OpenAI, Anthropic, Gemini, XAI) for tasks like code review, documentation extraction, and prompt generation.
 
-The server exposes several tools including code review automation, web content fetching, AI model interaction, prompt engineering, and system utilities like clipboard integration.
+The server is built using the `mcp` library and exposes several tools for web fetching, content processing, AI model interaction, code review automation, and prompt engineering.
 
 ### Directory Structure
 
@@ -36,33 +36,47 @@ Key directories:
 - **Linting/Formatting:** `ruff` and `black`
 - **Database:** SQLite
 
-## Development Commands
+## Building and Running
 
-**Setup:**
+**Install Dependencies:**
 ```bash
 uv sync
 ```
 
-**Run Server:**
+**Run the Server:**
 ```bash
-uv run collect.py  # Start MCP server
+python collect.py  # Start MCP server
 ```
+
+**Apply Database Migrations:**
+```bash
+uv run yoyo apply --config yoyo.ini --batch
+```
+
+## Development Commands
 
 **Testing:**
+### Use `pytest` for all testing in this project.
+### When running all tests, use the Makefile and run test-fast:
+### here is an example
+
 ```bash
-# Fast tests (recommended for development)
 make test-fast
-
-# Comprehensive testing
+```
+### OR use the following bash command:
+```bash
+uv run pytest -v -n auto -m "not slow"
+```
+### For comprehensive testing (matches GEMINI.md):
+```bash
 uv run pytest -v -s -n auto
-
-# Specific test
-uv run pytest test_collect.py::test_function_name -v -s
 ```
 
-**Database:**
+## IMPORTANT: Always Always use uv run when running tests
+### Here is an example
 ```bash
-uv run yoyo apply --config yoyo.ini --batch  # Apply database migrations
+uv run pytest test_collect.py::test_function_name -v -s
+# Run specific test: pytest test_collect.py::test_function_name -v -s
 ```
 
 **Code Quality:**
@@ -70,6 +84,10 @@ uv run yoyo apply --config yoyo.ini --batch  # Apply database migrations
 make lint     # Run ruff check
 make format   # Run black formatter
 make check    # Run all: lint, format, movetools, ensuregithub, buildsrc, tree
+
+# Individual commands:
+ruff check .  # Run linter
+black .       # Run formatter
 ```
 
 ## Planning System
@@ -190,6 +208,7 @@ Additional specialized packages provide focused functionality:
   - `database.py`: SQLite connection management with custom datetime adapters
   - Supports plan lifecycle tracking and content change detection
 
+
 ### Key Features
 - **Async token counting**: All providers support async token counting with proper chunking
 - **Multi-model workflows**: Send content to all AI models concurrently via `multi_model_code_review()`
@@ -243,8 +262,9 @@ Environment variables are loaded from `.env` file:
 
 ## Tools
 
-### IMPORTANT: 
+###IMPORTANT: 
 I have a directory from the main project directory called: tools/* wherein there scripts stored that you can use
+use
 
 - All of my tools in this directory are on my path and can be called directly.
 - You use these tools and see what they do by simply calling the tool name with `--llm`
@@ -258,3 +278,11 @@ Example 2:
 ```bash
 createdb --llm
 ```
+
+
+
+# important-instruction-reminders
+Do what has been asked; nothing more, nothing less.
+NEVER create files unless they're absolutely necessary for achieving your goal.
+ALWAYS prefer editing an existing file to creating a new one.
+NEVER proactively create documentation files (*.md) or README files. Only create documentation files if explicitly requested by the User.

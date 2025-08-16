@@ -1,13 +1,13 @@
 ---
-allowed-tools: Bash(cat:*), Bash(gemini:*), TodoWrite, Read, Write
-description: Analyze code base with gemini and sync *.md files
+allowed-tools: Bash(cat:*), Bash(gemini --prompt * cat:*), TodoWrite, Read, Write
+description: IMPORTANT- There is a hook that runs that deletes the CLAUDE_DRAFT.md file and then this prompt will analyze code the code base with gemini and sync *.md files
 model: claude-sonnet-4-20250514
 ---
 
 ## WORKFLOW INSTRUCTIONS:
 **Use TodoWrite tool to create a todo list with these 4 tasks, then execute them sequentially:**
-1. Run the provided bash/cli command. This will create a new GEMINI.md file
-2. Compare and analyze the differences between CLAUDE.md and GEMINI.md 
+1. Run the provided bash/cli command. 
+2. Compare and analyze the differences between CLAUDE.md and the output from the first Todo.
 3. Generate proposed changes to CLAUDE.md
 4. Write those changes to a CLAUDE_DRAFT.md file and provide a summary
 
@@ -59,9 +59,4 @@ Based on your analysis, output comprehensive GEMINI.md content in markdown forma
 
 #### STEP 4:
 - WRITE those changes to a file called `CLAUDE_DRAFT.md`
-- IF the `CLAUDE_DRAFT.md` file already exists THEN Delete it by running the following bash command:
-
-```bash
-rm CLAUDE_DRAFT.md
-```
 - GENERATE a summary of the changes proposed that exist in `CLAUDE_DRAFT.md`
