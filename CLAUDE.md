@@ -1,17 +1,45 @@
----
-allowed-tools: Bash(tools/*)
-description: scripts that can be perused and run where appropriate see the examples in this prompt
----
-
 # CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+### Directory Structure
+
+For the complete project directory structure, see [dir_structure.md](dir_structure.md).
+
+Key directories:
+- **data/**: Database files (prompts.db, plans.db)
+- **_docs/plans/**: Planning system with drafts/, approved/, completed/
+- **migrations/**: Database migrations for prompts.db
+- **migrations-plans/**: Database migrations for plans.db
+- **repository/**: Plan management system
+- **models/**: AI provider API wrappers
+- **reviewer/**: Code review automation
+
+## Key Technologies
+
+- **Programming Language:** Python
+- **Frameworks:** `mcp` (Model Context Protocol), FastAPI
+- **Key Libraries:**
+  - `httpx` for asynchronous HTTP requests
+  - `anthropic`, `openai`, `google-cloud-aiplatform` for interacting with various LLMs
+  - `readabilipy`, `markdownify`, `beautifulsoup4` for HTML processing
+  - `pyperclip` for clipboard integration
+  - `yoyo-migrations` for database schema management
+- **Package Manager:** `uv`
+- **Testing:** `pytest` with `pytest-asyncio` and `pytest-xdist` for parallel testing
+- **Linting/Formatting:** `ruff` and `black`
+- **Database:** SQLite
 
 ## Development Commands
 
 **Setup:**
 ```bash
 uv sync
+```
+
+**Run Server:**
+```bash
+uv run collect.py  # Start MCP server
 ```
 
 **Testing:**
@@ -26,7 +54,10 @@ make test-fast
 ```bash
 uv run pytest -v -n auto -m "not slow"
 ```
-
+### For comprehensive testing (matches GEMINI.md):
+```bash
+uv run pytest -v -s -n auto
+```
 
 ## IMPORTANT: Always Always use uv run when running tests
 ### Here is an example
@@ -34,39 +65,21 @@ uv run pytest -v -n auto -m "not slow"
 uv run pytest test_collect.py::test_function_name -v -s
 # Run specific test: pytest test_collect.py::test_function_name -v -s
 ```
+
+**Database:**
+```bash
+uv run yoyo apply --config yoyo.ini --batch  # Apply database migrations
+```
+
 **Code Quality:**
 ```bash
 make lint     # Run ruff check
 make format   # Run black formatter
-make check    # Run all: lint, format, test
-```
+make check    # Run all: lint, format, movetools, ensuregithub, buildsrc, tree
 
-**Run MCP Server:**
-```bash
-uv run collect.py
-```
-
-**Plan Management:**
-```bash
-# Sync plans from filesystem to database
-uv run -m repository.plan_service
-
-# Test plan service functionality (uses separate test database)
-uv run pytest repository/test_plan_service.py -v -s
-
-# Test plan database operations
-uv run pytest repository/test_plan_service.py::test_sync_plans -v -s
-
-# Set up test database manually (optional - done automatically by tests)
-uv run yoyo apply --config yoyo-test-plans.ini --batch
-
-# Reset test database to clean state
-rm data/test_plans.db && uv run yoyo apply --config yoyo-test-plans.ini --batch
-
-# Test database management utilities
-uv run python repository/test_database_setup.py setup
-uv run python repository/test_database_setup.py reset
-uv run python repository/test_database_setup.py cleanup
+# Individual commands:
+ruff check .  # Run linter
+black .       # Run formatter
 ```
 
 ## Planning System
@@ -210,29 +223,28 @@ Environment variables are loaded from `.env` file:
 - Default model names for each provider
 - Code review model configurations
 
-### Directory Structure
-```
-collect/
-├── data/
-│   ├── prompts.db      # Original prompts database
-│   └── plans.db        # Plan management database
-├── _docs/
-│   └── plans/
-│       ├── drafts/     # Plans under development
-│       ├── approved/   # Plans ready for implementation
-│       └── completed/  # Implemented plans with results
-├── migrations/         # Database migrations for prompts.db
-├── migrations-plans/   # Database migrations for plans.db
-├── repository/         # Plan management system
-│   ├── plan_service.py # Plan filesystem-to-database sync
-│   ├── plan_models.py  # Pydantic models for plan data
-│   └── database.py     # SQLite connection management
-├── models/            # AI provider API wrappers
-└── reviewer/          # Code review automation
-```
-
 ### Testing Strategy
 - **IMPORTANT**:  When writing and designing tests, we only want live direct integration tests. Please only create live direct integration testing. Please do not use mocks. 
+
+## Key Files
+
+- **`collect.py`:** The main entry point of the MCP server. It defines the available tools.
+- **`api.py`:** A FastAPI server that runs alongside the MCP server.
+- **`pyproject.toml`:** Defines the project's dependencies and development tool configurations.
+- **`config.py`:** Handles the project's configuration by loading environment variables.
+- **`reviewer/code_review.py`:** Contains the logic for the code review functionality.
+- **`models/`:** This directory contains modules for interacting with different AI models (e.g., `anthropic_mpc.py`, `openai_mpc.py`).
+- **`repository/`:** Contains database models, services, and connection logic.
+- **`migrations/`:** Contains the SQL migration files for the database schema.
+- **`test_*.py`:** Test files for the project, such as `test_collect.py` and `test_generate_prompt.py`.
+
+## Development Conventions
+
+- **Testing:** Tests are written using `pytest` and are located in files like `test_collect.py` and `test_generate_prompt.py`. Asynchronous functions are tested using `@pytest.mark.asyncio`.
+- **Linting and Formatting:** The project uses `ruff` for linting and `black` for formatting.
+- **Configuration:** Project configuration is managed in `config.py`, which loads environment variables from a `.env` file.
+- **Secrets Management:** API keys and other secrets are managed through Google Cloud Secret Manager, as indicated in `secret_manager.py` and `config.py`.
+- **Database:** The project uses SQLite for its database. The database connection logic is in `repository/database.py`. Migrations are handled by `yoyo-migrations`.
 
 ## Rules
 - **IMPORTANT**: YOU MUST always use `uv run` to run tests.

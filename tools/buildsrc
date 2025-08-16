@@ -13,9 +13,10 @@ import argparse
 import os
 import xml.etree.ElementTree as ET
 from pathlib import Path
-from typing import List, Set, Iterator
+from typing import Iterator
 import pathspec
 import sys
+import subprocess
 from dataclasses import dataclass
 from rich.console import Console
 from rich.text import Text
@@ -33,7 +34,7 @@ class ProcessingStats:
     total_size: int = 0
     directories_excluded: int = 0
     skipped_files: list = None
-    
+
     def __post_init__(self):
         if self.skipped_files is None:
             self.skipped_files = []
@@ -41,25 +42,27 @@ class ProcessingStats:
 
 class ColorfulHelpFormatter(argparse.HelpFormatter):
     """Custom help formatter that uses Rich for colorful output."""
-    
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.console = Console()
-    
+
     def format_help(self):
         """Format help message with rich formatting."""
         # Create the main help display
         self._show_colorful_help()
         return ""  # Return empty string since we've already printed
-    
+
     def _show_colorful_help(self):
         """Display the colorful help menu."""
         console = Console()
-        
+
         # Header
-        title = Text("🔨 Build Source XML", style="bold bright_blue")
-        subtitle = Text("Generate XML file containing all project source code", style="italic cyan")
-        
+        title = Text("🔨 Build Source XML & Directory Tree",
+                     style="bold bright_blue")
+        subtitle = Text(
+            "Generate XML file with source code or directory tree structure", style="italic cyan")
+
         header_panel = Panel.fit(
             Text.assemble(title, "\n", subtitle),
             border_style="bright_blue",
@@ -67,15 +70,19 @@ class ColorfulHelpFormatter(argparse.HelpFormatter):
         )
         console.print("\n")
         console.print(header_panel)
-        
+
         # Description
         description = Panel(
             Text.assemble(
-                "This script reads all project files (respecting .gitignore patterns) and\n",
-                "concatenates them into a single XML document with proper file path headers.\n\n",
+                "This script can either read all project files (respecting .gitignore patterns) and\n",
+                "concatenate them into a single XML document, or generate a directory tree structure.\n\n",
+                Text("📄 XML Mode:", style="bold blue"),
+                " Creates source.xml with all source code\n",
+                Text("🌳 Tree Mode:", style="bold green"),
+                " Creates dir_structure.md with directory structure\n\n",
                 Text("🚫 Automatically excludes:", style="bold red"),
                 "\n  • data/ directory",
-                "\n  • .claude/commands directory", 
+                "\n  • .claude/commands directory",
                 "\n  • .gemini/commands directory",
                 "\n  • tools/ directory",
                 "\n  • guides/ directory",
@@ -89,7 +96,7 @@ class ColorfulHelpFormatter(argparse.HelpFormatter):
             padding=(1, 2)
         )
         console.print(description)
-        
+
         # Usage examples
         usage_table = Table(
             show_header=True,
@@ -100,7 +107,7 @@ class ColorfulHelpFormatter(argparse.HelpFormatter):
         )
         usage_table.add_column("Command", style="bright_green", no_wrap=True)
         usage_table.add_column("Description", style="white")
-        
+
         usage_table.add_row(
             "buildsrc",
             "Generate source.xml with all project files"
@@ -121,9 +128,17 @@ class ColorfulHelpFormatter(argparse.HelpFormatter):
             "buildsrc --dry-run --verbose",
             "Preview files with detailed output"
         )
-        
+        usage_table.add_row(
+            "buildsrc --tree",
+            "Generate directory tree structure in dir_structure.md"
+        )
+        usage_table.add_row(
+            "buildsrc --tree --dry-run",
+            "Preview tree generation without creating output"
+        )
+
         console.print(usage_table)
-        
+
         # Options table
         options_table = Table(
             show_header=True,
@@ -135,7 +150,7 @@ class ColorfulHelpFormatter(argparse.HelpFormatter):
         options_table.add_column("Option", style="bright_yellow", no_wrap=True)
         options_table.add_column("Description", style="white")
         options_table.add_column("Default", style="dim")
-        
+
         options_table.add_row(
             "-o, --output FILE",
             "Specify output filename",
@@ -147,7 +162,7 @@ class ColorfulHelpFormatter(argparse.HelpFormatter):
             "False"
         )
         options_table.add_row(
-            "-v, --verbose", 
+            "-v, --verbose",
             "Display detailed processing information",
             "False"
         )
@@ -156,9 +171,14 @@ class ColorfulHelpFormatter(argparse.HelpFormatter):
             "Show this colorful help message",
             ""
         )
-        
+        options_table.add_row(
+            "--tree",
+            "Generate directory tree structure instead of XML",
+            "False"
+        )
+
         console.print(options_table)
-        
+
         # XML structure example
         xml_example = '''<?xml version="1.0" encoding="UTF-8"?>
 <source_code project="collect">
@@ -172,26 +192,25 @@ class ColorfulHelpFormatter(argparse.HelpFormatter):
     # ... file content ...
   </file>
 </source_code>'''
-        
+
         xml_panel = Panel(
             Syntax(xml_example, "xml", theme="monokai", line_numbers=True),
             title="📄 Generated XML Structure",
-            title_align="left", 
+            title_align="left",
             border_style="bright_magenta",
             padding=(1, 2)
         )
         console.print(xml_panel)
-        
+
         # Footer
         footer_text = Text.assemble(
             "💡 ", ("Tip: ", "bold bright_yellow"),
             "Use --dry-run first to preview which files will be included!\n",
-            "🎯 ", ("Output: ", "bold bright_green"), 
-            "Creates well-formed XML with UTF-8 encoding\n",
+            "🎯 ", ("Output: ", "bold bright_green"),             "Creates well-formed XML with UTF-8 encoding\n",
             "⚡ ", ("Performance: ", "bold bright_cyan"),
             "Processes large codebases efficiently with progress tracking"
         )
-        
+
         footer_panel = Panel.fit(
             footer_text,
             border_style="bright_yellow",
@@ -203,32 +222,22 @@ class ColorfulHelpFormatter(argparse.HelpFormatter):
 
 class GitignoreFilter:
     """Handles .gitignore pattern matching."""
-    
+
     def __init__(self, project_root: Path):
         self.project_root = project_root
         self.spec = self._load_gitignore()
-    
+
     def _load_gitignore(self) -> pathspec.PathSpec:
         """Load and parse .gitignore file."""
         gitignore_path = self.project_root / '.gitignore'
         patterns = []
-        
+
         if gitignore_path.exists():
             with open(gitignore_path, 'r', encoding='utf-8') as f:
                 patterns = f.read().splitlines()
-        
-        # Add standard Python cache patterns if not present
-        additional_patterns = [
-            '__pycache__/',
-            '*.pyc',
-            '*.pyo',
-            '.pytest_cache/',
-            '.coverage',
-            'htmlcov/',
-        ]
-        
-        return pathspec.PathSpec.from_lines('gitwildmatch', patterns + additional_patterns)
-    
+
+        return pathspec.PathSpec.from_lines('gitwildmatch', patterns)
+
     def should_ignore(self, path: Path) -> bool:
         """Check if path should be ignored according to gitignore rules."""
         relative_path = path.relative_to(self.project_root)
@@ -237,10 +246,10 @@ class GitignoreFilter:
 
 class FileProcessor:
     """Processes individual files for XML generation."""
-    
+
     def __init__(self, project_root: Path):
         self.project_root = project_root
-    
+
     def is_text_file(self, file_path: Path) -> bool:
         """Check if file is likely a text file."""
         try:
@@ -250,10 +259,10 @@ class FileProcessor:
                 '.sql', '.sh', '.lua', '.js', '.ts', '.html', '.css', '.xml',
                 '.cfg', '.conf', '.gitignore', '.env', '.lock'
             }
-            
+
             if file_path.suffix.lower() in text_extensions:
                 return True
-            
+
             # For files without extension, try to read a small sample
             if not file_path.suffix:
                 try:
@@ -263,15 +272,15 @@ class FileProcessor:
                         return b'\x00' not in sample
                 except:
                     return False
-            
+
             return False
         except:
             return False
-    
+
     def read_file_content(self, file_path: Path) -> str:
         """Read file content with proper encoding handling."""
         encodings = ['utf-8', 'utf-8-sig', 'latin1', 'cp1252']
-        
+
         for encoding in encodings:
             try:
                 with open(file_path, 'r', encoding=encoding) as f:
@@ -280,9 +289,9 @@ class FileProcessor:
                 continue
             except Exception as e:
                 return f"[ERROR: Could not read file - {str(e)}]"
-        
+
         return "[ERROR: Could not decode file with any supported encoding]"
-    
+
     def get_relative_path(self, file_path: Path) -> str:
         """Get relative path from project root."""
         return str(file_path.relative_to(self.project_root))
@@ -290,19 +299,19 @@ class FileProcessor:
 
 class SourceXMLBuilder:
     """Main class for building the source XML."""
-    
+
     def __init__(self, project_root: Path, output_file: str = 'source.xml'):
         self.project_root = project_root
         self.output_file = output_file
         self.gitignore_filter = GitignoreFilter(project_root)
         self.file_processor = FileProcessor(project_root)
         self.stats = ProcessingStats()
-        
+
         # Directories to exclude
         self.excluded_dirs = {
             'data',
             '.claude/commands',
-            '.gemini/commands', 
+            '.gemini/commands',
             'tools',
             'guides',
             '__pycache__',
@@ -316,21 +325,21 @@ class SourceXMLBuilder:
             'dist',
             '*.egg-info'
         }
-    
+
     def should_exclude_directory(self, dir_path: Path) -> bool:
         """Check if directory should be excluded."""
         relative_path = str(dir_path.relative_to(self.project_root))
-        
+
         # Check exact matches
         if relative_path in self.excluded_dirs:
             return True
-        
+
         # Check if any part of the path matches excluded directories
         path_parts = Path(relative_path).parts
         for part in path_parts:
             if part in self.excluded_dirs:
                 return True
-        
+
         # Check specific path patterns
         excluded_patterns = [
             'data',
@@ -340,105 +349,107 @@ class SourceXMLBuilder:
             'guides',
             '_docs'
         ]
-        
+
         for pattern in excluded_patterns:
             if relative_path == pattern or relative_path.startswith(pattern + '/'):
                 return True
-        
+
         return False
-    
+
     def collect_files(self) -> Iterator[Path]:
         """Collect all files that should be included in the XML."""
         for root, dirs, files in os.walk(self.project_root):
             root_path = Path(root)
-            
+
             # Skip if current directory should be excluded
             if self.should_exclude_directory(root_path):
                 self.stats.directories_excluded += 1
                 dirs.clear()  # Don't recurse into this directory
                 continue
-            
+
             # Filter out excluded directories from further traversal
-            dirs[:] = [d for d in dirs if not self.should_exclude_directory(root_path / d)]
-            
+            dirs[:] = [
+                d for d in dirs if not self.should_exclude_directory(root_path / d)]
+
             for file_name in files:
                 file_path = root_path / file_name
-                
+
                 # Skip if file matches gitignore patterns
                 if self.gitignore_filter.should_ignore(file_path):
                     self.stats.files_skipped += 1
                     rel_path = self.file_processor.get_relative_path(file_path)
-                    self.stats.skipped_files.append((rel_path, "gitignore pattern"))
+                    self.stats.skipped_files.append(
+                        (rel_path, "gitignore pattern"))
                     continue
-                
+
                 # Skip if not a text file
                 if not self.file_processor.is_text_file(file_path):
                     self.stats.files_skipped += 1
                     rel_path = self.file_processor.get_relative_path(file_path)
-                    self.stats.skipped_files.append((rel_path, "binary/non-text file"))
+                    self.stats.skipped_files.append(
+                        (rel_path, "binary/non-text file"))
                     continue
-                
+
                 yield file_path
-    
+
     def build_xml(self, dry_run: bool = False, verbose: bool = False) -> str:
         """Build the XML content."""
         if verbose:
             print(f"Scanning project: {self.project_root}")
-        
+
         # Create root element
         root = ET.Element('source_code')
         root.set('project', str(self.project_root.name))
-        
+
         files_to_process = list(self.collect_files())
-        
+
         if dry_run:
             print(f"Would process {len(files_to_process)} files:")
             for file_path in files_to_process:
                 rel_path = self.file_processor.get_relative_path(file_path)
                 print(f"  - {rel_path}")
             return ""
-        
+
         for file_path in files_to_process:
             if verbose:
                 rel_path = self.file_processor.get_relative_path(file_path)
                 print(f"Processing: {rel_path}")
-            
+
             # Create file element
             file_element = ET.SubElement(root, 'file')
             rel_path = self.file_processor.get_relative_path(file_path)
             file_element.set('path', rel_path)
-            
+
             # Read and add file content
             content = self.file_processor.read_file_content(file_path)
             file_element.text = content
-            
+
             self.stats.files_processed += 1
             self.stats.total_size += len(content)
-        
+
         # Create XML string
         ET.indent(root, space="  ", level=0)
         xml_str = ET.tostring(root, encoding='unicode', xml_declaration=True)
-        
+
         return xml_str
-    
+
     def write_xml(self, xml_content: str) -> None:
         """Write XML content to file."""
         output_path = self.project_root / self.output_file
-        
+
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write(xml_content)
-        
+
         console = Console()
-        
+
         # Success message with file info
         file_size_kb = len(xml_content) / 1024
         success_text = Text.assemble(
             "✅ ", ("Success! ", "bold bright_green"),
             "XML file generated successfully\n\n",
             "📄 ", ("File: ", "bold bright_blue"), f"{output_path}\n",
-            "📊 ", ("Size: ", "bold bright_cyan"), f"{file_size_kb:.1f} KB ({len(xml_content):,} characters)"
-        )
-        
+            "📊 ", ("Size: ", "bold bright_cyan"), f"{file_size_kb:.1f} KB ({len(xml_content):,} characters)")
+
         success_panel = Panel.fit(
             success_text,
             title="🎉 Build Complete",
@@ -446,13 +457,13 @@ class SourceXMLBuilder:
             border_style="bright_green",
             padding=(1, 2)
         )
-        
+
         console.print(success_panel)
-    
+
     def print_stats(self) -> None:
         """Print processing statistics."""
         console = Console()
-        
+
         # Create statistics table
         stats_table = Table(
             show_header=True,
@@ -461,30 +472,30 @@ class SourceXMLBuilder:
             title="📈 Processing Statistics",
             title_style="bold bright_yellow"
         )
-        
+
         stats_table.add_column("Metric", style="bright_cyan", no_wrap=True)
         stats_table.add_column("Count", style="bright_green", justify="right")
         stats_table.add_column("Details", style="dim white")
-        
+
         # Add rows with emojis and formatting
         stats_table.add_row(
-            "✅ Files Processed", 
+            "✅ Files Processed",
             f"{self.stats.files_processed:,}",
             "Successfully included in XML"
         )
-        
+
         stats_table.add_row(
-            "⏭  Files Skipped", 
+            "⏭  Files Skipped",
             f"{self.stats.files_skipped:,}",
             "Binary files, gitignore matches"
         )
-        
+
         stats_table.add_row(
-            "🚫 Directories Excluded", 
-            f"{self.stats.directories_excluded:,}",
+            "🚫 Directories Excluded",             f"{
+                self.stats.directories_excluded:,}",
             "Matched exclusion patterns"
         )
-        
+
         # Format content size with appropriate units
         size_mb = self.stats.total_size / (1024 * 1024)
         if size_mb >= 1:
@@ -492,20 +503,19 @@ class SourceXMLBuilder:
         else:
             size_kb = self.stats.total_size / 1024
             size_display = f"{size_kb:.1f} KB"
-            
+
         stats_table.add_row(
-            "📊 Total Content", 
-            f"{self.stats.total_size:,}",
+            "📊 Total Content",             f"{self.stats.total_size:,}",
             f"{size_display} of source code"
         )
-        
+
         console.print("")  # Add some spacing
         console.print(stats_table)
-        
+
         # Show skipped files if any
         if self.stats.skipped_files:
             console.print("")  # Add spacing
-            
+
             skipped_table = Table(
                 show_header=True,
                 header_style="bold red",
@@ -513,17 +523,18 @@ class SourceXMLBuilder:
                 title="⚠️  Skipped Files",
                 title_style="bold bright_red"
             )
-            
+
             skipped_table.add_column("File", style="dim white", no_wrap=False)
-            skipped_table.add_column("Reason", style="bright_red", justify="left")
-            
+            skipped_table.add_column(
+                "Reason", style="bright_red", justify="left")
+
             # Group by reason for better display
             by_reason = {}
             for file_path, reason in self.stats.skipped_files:
                 if reason not in by_reason:
                     by_reason[reason] = []
                 by_reason[reason].append(file_path)
-            
+
             # Add rows grouped by reason
             for reason, files in by_reason.items():
                 for i, file_path in enumerate(files):
@@ -531,24 +542,143 @@ class SourceXMLBuilder:
                         skipped_table.add_row(file_path, reason)
                     else:
                         skipped_table.add_row(file_path, "")
-                
+
                 # Add separator between different reasons
                 if reason != list(by_reason.keys())[-1]:
                     skipped_table.add_row("", "")
-            
+
             console.print(skipped_table)
+
+
+class TreeGenerator:
+    """Generates directory tree structure using tree command with gitignore filtering."""
+
+    def __init__(self, project_root: Path, output_file: str = 'dir_structure.md'):
+        self.project_root = project_root
+        self.output_file = output_file
+        self.gitignore_filter = GitignoreFilter(project_root)
+
+        # Directories to exclude (same as SourceXMLBuilder)
+        self.excluded_dirs = {
+            'data',
+            '.claude/commands',
+            '.gemini/commands',
+            'tools',
+            'guides',
+            '__pycache__',
+            '.pytest_cache',
+            '.git',
+            '.venv',
+            'venv',
+            'env',
+            'htmlcov',
+            'build',
+            'dist',
+            '*.egg-info',
+            '_docs'
+        }
+
+    def _create_tree_ignore_file(self) -> Path:
+        """Create a temporary ignore file for tree command."""
+        ignore_file = self.project_root / '.treeignore'
+
+        # Get gitignore patterns
+        gitignore_path = self.project_root / '.gitignore'
+        patterns = []
+
+        if gitignore_path.exists():
+            with open(gitignore_path, 'r', encoding='utf-8') as f:
+                patterns = f.read().splitlines()
+
+        # Add our excluded directories
+        patterns.extend(self.excluded_dirs)
+
+        # Write to temporary ignore file
+        with open(ignore_file, 'w', encoding='utf-8') as f:
+            for pattern in patterns:
+                if pattern.strip() and not pattern.startswith('#'):
+                    f.write(pattern + '\n')
+
+        return ignore_file
+
+    def generate_tree(self, dry_run: bool = False) -> str:
+        """Generate directory tree structure."""
+        console = Console()
+
+        if dry_run:
+            console.print("Would generate directory tree in dir_structure.md")
+            return ""
+
+        # Create temporary ignore file
+        ignore_file = self._create_tree_ignore_file()
+
+        try:
+            # Run tree command with ignore file
+            cmd = [
+                'tree',
+                str(self.project_root),
+                '-I', '|'.join(self.excluded_dirs),
+                '--gitignore'
+            ]
+
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                cwd=self.project_root
+            )
+
+            if result.returncode != 0:
+                console.print(f"[red]Error running tree command: {
+                              result.stderr}[/red]")
+                return ""
+
+            tree_output = result.stdout
+
+            # Write to markdown file
+            output_path = self.project_root / self.output_file
+            markdown_content = f"# Directory Structure\n\n```\n{
+                tree_output}```\n"
+
+            with open(output_path, 'w', encoding='utf-8') as f:
+                f.write(markdown_content)
+
+            # Success message
+            success_text = Text.assemble(
+                "✅ ", ("Success! ", "bold bright_green"),
+                "Directory tree generated successfully\n\n",
+                "📄 ", ("File: ", "bold bright_blue"), f"{output_path}\n",
+                "🌳 ", ("Content: ",
+                       "bold bright_cyan"), "Directory structure with gitignore filtering")
+
+            success_panel = Panel.fit(
+                success_text,
+                title="🌳 Tree Complete",
+                title_align="left",
+                border_style="bright_green",
+                padding=(1, 2)
+            )
+
+            console.print(success_panel)
+
+            return markdown_content
+
+        finally:
+            # Clean up temporary ignore file
+            if ignore_file.exists():
+                ignore_file.unlink()
 
 
 def find_project_root() -> Path:
     """Find the project root by looking for git repository or other markers."""
     current = Path.cwd().resolve()
-    
+
     # Walk up the directory tree looking for .git directory
     while current != current.parent:
         if (current / '.git').exists():
             return current
         current = current.parent
-    
+
     # If no .git found, fall back to current working directory
     return Path.cwd().resolve()
 
@@ -560,38 +690,46 @@ def main():
         formatter_class=ColorfulHelpFormatter,
         add_help=False  # We'll handle help ourselves
     )
-    
+
     # Add help argument manually to control its behavior
     parser.add_argument('-h', '--help', action='help',
-                       help='Show colorful help message and exit')
-    
-    parser.add_argument('--output', '-o', default='source.xml', 
-                       metavar='FILE',
-                       help='Output file name (default: source.xml)')
+                        help='Show colorful help message and exit')
+
+    parser.add_argument('--output', '-o', default='source.xml',
+                        metavar='FILE',
+                        help='Output file name (default: source.xml)')
     parser.add_argument('--dry-run', action='store_true',
-                       help='Show which files would be processed without creating output')
+                        help='Show which files would be processed without creating output')
     parser.add_argument('--verbose', '-v', action='store_true',
-                       help='Verbose output showing file processing')
-    
+                        help='Verbose output showing file processing')
+    parser.add_argument('--tree', action='store_true',
+                        help='Generate directory tree structure instead of XML')
+
     args = parser.parse_args()
-    
+
     # Find project root by looking for git repository
     project_root = find_project_root()
-    
-    # Create builder
-    builder = SourceXMLBuilder(project_root, args.output)
-    
+
     try:
-        # Build XML
-        xml_content = builder.build_xml(dry_run=args.dry_run, verbose=args.verbose)
-        
-        if not args.dry_run:
-            # Write to file
-            builder.write_xml(xml_content)
-        
-        # Print statistics
-        builder.print_stats()
-        
+        if args.tree:
+            # Generate directory tree
+            tree_generator = TreeGenerator(project_root, 'dir_structure.md')
+            tree_generator.generate_tree(dry_run=args.dry_run)
+        else:
+            # Generate XML (default behavior)
+            builder = SourceXMLBuilder(project_root, args.output)
+
+            # Build XML
+            xml_content = builder.build_xml(
+                dry_run=args.dry_run, verbose=args.verbose)
+
+            if not args.dry_run:
+                # Write to file
+                builder.write_xml(xml_content)
+
+            # Print statistics
+            builder.print_stats()
+
     except KeyboardInterrupt:
         print("\nOperation cancelled by user.")
         sys.exit(1)

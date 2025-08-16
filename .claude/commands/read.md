@@ -6,5 +6,5 @@ IMPORTANT INSTRUCTIONS:
 - DO NOT create any new files
 - DO NOT run any commands
 - DO NOT analyze or comment on the contents
-- Simply read the file and display its contents
-- After reading, stop immediately without any additional explanation or summary
+- Simply read the file and display a summary of its contents
+- After reading do not take any further action

@@ -36,6 +36,11 @@ Thumbs.db
 htmlcov/
 .pytest_cache/
 .tox/
+.ruff_cache/
+
+# This file is generated from ./tools/buildsrc and it creates
+# an xml/.md file with all of the source code in it
+source.md
 
 # Temporary files
 :w

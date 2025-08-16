@@ -11,6 +11,10 @@ movetools:
 buildsrc: 
 	./tools/buildsrc
 
+.PHONY: buildsrc
+tree:
+	./tools/buildsrc --tree
+
 .PHONY: ensuregithub
 ensuregithub:
 	./tools/ensure-github-url
@@ -39,6 +43,7 @@ check:
 	make movetools
 	make ensuregithub
 	make buildsrc
+	make tree
 
 migrate:
 	uv run yoyo apply --config yoyo.ini --batch
