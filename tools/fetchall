@@ -281,7 +281,11 @@ for dir in "${DIRS_TO_CREATE[@]}"; do
         fi
         print_success "Created $dir"
     fi
-done
+b@m ~/python/collect buildsrc
+Traceback (most recent call last):
+  File "/Users/benjaminmetz/bin/buildsrc", line 17, in <module>
+    import pathspec
+ModuleNotFoundError: No module named 'pathspec'done
 
 echo ""
 

@@ -1,0 +1,39 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./tools/newpy:*)",
+      "Bash(cat:*)",
+      "Bash(bash:*)",
+      "Bash(gemini --prompt * cat:*)",
+      "TodoWrite",
+      "Read",
+      "Write"
+    ],
+    "defaultMode": "acceptEdits"
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "collect"
+  ],
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "matcher": "sync_gemini",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run python tools/buildsrc"
+          },
+          {
+            "type": "command",
+            "command": "uv run python tools/buildsrc --tree"
+          },
+          {
+            "type": "command",
+            "command": "rm -f CLAUDE_DRAFT.md"
+          }
+        ]
+      }
+    ]
+  }
+}
