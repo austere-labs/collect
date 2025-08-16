@@ -9,13 +9,11 @@ You are ONLY extracting code for analysis. Do not:
 - Suggest improvements
 - Execute any commands except the extract tool
 Your sole purpose is to gather relevant code using the @tools/extract script.
-"""
 usage_template = "@build_context {{file_path}} {{function_signature}}"
 task_description = """
 Extract the following function:
 - File/Directory: {{file_path}}
 - Function Signature: {{function_signature}}
-"""
 execution_command = "@tools/extract \"{{file_path}}\" \"{{function_signature}}\""
 [[command.parameters]]
 name = "file_or_directory"
@@ -43,10 +41,8 @@ post_execution_instructions = """
 1. Execute the extract command shown above
 2. Present the extracted code without commentary
 3. Stop - do not analyze or suggest changes
-"""
 notes = """
 - Function signatures are case-sensitive and whitespace-sensitive
 - Leading whitespace is automatically trimmed
 - Can extract from single files or entire directories
 - Use quotes around function signatures to handle special characters
-"""

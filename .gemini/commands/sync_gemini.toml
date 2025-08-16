@@ -4,10 +4,10 @@ model = "claude-sonnet-4-20250514"
 [workflow_instructions]
 todo_list_task = "Use TodoWrite tool to create a todo list with these 4 tasks, then execute them sequentially:"
 tasks = [
-    "Run the provided bash/cli command."
-    "Compare and analyze the differences between CLAUDE.md and the output from the first Todo."
-    "Generate proposed changes to CLAUDE.md"
-    "Write those changes to a CLAUDE_DRAFT.md file and provide a summary"
+"Run the provided bash/cli command."
+"Compare and analyze the differences between CLAUDE.md and the output from the first Todo."
+"Generate proposed changes to CLAUDE.md"
+"Write those changes to a CLAUDE_DRAFT.md file and provide a summary"
 ]
 [[steps]]
 name = "STEP 1"

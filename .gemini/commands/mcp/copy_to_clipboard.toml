@@ -3,22 +3,21 @@ description = "This command helps you copy various types of content to the syste
 [usage]
 instructions = """
 Use this command to copy content to your system clipboard. The content to be copied is derived from the user's request provided as `$ARGUMENTS`.
-"""
 [usage.common_use_cases]
 items = [
-    "Code Snippets: Copy formatted code blocks"
-    "Configuration: Copy config files, environment variables, or settings"
-    "Documentation: Copy markdown, text, or formatted content"
-    "Data: Copy JSON, CSV, or other structured data"
-    "URLs/Links: Copy lists of URLs or reference links"
-    "Command Output: Copy results from previous operations"
+"Code Snippets: Copy formatted code blocks"
+"Configuration: Copy config files, environment variables, or settings"
+"Documentation: Copy markdown, text, or formatted content"
+"Data: Copy JSON, CSV, or other structured data"
+"URLs/Links: Copy lists of URLs or reference links"
+"Command Output: Copy results from previous operations"
 ]
 [usage.best_practices]
 items = [
-    "Format appropriately: Ensure text is properly formatted for the intended use"
-    "Include context: Add comments or headers when helpful"
-    "Validate content: Check that sensitive information is not included"
-    "Optimize for paste destination: Consider where the user will paste the content"
+"Format appropriately: Ensure text is properly formatted for the intended use"
+"Include context: Add comments or headers when helpful"
+"Validate content: Check that sensitive information is not included"
+"Optimize for paste destination: Consider where the user will paste the content"
 ]
 tool_code = """
 """
@@ -39,14 +38,12 @@ DEBUG = false
 description = "Copy structured data:"
 code = """
 {
-  "urls": [
-    "https://example.com/api/endpoint1"
-    "https://example.com/api/endpoint2"
-]
-,
-  "headers": {
-    "Authorization": "Bearer token"
-    "Content-Type": "application/json"
-  }
+"urls": [
+"https://example.com/api/endpoint1"
+"https://example.com/api/endpoint2"
+],
+"headers": {
+"Authorization": "Bearer token"
+"Content-Type": "application/json"
 }
-"""
+}

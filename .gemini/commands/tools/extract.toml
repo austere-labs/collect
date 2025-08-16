@@ -42,14 +42,14 @@ output = """The extracted function is displayed with:"
 - Colorized output for better readability"""
 [command.notes]
 important = [
-    "Exact Match Required: Function signatures must match exactly (case-sensitive and whitespace-sensitive)"
-    "Leading Whitespace: Any leading whitespace in the signature is automatically trimmed"
-    "Search Scope: Can search a single file or recursively search directories"
-    "Supported Extensions: `.py` (Python), `.js` (JavaScript), `.go` (Go)"
+"Exact Match Required: Function signatures must match exactly (case-sensitive and whitespace-sensitive)"
+"Leading Whitespace: Any leading whitespace in the signature is automatically trimmed"
+"Search Scope: Can search a single file or recursively search directories"
+"Supported Extensions: `.py` (Python), `.js` (JavaScript), `.go` (Go)"
 ]
 troubleshooting = [
-    "If function is not found, verify the exact signature by checking the source file"
-    "For methods, include `self` or class parameters in the signature"
-    "For decorated functions, use the function definition line, not the decorator"
+"If function is not found, verify the exact signature by checking the source file"
+"For methods, include `self` or class parameters in the signature"
+"For decorated functions, use the function definition line, not the decorator"
 ]
 final_important = "This is a **read-only** operation that extracts and displays function code. After the extraction completes, **wait for further instructions** before taking any actions or making decisions based on the extracted code."

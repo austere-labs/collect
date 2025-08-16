@@ -6,12 +6,11 @@ This tool:
 1. Fetches content from the specified URL
 2. Uses Gemini 2.5 Flash Preview to intelligently extract documentation for the requested section
 3. Returns the relevant documentation as clean, readable text
-"""
 best_for = [
-    "API documentation extraction"
-    "Function/method documentation"
-    "Specific topic documentation from larger pages"
-    "Technical documentation that needs focused extraction"
+"API documentation extraction"
+"Function/method documentation"
+"Specific topic documentation from larger pages"
+"Technical documentation that needs focused extraction"
 ]
 [template]
 command = "get_docs($ARGUMENTS[0], $ARGUMENTS[1])"
@@ -32,3 +31,4 @@ command = "get_docs(\"https://react.dev/reference/react/useEffect\", \"useEffect
 [[examples]]
 description = "Extract specific AWS service documentation:"
 command = "get_docs(\"https://docs.aws.amazon.com/s3/latest/userguide/\", \"bucket policies\")"
+"""

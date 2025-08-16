@@ -20,7 +20,6 @@ After extracting the JSON structure from Phase 1, the tool will automatically:
 5. Follow Go naming conventions.
 6. Add helpful comments.
 7. Ensure that if there are potential null values in the JSON (per the documentation) that we appropriately handle those with Golang pointers.
-"""
 [parameters.url]
 description = "The URL of the documentation page."
 type = "string"
@@ -33,5 +32,6 @@ print(default_api.get_docs(url = "parameters.url, extract_value=parameters.extra
 """
 example_usage = """
 create_go_structs "https://developer.tastytrade.com/api-guides/customer-account-info/" "the exact json response for getting customer accounts"
+"""
 """
 """

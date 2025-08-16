@@ -2,8 +2,8 @@
 description = "Conduct comprehensive code reviews using multiple AI models to get diverse perspectives on code changes. This workflow leverages the MCP code review tools to analyze git diffs across multiple LLM providers."
 [prerequisites]
 items = [
-    "Ensure your changes are staged: `git add <files>`"
-    "Or have unstaged changes you want to review"
+"Ensure your changes are staged: `git add <files>`"
+"Or have unstaged changes you want to review"
 ]
 [[workflow_steps]]
 title = "Step 1: Run Multi-Model Code Review"
@@ -29,7 +29,7 @@ description = "\"codereview\""
 workflow_steps.quick_start_commands = [
 "For staged changes: Call `mcp__collect__run_git_diff_review` with `staged_only = "true`""
 "For all changes: Call `mcp__collect__run_git_diff_review` with `staged_only = "false`""
-    "For file review: Call `mcp__collect__run_code_review` with your file path"
+"For file review: Call `mcp__collect__run_code_review` with your file path"
 ]
 [[workflow_steps]]
 title = "Step 2: Analyze Results"
@@ -46,22 +46,21 @@ description = "Review metadata and statistics"
 workflow_steps.example_output_structure = '''
 codereview/
 ├── claude-3-5-sonnet-20241022_20241201_143052.md
-├── gpt-4-turbo-2024-04-09_20241201_143052.md  
+├── gpt-4-turbo-2024-04-09_20241201_143052.md
 ├── gemini-2.0-flash-exp_20241201_143052.md
 ├── grok-beta_20241201_143052.md
 ├── summary_20241201_143052.json
 └── errors_20241201_143052.md (if any failures)
-'''
 [[workflow_steps]]
 title = "Step 3: Synthesize Findings"
 description = "After the tool completes, review the individual model outputs and create a consolidated analysis:"
 items = [
-    "Read all model reviews to identify common themes and unique insights"
-    "Categorize findings by severity and impact:"
-    "🔴 Critical: Security, bugs, breaking changes"
-    "🟡 Important: Performance, maintainability, best practices"
-    "🟢 Minor: Style, documentation, optimizations"
-    "Create action plan with prioritized recommendations"
+"Read all model reviews to identify common themes and unique insights"
+"Categorize findings by severity and impact:"
+"🔴 Critical: Security, bugs, breaking changes"
+"🟡 Important: Performance, maintainability, best practices"
+"🟢 Minor: Style, documentation, optimizations"
+"Create action plan with prioritized recommendations"
 ]
 [[workflow_steps]]
 title = "Step 4: Create Synthesis Report"
@@ -90,35 +89,35 @@ report_template = '''
 [[workflow_steps]]
 title = "Step 5: Review and Act"
 items = [
-    "Prioritize fixes based on consensus and severity"
-    "Implement changes for high-priority items"
-    "Re-run review on critical fixes to validate improvements"
-    "Document decisions for future reference"
+"Prioritize fixes based on consensus and severity"
+"Implement changes for high-priority items"
+"Re-run review on critical fixes to validate improvements"
+"Document decisions for future reference"
 ]
 [advanced_usage]
 [advanced_usage.custom_prompts]
 description = "The review prompt emphasizes:"
 items = [
-    "Security vulnerabilities and potential exploits"
-    "Performance implications and bottlenecks"
-    "Code maintainability and readability"
-    "Best practices adherence"
-    "Testing coverage and quality"
+"Security vulnerabilities and potential exploits"
+"Performance implications and bottlenecks"
+"Code maintainability and readability"
+"Best practices adherence"
+"Testing coverage and quality"
 ]
 [advanced_usage.model_coverage]
 description = "Reviews typically include:"
 items = [
-    "**Anthropic Claude**: Strong reasoning and security analysis"
-    "**OpenAI GPT**: Comprehensive code understanding"
-    "**Google Gemini**: Multi-modal and pattern recognition"
-    "**XAI Grok**: Alternative perspectives and edge cases"
+"**Anthropic Claude**: Strong reasoning and security analysis"
+"**OpenAI GPT**: Comprehensive code understanding"
+"**Google Gemini**: Multi-modal and pattern recognition"
+"**XAI Grok**: Alternative perspectives and edge cases"
 ]
 [advanced_usage.integration_with_development_workflow]
 items = [
-    "Run before creating pull requests"
-    "Use for pre-commit quality gates"
-    "Integrate with CI/CD pipelines"
-    "Archive reviews for historical analysis"
+"Run before creating pull requests"
+"Use for pre-commit quality gates"
+"Integrate with CI/CD pipelines"
+"Archive reviews for historical analysis"
 ]
 [practical_example]
 description = "Here's a complete example workflow:"
@@ -127,7 +126,6 @@ description = "1. **Make some code changes and stage them:**"
 code = '''
 git add src/components/UserAuth.tsx
 git add tests/auth.test.ts
-'''
 [[practical_example.steps]]
 description = "2. **Run the code review:**"
 tool_call = "Call the MCP tool `mcp__collect__run_git_diff_review` with:"
@@ -156,15 +154,15 @@ description = "5. **Create synthesis** in `codereview/synthesis_review.md`"
 description = "6. **Implement fixes** based on consensus findings"
 [tips_for_best_results]
 items = [
-    "**Stage meaningful chunks** - Review logical units of change"
-    "**Include context** - Add commit messages or PR descriptions"
-    "**Follow up on consensus** - Pay special attention to issues multiple models identify"
-    "**Balance perspectives** - Consider both conservative and innovative viewpoints"
-    "**Document decisions** - Track which recommendations you implement and why"
+"**Stage meaningful chunks** - Review logical units of change"
+"**Include context** - Add commit messages or PR descriptions"
+"**Follow up on consensus** - Pay special attention to issues multiple models identify"
+"**Balance perspectives** - Consider both conservative and innovative viewpoints"
+"**Document decisions** - Track which recommendations you implement and why"
 ]
 [troubleshooting]
 items = [
-    "**No git changes found**: Make sure you have staged changes (`git add`) or unstaged modifications"
-    "**Tool fails**: Check the `errors_timestamp.md` file for specific model failures"
-    "**Empty reviews**: Verify your diff contains meaningful code changes, not just whitespace"
+"**No git changes found**: Make sure you have staged changes (`git add`) or unstaged modifications"
+"**Tool fails**: Check the `errors_timestamp.md` file for specific model failures"
+"**Empty reviews**: Verify your diff contains meaningful code changes, not just whitespace"
 ]

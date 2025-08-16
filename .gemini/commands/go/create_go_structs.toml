@@ -6,97 +6,95 @@ description = "This command extracts API endpoint documentation and generates co
 name = "Documentation Extraction"
 description = "Extract API Documentation using mcp tool:"
 tool_usage = "get_docs($ARGUMENTS[0], $ARGUMENTS[1])"
-  [[phases.parameters]]
+[[phases.parameters]]
 name = "$ARGUMENTS[0]"
 description = "URL of the API documentation page"
-  [[phases.parameters]]
+[[phases.parameters]]
 name = "$ARGUMENTS[1]"
 description = "Specific endpoint or section to extract (e.g., \"GET /accounts endpoint with full request and response\")"
-  [phases.extraction_guidelines]
+[phases.extraction_guidelines]
 target_information = [
-    "HTTP method and endpoint path"
-    "Request json structure (if applicable)"
-    "Response json structure (success and error cases)"
-    "Query parameters and path parameters"
-    "Headers requirements"
-    "Field descriptions and constraints"
-  ]
+"HTTP method and endpoint path"
+"Request json structure (if applicable)"
+"Response json structure (success and error cases)"
+"Query parameters and path parameters"
+"Headers requirements"
+"Field descriptions and constraints"
+]
 multiple_endpoints = [
-    "If documentation contains multiple endpoints, extract all related ones"
-    "Group by resource type (e.g., all account-related endpoints together)"
-  ]
+"If documentation contains multiple endpoints, extract all related ones"
+"Group by resource type (e.g., all account-related endpoints together)"
+]
 fallback_strategy = [
-    "If specific extraction fails, try broader extraction"
-    "Look for JSON examples in code blocks"
-    "Extract from tables or structured documentation"
-  ]
-  [phases.example_usage]
+"If specific extraction fails, try broader extraction"
+"Look for JSON examples in code blocks"
+"Extract from tables or structured documentation"
+]
+[phases.example_usage]
 command = "get_docs(\"https://developer.tastytrade.com/api-guides/customer-account-info\", \"json for the GET /customers/me/accounts\")"
 example_response = """
 The JSON response for GET /customers/me/accounts:
 {
-    "data": {
-        "items": [
-            {
-                "account": {
-                    "account-number": "5WT00001"
-                    "external-id": "A0000196557"
-                    "opened-at": "2019-03-14T15:39:31.265+00:00"
-                    "nickname": "Individual"
-                    "account-type-name": "Individual"
-                    "day-trader-status": false,
-                    "is-closed": false,
-                    "is-firm-error": false,
-                    "is-firm-proprietary": false,
-                    "is-futures-approved": true,
-                    "is-test-drive": false,
-                    "margin-or-cash": "Margin"
-                    "is-foreign": false,
-                    "funding-date": "2017-01-02"
-                    "investment-objective": "SPECULATION"
-                    "futures-account-purpose": "SPECULATING"
-                    "suitable-options-level": "No Restrictions"
-                    "created-at": "2019-03-14T15:39:31.265+00:00"
-                },
-                "authority-level": "owner"
-            }
-        ]
-    }
+"data": {
+"items": [
+{
+"account": {
+"account-number": "5WT00001"
+"external-id": "A0000196557"
+"opened-at": "2019-03-14T15:39:31.265+00:00"
+"nickname": "Individual"
+"account-type-name": "Individual"
+"day-trader-status": false,
+"is-closed": false,
+"is-firm-error": false,
+"is-firm-proprietary": false,
+"is-futures-approved": true,
+"is-test-drive": false,
+"margin-or-cash": "Margin"
+"is-foreign": false,
+"funding-date": "2017-01-02"
+"investment-objective": "SPECULATION"
+"futures-account-purpose": "SPECULATING"
+"suitable-options-level": "No Restrictions"
+"created-at": "2019-03-14T15:39:31.265+00:00"
+},
+"authority-level": "owner"
 }
-"""
+]
+}
+}
 [[phases]]
 name = "Go Struct Generation"
-  [phases.struct_generation_rules]
+[phases.struct_generation_rules]
 type_mapping = [
-    "`string` → `string`"
-    "`number/float` → `float64` (or `float32` if specified)"
-    "`integer` → `int64` (or `int32/int` if specified)"
-    "`boolean` → `bool`"
-    "`array` → `[]Type`"
-    "`object` → Custom struct or `map[string]interface{}` for dynamic objects"
-    "`null` or nullable → Use pointer types (`*Type`)"
-    "ISO 8601 dates → `time.Time`"
-    "Timestamps → `time.Time` or `int64` (Unix timestamps)"
-  ]
+"`string` → `string`"
+"`number/float` → `float64` (or `float32` if specified)"
+"`integer` → `int64` (or `int32/int` if specified)"
+"`boolean` → `bool`"
+"`array` → `[]Type`"
+"`object` → Custom struct or `map[string]interface{}` for dynamic objects"
+"`null` or nullable → Use pointer types (`*Type`)"
+"ISO 8601 dates → `time.Time`"
+"Timestamps → `time.Time` or `int64` (Unix timestamps)"
+]
 naming_conventions = [
-    "Use PascalCase for exported struct names"
-    "Use PascalCase for exported field names"
-    "Prefix unexported types with lowercase"
-    "Use descriptive names (e.g., `CustomerAccount` not just `Account`)"
-  ]
+"Use PascalCase for exported struct names"
+"Use PascalCase for exported field names"
+"Prefix unexported types with lowercase"
+"Use descriptive names (e.g., `CustomerAccount` not just `Account`)"
+]
 json_tags = """
 type CustomerAccount struct {
-    ID          string     `json:\"id\"`
-    CustomerID  string     `json:\"customer_id\"`
-    AccountNum  string     `json:\"account_number\"`
-    CreatedAt   time.Time  `json:\"created_at\"`
-    Balance     *float64   `json:\"balance,omitempty\"`
-    IsActive    bool       `json:\"is_active\"`
+ID          string     `json:\"id\"`
+CustomerID  string     `json:\"customer_id\"`
+AccountNum  string     `json:\"account_number\"`
+CreatedAt   time.Time  `json:\"created_at\"`
+Balance     *float64   `json:\"balance,omitempty\"`
+IsActive    bool       `json:\"is_active\"`
 }
-"""
 validation_tags = """
 type CreateAccountRequest struct {
-    CustomerID  string  `json:\"customer_id\" validate:\"required,uuid\"`
+CustomerID  string  `json:\"customer_id\" validate:\"required,uuid\"`
 """
 AccountType string  `json:\"account_type\" validate:\"required,oneof = "checking savings\"`"
 InitialDep  float64 `json:\"initial_deposit\" validate:\"min = "0\"`"
@@ -105,7 +103,7 @@ InitialDep  float64 `json:\"initial_deposit\" validate:\"min = "0\"`"
 enum_handling = """
 // AccountStatus represents the status of an account
 type AccountStatus string
-const = "("
+const (
 AccountStatusActive   AccountStatus = "\"ACTIVE\""
 AccountStatusInactive AccountStatus = "\"INACTIVE\""
 AccountStatusPending  AccountStatus = "\"PENDING\""
@@ -113,82 +111,77 @@ AccountStatusPending  AccountStatus = "\"PENDING\""
 """
 error_response_structures = """
 type ErrorResponse struct {
-    Error   string            `json:\"error\"`
-    Code    string            `json:\"code\"`
-    Message string            `json:\"message\"`
-    Details map[string]string `json:\"details,omitempty\"`
+Error   string            `json:\"error\"`
+Code    string            `json:\"code\"`
+Message string            `json:\"message\"`
+Details map[string]string `json:\"details,omitempty\"`
 }
 """
 """
-  [phases.output_structure]
+[phases.output_structure]
 package_declaration = "package models // or api, types, etc."
 imports = """
 import (
-    \"time\"
-    \"encoding/json\"
+\"time\"
+\"encoding/json\"
 )
-"""
 type_definitions = [
-    "Group related structs together"
-    "Place request structs before response structs"
-    "Include pagination structs if applicable"
-  ]
+"Group related structs together"
+"Place request structs before response structs"
+"Include pagination structs if applicable"
+]
 helper_methods = """
 // Validate performs validation on the request
 func (r *CreateAccountRequest) Validate() error {
-    // Custom validation logic
+// Custom validation logic
 }
-"""
-  [phases.complex_structure_examples]
+[phases.complex_structure_examples]
 nested_objects = """
 type AccountResponse struct {
-    Account  Account   `json:\"account\"`
-    Customer Customer  `json:\"customer\"`
-    Metadata Metadata  `json:\"metadata\"`
+Account  Account   `json:\"account\"`
+Customer Customer  `json:\"customer\"`
+Metadata Metadata  `json:\"metadata\"`
 }
-"""
 pagination = """
 type PaginatedResponse struct {
-    Data       []Account   `json:\"data\"`
-    Pagination Pagination  `json:\"pagination\"`
+Data       []Account   `json:\"data\"`
+Pagination Pagination  `json:\"pagination\"`
 }
 type Pagination struct {
-    Page       int  `json:\"page\"`
-    PerPage    int  `json:\"per_page\"`
-    Total      int  `json:\"total\"`
-    TotalPages int  `json:\"total_pages\"`
+Page       int  `json:\"page\"`
+PerPage    int  `json:\"per_page\"`
+Total      int  `json:\"total\"`
+TotalPages int  `json:\"total_pages\"`
 }
-"""
 generic_responses = """
-type APIResponse[T any]
-struct {
-    Success bool   `json:\"success\"`
-    Data    T      `json:\"data,omitempty\"`
-    Error   *Error `json:\"error,omitempty\"`
+type APIResponse[T any] struct {
+Success bool   `json:\"success\"`
+Data    T      `json:\"data,omitempty\"`
+Error   *Error `json:\"error,omitempty\"`
 }
-"""
-  [phases.special_considerations]
+[phases.special_considerations]
 nullable_fields = [
-    "Use pointers for fields that can be null"
-    "Add `omitempty` tag for optional fields"
-  ]
+"Use pointers for fields that can be null"
+"Add `omitempty` tag for optional fields"
+]
 custom_unmarshalers = [
-    "Generate for complex date formats"
-    "Handle string-encoded numbers or booleans"
-  ]
+"Generate for complex date formats"
+"Handle string-encoded numbers or booleans"
+]
 documentation = [
-    "Add struct-level comments describing the purpose"
-    "Add field-level comments for non-obvious fields"
-    "Include example usage in comments"
-  ]
+"Add struct-level comments describing the purpose"
+"Add field-level comments for non-obvious fields"
+"Include example usage in comments"
+]
 testing_helpers = [
-    "Consider generating factory functions"
-    "Include JSON marshaling/unmarshaling tests"
-  ]
+"Consider generating factory functions"
+"Include JSON marshaling/unmarshaling tests"
+]
 [notes]
 items = [
-  "Always check generated structs against actual API responses"
-  "Adjust field types based on your specific use case"
-  "Consider using code generation tools for large APIs"
-  "Validate against API contracts/OpenAPI specs when available"
+"Always check generated structs against actual API responses"
+"Adjust field types based on your specific use case"
+"Consider using code generation tools for large APIs"
+"Validate against API contracts/OpenAPI specs when available"
 ]
+"""

@@ -11,7 +11,6 @@ type = "string"
 description = "The path to the file containing the endpoint."
 context = """
 You are a senior software engineer with extensive experience in golang and you are using fasthttp for http requests. You are given a file with a http endpoint and you are asked to create a test for it.
-"""
 instructions = """
 """
 ## Tasks:
@@ -29,36 +28,37 @@ Please use the following test examples to create a test for the http endpoint:
 func TestIndex(t *testing.T) {
 url : = "http://localhost:80" + HomeURL
 req : = "fasthttp.AcquireRequest()"
-defer = "fasthttp.ReleaseRequest(req)"
-	req.SetRequestURI(url)
-	req.Header.SetMethod("GET")
+defer fasthttp.ReleaseRequest(req)
+req.SetRequestURI(url)
+req.Header.SetMethod("GET")
 resp : = "fasthttp.AcquireResponse()"
-defer = "fasthttp.ReleaseResponse(resp)"
+defer fasthttp.ReleaseResponse(resp)
 err : = "assert.Serve(app.BuildRoutes(), req, resp)"
 if err ! = "nil {"
-		t.Errorf("error serving request %v", err)
-	}
+t.Errorf("error serving request %v", err)
+}
 body : = "string(resp.Body())"
-	assert.Equal(t, "blonk blonk ... Mandelstam is my lawyer ... blonk blonk", body)
-	assert.Equal(t, 200, resp.StatusCode())
+assert.Equal(t, "blonk blonk ... Mandelstam is my lawyer ... blonk blonk", body)
+assert.Equal(t, 200, resp.StatusCode())
 }
 ## Test 2
 // go test -v '-run = "^TestHello$'"
 func TestHello(t *testing.T) {
 url : = "http://localhost" + "/api/v1/user/ben"
 req : = "fasthttp.AcquireRequest()"
-defer = "fasthttp.ReleaseRequest(req)"
-	req.SetRequestURI(url)
-	req.Header.SetMethod("GET")
+defer fasthttp.ReleaseRequest(req)
+req.SetRequestURI(url)
+req.Header.SetMethod("GET")
 res : = "fasthttp.AcquireResponse()"
-defer = "fasthttp.ReleaseResponse(res)"
+defer fasthttp.ReleaseResponse(res)
 err : = "assert.Serve(app.BuildRoutes(), req, res)"
 if err ! = "nil {"
-		t.Errorf("error serving request %v", err)
-	}
-body : = "string(res.Body())"
-	assert.Equal(t, "Hello ben!", body)
-	assert.Equal(t, 200, res.StatusCode())
+t.Errorf("error serving request %v", err)
 }
+body : = "string(res.Body())"
+assert.Equal(t, "Hello ben!", body)
+assert.Equal(t, 200, res.StatusCode())
+}
+"""
 """
 """

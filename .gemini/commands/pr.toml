@@ -3,26 +3,25 @@ context = """
 You are acting as a Senior Principal Software Engineer reviewing staged code changes. Analyze only the staged modifications and take appropriate git actions based on the current repository state and branch configuration.
 IMPORTANT: This command only works with staged changes. If no changes are staged, inform the user to stage their changes first.
 IMPORTANT: If we are on the main branch DO NOT create a branch and do try to create a pr.
-"""
 [[workflow_steps]]
 title = "Step 1: Repository State Analysis"
 description = "Run these commands in parallel to understand the current state:"
 commands = [
-    "`git status` - Check working tree status and current branch"
-    "`git diff --staged` - Analyze staged changes (PRIMARY FOCUS)"
-    "`git log --oneline -5` - Review recent commit history for context"
-    "`git branch -a` - List all branches to understand branching strategy"
+"`git status` - Check working tree status and current branch"
+"`git diff --staged` - Analyze staged changes (PRIMARY FOCUS)"
+"`git log --oneline -5` - Review recent commit history for context"
+"`git branch -a` - List all branches to understand branching strategy"
 ]
 exit_early_condition = "Exit early if no staged changes are found - inform user to run `git add <files>` first."
 [[workflow_steps]]
 title = "Step 2: Staged Changes Analysis"
 description = "Perform thorough analysis of **only the staged changes**:"
 analysis_points = [
-    "**Scope**: Identify staged files modified, added, or deleted"
-    "**Purpose**: Determine if staged changes represent new features, bug fixes, refactoring, or documentation updates"
-    "**Impact**: Assess potential effects on existing functionality from staged changes only"
-    "**Quality**: Check staged code for style consistency and best practices"
-    "**Security**: Identify any potential security implications in staged changes"
+"**Scope**: Identify staged files modified, added, or deleted"
+"**Purpose**: Determine if staged changes represent new features, bug fixes, refactoring, or documentation updates"
+"**Impact**: Assess potential effects on existing functionality from staged changes only"
+"**Quality**: Check staged code for style consistency and best practices"
+"**Security**: Identify any potential security implications in staged changes"
 ]
 [[workflow_steps]]
 title = "Step 3: Decision Logic"
@@ -31,26 +30,26 @@ description = "Based on your analysis of staged changes, choose the appropriate 
 name = "Option A: Direct Commit (when on main/master branch)"
 condition = "If working directly on the main branch with staged changes:"
 steps = [
-    "Create a comprehensive commit message following conventional commit format:"
-    """```"
+"Create a comprehensive commit message following conventional commit format:"
+"""```"
 type(scope): brief description
 Detailed explanation of what and why
 - Specific change 1
 - Specific change 2
 🤖 Generated with Claude Code
 Co-Authored-By: Claude <noreply@anthropic.com>
-    "Commit the staged changes with `git commit`"
-    "Push changes with `git push`"
+"Commit the staged changes with `git commit`"
+"Push changes with `git push`"
 ]
 """
 [[workflow_steps.options]]
 name = "Option B: Pull Request Creation (when on feature branch)"
 condition = "If on a feature branch:"
 steps = [
-    "Commit the staged changes with a clear commit message"
-    "Push branch to remote with `git push -u origin <branch-name>` if needed"
-    "Create PR with structured format based on the staged changes and capture the PR URL:"
-    """```bash"
+"Commit the staged changes with a clear commit message"
+"Push branch to remote with `git push -u origin <branch-name>` if needed"
+"Create PR with structured format based on the staged changes and capture the PR URL:"
+"""```bash"
 gh pr create --title "Clear, actionable title describing the change" --body "$(cat <<'EOF'"
 """
 ## Summary
@@ -62,14 +61,10 @@ gh pr create --title "Clear, actionable title describing the change" --body "$(c
 - New features or functionality added
 - Bug fixes or improvements
 ## Testing
-- [ ]
-Unit tests pass
-- [ ]
-Integration tests pass
-- [ ]
-Manual testing completed
-- [ ]
-Edge cases considered
+- [ ] Unit tests pass
+- [ ] Integration tests pass
+- [ ] Manual testing completed
+- [ ] Edge cases considered
 ## Notes
 - Any deployment considerations
 - Breaking changes (if any)
@@ -77,27 +72,27 @@ Edge cases considered
 🤖 Generated with Claude Code
 EOF
 )""
-    "IMPORTANT Please copy the url of the pull request to my clipboard:"
-    "`echo {url} | pbcopy`"
+"IMPORTANT Please copy the url of the pull request to my clipboard:"
+"`echo {url} | pbcopy`"
 ]
 [[workflow_steps]]
 title = "Step 4: Quality Assurance"
 description = "After taking action:"
 checks = [
-    "Verify the commit/PR was created successfully"
-    "Confirm all staged changes are included in the commit"
-    "Check that commit messages accurately reflect the staged changes"
-    "Ensure branch protection rules are respected"
-    "If a PR was created: Use the `copy_clipboard` MCP tool to copy the PR URL to clipboard for easy sharing"
+"Verify the commit/PR was created successfully"
+"Confirm all staged changes are included in the commit"
+"Check that commit messages accurately reflect the staged changes"
+"Ensure branch protection rules are respected"
+"If a PR was created: Use the `copy_clipboard` MCP tool to copy the PR URL to clipboard for easy sharing"
 ]
 [best_practices]
 items = [
-    "**Staged Changes Only**: Never include unstaged changes in commits"
-    "**Commit Messages**: Use conventional commit format (feat:, fix:, docs:, etc.) based on staged changes"
-    "**PR Titles**: Start with action verb, be specific about staged changes"
-    "**PR Bodies**: Include context and testing notes for staged modifications only"
-    "**Scope**: Ensure staged changes are focused and atomic"
-    "**Pre-commit Checks**: Verify staged changes pass linting and tests before committing"
+"**Staged Changes Only**: Never include unstaged changes in commits"
+"**Commit Messages**: Use conventional commit format (feat:, fix:, docs:, etc.) based on staged changes"
+"**PR Titles**: Start with action verb, be specific about staged changes"
+"**PR Bodies**: Include context and testing notes for staged modifications only"
+"**Scope**: Ensure staged changes are focused and atomic"
+"**Pre-commit Checks**: Verify staged changes pass linting and tests before committing"
 ]
 [examples]
 good_commit_message = """
@@ -108,27 +103,22 @@ Implements JWT-based authentication for protected routes
 - Add error handling for invalid tokens (staged in utils/errors.py)
 🤖 Generated with Claude Code
 Co-Authored-By: Claude <noreply@anthropic.com>
-"""
 good_pr_title_body = """
 gh pr create --title "Add user authentication middleware to API endpoints" --body "$(cat <<'EOF'"
 """
-## Summary  
+## Summary
 - Implements JWT-based authentication system for API security
 - Adds middleware layer for token validation on protected routes
 ## Changes Made (Staged)
 - Created authentication middleware with JWT validation (auth/middleware.py)
-- Updated user routes to require authentication (routes/users.py)  
+- Updated user routes to require authentication (routes/users.py)
 - Added comprehensive error handling for invalid/expired tokens (utils/errors.py)
 - Updated API documentation with authentication requirements (docs/api.md)
 ## Testing
-- [x]
-Unit tests for middleware functionality
-- [x]
-Integration tests for protected routes
-- [x]
-Manual testing with valid/invalid tokens
-- [x]
-Edge cases: expired tokens, malformed tokens
+- [x] Unit tests for middleware functionality
+- [x] Integration tests for protected routes
+- [x] Manual testing with valid/invalid tokens
+- [x] Edge cases: expired tokens, malformed tokens
 ## Note
 All changes have been staged and are ready for review. No unstaged modifications included.
 🤖 Generated with Claude Code
@@ -138,8 +128,8 @@ EOF
 """
 [pre_flight_checklist]
 items = [
-    "Your intended changes are staged with `git add <files>`"
-    "You have reviewed staged changes with `git diff --staged`"
-    "Staged changes are complete and ready for commit"
-    "No additional unstaged changes should be included"
+"Your intended changes are staged with `git add <files>`"
+"You have reviewed staged changes with `git diff --staged`"
+"Staged changes are complete and ready for commit"
+"No additional unstaged changes should be included"
 ]

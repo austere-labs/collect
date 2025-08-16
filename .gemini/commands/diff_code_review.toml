@@ -5,12 +5,12 @@ Within each task, execute each instruction in order."""
 [[instructions]]
 task_title = "## Task 1: Create diff.md"
 instructions = [
-    "Create a new file called diff.md in the root of the project"
-    """At the top of the file, add the following markdown:"
+"Create a new file called diff.md in the root of the project"
+"""At the top of the file, add the following markdown:"
 """
-# Code Review:  
+# Code Review:
 ]
-- Review the diff, report on issues, bugs and improvements.  
+- Review the diff, report on issues, bugs and improvements.
 - End with a concise markdown table of any issues found, their solutions and a risk
 assessment for each issue if applicable
 - Use emojis to convey the severity of each issue
@@ -19,9 +19,9 @@ assessment for each issue if applicable
 [[instructions]]
 task_title = "## Task 2: git diff and append"
 instructions = [
-    """Run the following command and make sure there is a result:"
+"""Run the following command and make sure there is a result:"
 git diff --staged
-    """IF there is a result: Run the following command to get the diff "
+"""IF there is a result: Run the following command to get the diff "
 and append it to the diff.md file:
 git diff --staged >> diff.md
 ]

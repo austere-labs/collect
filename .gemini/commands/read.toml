@@ -7,11 +7,11 @@ description = "The absolute path to the file to read."
 [[steps]]
 tool_code = """print(default_api.read_file(absolute_path=file_name))"""
 instructions = [
-    "ONLY use the Read tool to read the specified file"
-    "DO NOT make any edits or changes"
-    "DO NOT create any new files"
-    "DO NOT run any commands"
-    "DO NOT analyze or comment on the contents"
-    "Simply read the file and display a summary of its contents"
-    "After reading do not take any further action"
+"ONLY use the Read tool to read the specified file"
+"DO NOT make any edits or changes"
+"DO NOT create any new files"
+"DO NOT run any commands"
+"DO NOT analyze or comment on the contents"
+"Simply read the file and display a summary of its contents"
+"After reading do not take any further action"
 ]

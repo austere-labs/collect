@@ -4,32 +4,32 @@ summary = "This command helps you create a new SQLite database in the data/ dire
 [tool_definition]
 description = "The createdb script is a bash tool that:"
 features = [
-    "Creates a new SQLite database file in the `data/` directory"
-    "Automatically adds the `.db` extension"
-    "Sets appropriate file permissions (644)"
-    "Prevents overwriting existing databases"
+"Creates a new SQLite database file in the `data/` directory"
+"Automatically adds the `.db` extension"
+"Sets appropriate file permissions (644)"
+"Prevents overwriting existing databases"
 ]
 [usage_instructions]
 description = "Use the Bash tool to execute the createdb script with the database name from $ARGUMENTS."
 command_format = "createdb <database_name>"
 example_commands = [
-    "createdb myapp"
-    "createdb users"
+"createdb myapp"
+"createdb users"
 ]
 [[usage_instructions.parameters]]
 name = "database_name"
 description = "Name for the database (without .db extension)"
 best_practices = [
-    "Check existence first: Verify the database doesn't already exist to avoid errors"
-    "Use descriptive names: Choose clear, meaningful database names"
-    "Follow naming conventions: Use lowercase with underscores for multi-word names"
-    "Document purpose: Consider adding a comment about the database's purpose"
+"Check existence first: Verify the database doesn't already exist to avoid errors"
+"Use descriptive names: Choose clear, meaningful database names"
+"Follow naming conventions: Use lowercase with underscores for multi-word names"
+"Document purpose: Consider adding a comment about the database's purpose"
 ]
 error_handling = [
-    "No database name is provided"
-    "The database already exists"
-    "sqlite3 is not installed"
-    "Insufficient permissions in the current directory"
+"No database name is provided"
+"The database already exists"
+"sqlite3 is not installed"
+"Insufficient permissions in the current directory"
 ]
 [task]
 description = "Based on the database name provided in $ARGUMENTS[0], execute the createdb script to create a new SQLite database in the data/ directory. The script will handle the creation, extension, and permissions automatically."
