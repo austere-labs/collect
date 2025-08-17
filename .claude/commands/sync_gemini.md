@@ -54,10 +54,10 @@ Based on your analysis, output comprehensive GEMINI.md content in markdown forma
 **IMPORTANT:** When this tool call completes, you should assume it was successful and run `### STEP 2:`
 
 ### STEP 2:
-- Take the output from `STEP 1` and COMPARE CLAUDE.md to that output andand analyze the differences and look for alignment opportunities
+- Take the output from `STEP 1` and COMPARE CLAUDE.md to that output and analyze the differences and look for alignment opportunities
 
 ### STEP 3:
-- Generate proposed changes to CLAUDE.md based on the insights in GEMINI.md
+- Generate proposed changes to CLAUDE.md based on the insights in the output for GEMINI.md
 - Identify missing sections, outdated information or improvements needed
 
 ### STEP 4:

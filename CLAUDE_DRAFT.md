@@ -2,6 +2,18 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Project Overview
+
+This project is a Python-based MCP (Model Context Protocol) server named "Collect". Its primary purpose is to fetch web content, process it, and facilitate multi-model AI analysis workflows. It provides a unified interface to interact with various AI models (OpenAI, Anthropic, Gemini, XAI) for tasks like code review, documentation extraction, and prompt generation.
+
+The server exposes several key tools through the MCP protocol:
+- **Code Review:** `run_code_review` and `run_git_diff_review` for running code analysis using multiple LLMs
+- **Web Fetching:** `fetch_urls`, `fetch_url`, and `get_docs` for retrieving and extracting content from web pages
+- **Content Processing:** `to_markdown` and `strip_html` for converting HTML to other formats
+- **AI Model Interaction:** Tools to list available models (`get_anthropic_model_list`, etc.) and count tokens (`count_openai_tokens`, etc.)
+- **Prompt Engineering:** `generate_prompt` leverages Anthropic's experimental API to create optimized prompts from simple descriptions
+- **System Tools:** `copy_clipboard` for clipboard integration
+
 ### Directory Structure
 
 For the complete project directory structure, see [dir_structure.md](dir_structure.md).
@@ -38,14 +50,12 @@ uv sync
 
 **Run Server:**
 ```bash
-uv run collect.py  # Start MCP server
+python collect.py  # Start MCP server
 ```
 
 **Testing:**
 ### Use `pytest` for all testing in this project.
 ### When running all tests, use the Makefile and run test-fast:
-### here is an example
-
 ```bash
 make test-fast
 ```
@@ -53,16 +63,15 @@ make test-fast
 ```bash
 uv run pytest -v -n auto -m "not slow"
 ```
-### For comprehensive testing (matches GEMINI.md):
+### For comprehensive testing:
 ```bash
 uv run pytest -v -s -n auto
 ```
 
-## IMPORTANT: Always Always use uv run when running tests
+## IMPORTANT: Always use uv run when running tests
 ### Here is an example
 ```bash
 uv run pytest test_collect.py::test_function_name -v -s
-# Run specific test: pytest test_collect.py::test_function_name -v -s
 ```
 
 **Database Migrations:**
@@ -199,7 +208,6 @@ Additional specialized packages provide focused functionality:
   - `database.py`: SQLite connection management with custom datetime adapters
   - Supports plan lifecycle tracking and content change detection
 
-
 ### Key Features
 - **Async token counting**: All providers support async token counting with proper chunking
 - **Multi-model workflows**: Send content to all AI models concurrently via `multi_model_code_review()`
@@ -271,3 +279,8 @@ createdb --llm
 ```
 
 
+# important-instruction-reminders
+Do what has been asked; nothing more, nothing less.
+NEVER create files unless they're absolutely necessary for achieving your goal.
+ALWAYS prefer editing an existing file to creating a new one.
+NEVER proactively create documentation files (*.md) or README files. Only create documentation files if explicitly requested by the User.
