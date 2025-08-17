@@ -3,6 +3,7 @@ allowed-tools: Bash(git status:*), Bash(git add:*), Bash(git diff:*), Bash(git l
 description: Commit all changes 
 model: sonnet
 ---
+
 # Git Commit: Auto-stage and Commit Changes
 
 ## Context:

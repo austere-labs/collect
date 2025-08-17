@@ -1,7 +1,7 @@
 ---
-allowed-tools: Bash
+allowed-tools: Bash, TodoWrite, TodoList, Read
 argument-hint: plan [filepath]
-model: opus
+model: claude-opus-4-1-20250805
 ---
 ## Execute the implementation plan: $ARGUMENTS
 

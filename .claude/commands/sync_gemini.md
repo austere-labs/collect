@@ -1,8 +1,10 @@
 ---
-allowed-tools: Bash(cat:*), Bash(gemini --prompt * cat:*), TodoWrite, Read, Write
-description: IMPORTANT- There is a hook that runs that deletes the CLAUDE_DRAFT.md file and then this prompt will analyze code the code base with gemini and sync *.md files
+allowed-tools: Bash(cat:*), Bash(gemini --prompt:* cat:*), TodoWrite, Read, Write
+description: IMPORTANT- There is a hook that runs before this prompt... it runs buildsrce and buildsrc --tree and then deletes existing CLAUDE_DRAFT.md. This prompt will provide the source and the source tree to Gemini CLI to analyze/compare to existing CLAUDE.md and write a draft.
 model: claude-sonnet-4-20250514
 ---
+
+# Code base summary: Analyze the source and source-tree provided, create a GEMINI.md output that can be compared to the existing `GEMINI.md` or `CLAUDE.md`. 
 
 ## WORKFLOW INSTRUCTIONS:
 **Use TodoWrite tool to create a todo list with these 4 tasks, then execute them sequentially:**
@@ -11,16 +13,16 @@ model: claude-sonnet-4-20250514
 3. Generate proposed changes to CLAUDE.md
 4. Write those changes to a CLAUDE_DRAFT.md file and provide a summary
 
-### SEQUENTIAL STEPS:
+## SEQUENTIAL STEPS:
 
-#### STEP 1:
+### STEP 1:
 Run this bash command:
 ```bash
 gemini --prompt "Please read provided data here:
 
 <source-directory-structure>
 $(cat dir_structure.md)
-<source-directory-structure>
+</source-directory-structure>
 
 <source code>
 $(cat source.md)
@@ -28,7 +30,8 @@ $(cat source.md)
 
 **IMPORTANT:** DO NOT under any circumstances try to analyze the current git repository.
 
-Your only job is to analyze the provided data in the prompt which provides the entire source tree and source code with supplied xml tags specifying the file and its directory structure and then understand the project structure, technologies, conventions, key files, and architecture. 
+Your only job is to analyze the provided data in the prompt which has the entire source tree and source code with supplied xml tags specifying the file and its directory structure and then understand the project structure, technologies, conventions, key files, and architecture. 
+
 Focus on identifying: 
 - Project Overview and purpose
 - Complete technology stack
@@ -48,15 +51,15 @@ IMPORTANT: Do not overwrite the existing GEMINI.md file or try to create it.
 Based on your analysis, output comprehensive GEMINI.md content in markdown format suitable for the Gemini Code Assistant context.
 "
 ```
-**IMPORTANT:** When this tool call completes, you should assume it was successful and run `#### STEP 2:`
+**IMPORTANT:** When this tool call completes, you should assume it was successful and run `### STEP 2:`
 
-#### STEP 2:
+### STEP 2:
 - Take the output from `STEP 1` and COMPARE CLAUDE.md to that output andand analyze the differences and look for alignment opportunities
 
-#### STEP 3:
+### STEP 3:
 - Generate proposed changes to CLAUDE.md based on the insights in GEMINI.md
 - Identify missing sections, outdated information or improvements needed
 
-#### STEP 4:
+### STEP 4:
 - WRITE those changes to a file called `CLAUDE_DRAFT.md`
 - GENERATE a summary of the changes proposed that exist in `CLAUDE_DRAFT.md`
