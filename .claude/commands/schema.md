@@ -20,3 +20,4 @@ Run this bash command:
 slqite3 data/collect.db ".schema {tablename}"
 ```
 
+Please create a nice colored display of the schema for reading. 

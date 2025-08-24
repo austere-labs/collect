@@ -4,12 +4,12 @@ from repository.prompt_service import PromptService
 from config import Config
 from api.prompt_api_models import PlanLoader
 from repository.prompt_models import (
-    PromptType, PromptPlanStatus, PromptCreateResult, Project)
+    PromptType, PromptPlanStatus, Project)
 import os
 import sys
 import asyncio
 import logging
-from typing import List, Optional, Union
+from typing import Union
 
 logger = logging.getLogger(__name__)
 
