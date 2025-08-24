@@ -1,17 +1,34 @@
 ---
-allowed-tools: Bash(cat:*), Bash(gemini --prompt:* cat:*), TodoWrite, Read, Write
-description: IMPORTANT- There is a hook that runs before this prompt... it runs buildsrce and buildsrc --tree and then deletes existing CLAUDE_DRAFT.md. This prompt will provide the source and the source tree to Gemini CLI to analyze/compare to existing CLAUDE.md and write a draft.
+allowed-tools: Bash(uv:*), Bash(cat:*), Bash(gemini --prompt:* cat:*), TodoWrite, Read, Write
+description: This prompt will provide the source and the source tree to Gemini CLI to analyze/compare to existing CLAUDE.md and write a draft called CLAUDE_DRAFT.md
 model: claude-sonnet-4-20250514
 ---
 
 # Code base summary: Analyze the source and source-tree provided, create a GEMINI.md output that can be compared to the existing `GEMINI.md` or `CLAUDE.md`. 
 
-## WORKFLOW INSTRUCTIONS:
+<PRE-WORKFLOW-INSTRUCTIONS>
+Run the following bash commands in parellel:
+
+```bash
+uv run python tools/buildsrc
+```
+
+```bash
+uv run python tools/buildsrc --tree
+```
+
+```bash
+rm -rf CLAUDE_DRAFT.md
+```
+</PRE-WORKFLOW-INSTRUCTIONS>
+
+<WORKFLOW-INSTRUCTIONS>
 **Use TodoWrite tool to create a todo list with these 4 tasks, then execute them sequentially:**
 1. Run the provided bash/cli command. 
 2. Compare and analyze the differences between CLAUDE.md and the output from the first Todo.
 3. Generate proposed changes to CLAUDE.md
 4. Write those changes to a CLAUDE_DRAFT.md file and provide a summary
+</WORKFLOW-INSTRUCTIONS>
 
 ## SEQUENTIAL STEPS:
 
@@ -24,9 +41,9 @@ gemini --prompt "Please read provided data here:
 $(cat dir_structure.md)
 </source-directory-structure>
 
-<source code>
+<source-code>
 $(cat source.md)
-</source code>
+</source-code>
 
 **IMPORTANT:** DO NOT under any circumstances try to analyze the current git repository.
 

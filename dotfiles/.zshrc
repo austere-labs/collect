@@ -152,3 +152,5 @@ export PS1='b@m %~ % '
 
 # opencode
 export PATH=/Users/benjaminmetz/.opencode/bin:$PATH
+
+alias claude="/Users/benjaminmetz/.claude/local/claude"
