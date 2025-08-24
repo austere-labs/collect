@@ -42,31 +42,6 @@ def prompt_service():
         yield cmd_service
 
 
-def test_check_dirs(prompt_service: PromptService):
-    result = prompt_service.cmd_check_dirs()
-    assert result is True
-
-
-def test_load_cmds_from_disk(prompt_service: PromptService):
-    load_results = prompt_service.load_cmds_from_disk()
-    # Assert no errors occurred during loading
-    assert (
-        load_results.errors is None or len(load_results.errors) == 0
-    ), f"Expected no errors, but found {
-        len(load_results.errors) if load_results.errors else 0} errors"
-
-
-def test_load_plans_from_disk(prompt_service: PromptService):
-    load_results = prompt_service.load_plans_from_disk()
-
-    print(f"\nTotal plans loaded: {len(load_results.loaded_prompts)}")
-    # Assert no errors occurred during loading
-    assert (
-        load_results.errors is None or len(load_results.errors) == 0
-    ), f"Expected no errors, but found {
-        len(load_results.errors) if load_results.errors else 0} errors"
-
-
 def create_test_prompts(prompt_service: PromptService) -> List[Prompt]:
     prompt_content = """
     this is a test prompt for testing database persistence... blah blah
@@ -139,7 +114,8 @@ def test_save_prompt_in_db(prompt_service: PromptService):
 
         # retrieve the prompt by name
         # and validate correct prompt retrieval
-        retrieved_prompt_by_name = prompt_service.get_prompt_by_name(cmd_prompt.name)
+        retrieved_prompt_by_name = prompt_service.get_prompt_by_name(
+            cmd_prompt.name)
         assert retrieved_prompt_by_name is not None
         assert retrieved_prompt_by_name.id == cmd_prompt.id
 

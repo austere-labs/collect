@@ -41,6 +41,128 @@ def read_env_value(key: str) -> str:
     return ""
 
 
+def plans_check_dirs() -> bool:
+    """Check if all required plan directories exist, create them if missing
+
+    Returns:
+        bool: True if all directories exist or were created successfully,
+        False on error
+    """
+    project_dir = Path(__file__).parent.parent
+    plans_dir = project_dir / "_docs" / "plans"
+
+    # Required directories
+    required_dirs = [
+        plans_dir,
+        plans_dir / "drafts",
+        plans_dir / "approved",
+        plans_dir / "completed",
+    ]
+
+    missing_dirs = []
+    created_dirs = []
+
+    for dir_path in required_dirs:
+        if not dir_path.exists():
+            missing_dirs.append(dir_path)
+
+    if missing_dirs:
+        print("📁 Creating missing plan directories:")
+        for missing_dir in missing_dirs:
+            try:
+                missing_dir.mkdir(parents=True, exist_ok=True)
+                created_dirs.append(missing_dir)
+                print(
+                    f"   ✅ Created: {missing_dir.relative_to(project_dir)}"
+                )
+            except Exception as e:
+                print(
+                    f"   ❌ Failed to create {missing_dir.relative_to(project_dir)}: {
+                        e}"
+                )
+                return False
+
+        if created_dirs:
+            print(
+                f"📁 Successfully created {len(created_dirs)} directories"
+            )
+    else:
+        print("✅ All required plan directories exist")
+
+    return True
+
+
+def cmd_check_dirs() -> bool:
+    """Check if all required command directories exist,
+       create them if missing
+
+    Returns:
+        bool: True if all directories exist or were created successfully,
+        False on error
+    """
+    project_dir = Path(__file__).parent.parent
+    claude_dir = project_dir / ".claude"
+    gemini_dir = project_dir / ".gemini"
+
+    # Get subdirectories from .env config
+    command_subdirs_str = read_env_value("COMMAND_SUBDIRS")
+    if not command_subdirs_str:
+        # Default subdirectories if not in .env
+        command_subdirs_str = "archive,go,js,mcp,python,tools"
+
+    # Parse comma-separated subdirectories
+    subdirs = [s.strip() for s in command_subdirs_str.split(",")]
+
+    # Build required directories
+    required_dirs = {
+        "claude": [claude_dir / "commands"]
+        + [claude_dir / "commands" / subdir for subdir in subdirs],
+        "gemini": [gemini_dir / "commands"]
+        + [gemini_dir / "commands" / subdir for subdir in subdirs],
+    }
+
+    # Check for missing directories by type
+    missing_by_type = {"claude": [], "gemini": []}
+    for dir_type, dirs in required_dirs.items():
+        for dir_path in dirs:
+            if not dir_path.exists():
+                missing_by_type[dir_type].append(dir_path)
+
+    # Count total missing
+    total_missing = sum(len(dirs) for dirs in missing_by_type.values())
+
+    if total_missing == 0:
+        print("✅ All required command directories exist")
+        return True
+
+    # Create missing directories
+    print(f"📁 Creating {total_missing} missing command directories:")
+    created_count = 0
+    failed = False
+
+    for dir_type, missing_dirs in missing_by_type.items():
+        if missing_dirs:
+            print(f"\n   {dir_type.title()} directories:")
+            for missing_dir in missing_dirs:
+                try:
+                    missing_dir.mkdir(parents=True, exist_ok=True)
+                    created_count += 1
+                    print(
+                        f"   ✅ Created: {missing_dir.relative_to(project_dir)}"
+                    )
+                except Exception as e:
+                    print(
+                        f"   ❌ Failed to create {missing_dir.relative_to(project_dir)}: {
+                            e}"
+                    )
+                    failed = True
+
+    if created_count > 0:
+        print(f"\n📁 Successfully created {created_count} directories")
+
+    return not failed
+
+
 def load_plans_from_disk() -> dict:
     """Load all plan files from disk and return as JSON string"""
     project_dir = Path(__file__).parent.parent
@@ -205,9 +327,15 @@ def check_and_register_project(plans: dict) -> bool:
 def main():
     print("Loading plans from disk...")
 
-    # check to see if the project is registered
-    # if so then load plans from disk and push
-    # else register project and then load plans and push
+    # Ensure plan directories exist before loading
+    if not plans_check_dirs():
+        print("❌ Failed to ensure plan directories exist")
+        return 1
+
+    # Ensure command directories exist as well
+    if not cmd_check_dirs():
+        print("❌ Failed to ensure command directories exist")
+        return 1
 
     plans_json = load_plans_from_disk()
     plan_count = len(plans_json["plans"])
