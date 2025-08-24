@@ -8,7 +8,7 @@ from config import Config
 class PromptPlanStatus(str, Enum):
     """Plan status types"""
 
-    DRAFT = "draft"
+    DRAFT = "drafts"
     APPROVED = "approved"
     COMPLETED = "completed"
 

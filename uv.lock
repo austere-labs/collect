@@ -238,6 +238,7 @@ dependencies = [
     { name = "ruff" },
     { name = "tiktoken" },
     { name = "tomli-w" },
+    { name = "tools" },
     { name = "uvicorn" },
     { name = "yoyo-migrations" },
 ]
@@ -277,6 +278,7 @@ requires-dist = [
     { name = "ruff", specifier = ">=0.11.9" },
     { name = "tiktoken", specifier = ">=0.9.0" },
     { name = "tomli-w", specifier = ">=1.0.0" },
+    { name = "tools", specifier = ">=1.0.4" },
     { name = "uvicorn", specifier = ">=0.34.2" },
     { name = "yoyo-migrations", specifier = ">=9.0.0" },
 ]
@@ -1819,6 +1821,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/cc/18/0bbf3884e9eaa38819ebe46a7bd25dcd56b67434402b66a58c4b8e552575/tomlkit-0.13.3.tar.gz", hash = "sha256:430cf247ee57df2b94ee3fbe588e71d362a941ebb545dec29b53961d61add2a1", size = 185207 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/bd/75/8539d011f6be8e29f339c42e633aae3cb73bffa95dd0f9adec09b9c58e85/tomlkit-0.13.3-py3-none-any.whl", hash = "sha256:c89c649d79ee40629a9fda55f8ace8c6a1b42deb912b2a8fd8d942ddadb606b0", size = 38901 },
+]
+
+[[package]]
+name = "tools"
+version = "1.0.4"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/77/c0/6291df5a539fb81163e7848aeb940b8176145385a85af37245b7afd64bc8/tools-1.0.4.tar.gz", hash = "sha256:d06f7c8a088aa801c9a42be07e6c2c0f3f3d9f42c15cf4cd8c1cf059616b5c6e", size = 33437 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/62/6d/9f7057e97d70a5afc4cd0ad459a7b4cf1b55d38ed98fd7d012e8d398b2b0/tools-1.0.4-py3-none-any.whl", hash = "sha256:dcc1b98b7ec34e3a2f179a9abcf72d660264aca9d44af04fe3e0f829eb814351", size = 39920 },
 ]
 
 [[package]]

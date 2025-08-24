@@ -44,6 +44,9 @@
 │   └── xai_mcp.py
 ├── movetools
 ├── notebooks
+│   ├── __marimo__
+│   │   └── cache
+│   ├── loader_testing.py
 │   └── prompt_service_notebook.py
 ├── pyproject.toml
 ├── README.md
@@ -89,5 +92,5 @@
 ├── uv.lock
 └── yoyo.ini
 
-16 directories, 71 files
+18 directories, 72 files
 ```

@@ -38,6 +38,7 @@ dependencies = [
     "ruff>=0.11.9",
     "tiktoken>=0.9.0",
     "tomli-w>=1.0.0",
+    "tools>=1.0.4",
     "uvicorn>=0.34.2",
     "yoyo-migrations>=9.0.0",
 ]

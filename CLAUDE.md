@@ -31,6 +31,8 @@ Key directories:
 
 ## Development Commands
 
+**IMPORTANT:** When running python scripts always use `uv run` instead of `python`
+
 **Setup:**
 ```bash
 uv sync

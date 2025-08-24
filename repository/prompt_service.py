@@ -16,6 +16,7 @@ from repository.prompt_models import (
     PromptCreateResult,
     PromptDeleteResult,
     PromptFlattenResult,
+    Project
 )
 from config import Config
 
@@ -431,7 +432,8 @@ class PromptService:
             tags=all_tags,
         )
 
-        content_hash = hashlib.sha256(prompt_content.encode("utf-8")).hexdigest()
+        content_hash = hashlib.sha256(
+            prompt_content.encode("utf-8")).hexdigest()
 
         timestamp = datetime.now(timezone.utc)
 
@@ -564,6 +566,7 @@ class PromptService:
                     error="ValidationError",
                 )
 
+            # check to see if this prompt exists in the database
             exists, prompt_id = self.check_exists(prompt.name)
             if exists:
                 # get prompt from database using prompt_id from the version
@@ -939,7 +942,8 @@ class PromptService:
                 error_type=type(e).__name__,
             )
 
-    def bulk_save_in_db(self, prompts: List[Prompt]) -> List[PromptCreateResult]:
+    def bulk_save_in_db(
+            self, prompts: List[Prompt]) -> List[PromptCreateResult]:
         """
         Bulk load/save prompts into the database
 
@@ -951,6 +955,66 @@ class PromptService:
         """
 
         return [self.save_prompt_in_db(prompt) for prompt in prompts]
+
+    def register_project(self, project: Project) -> str:
+
+        with self.conn:
+            cursor = self.conn.cursor()
+            cursor.execute(
+                """
+                INSERT INTO projects(
+                github_url,
+                description,
+                created_at,
+                updated_at
+                )
+                VALUES(?, ?, ?, ?)
+                ON CONFLICT(github_url) DO UPDATE SET
+                    description = excluded.description,
+                    updated_at = excluded.updated_at
+                RETURNING github_url
+                """,
+                (
+                    project.github_url,
+                    project.description,
+                    project.created_at,
+                    project.updated_at,
+                ),
+            )
+            row = cursor.fetchone()
+            if not row:
+                raise RuntimeError(
+                    f"Failed to register/update project '{
+                        project.github_url}': "
+                    "RETURNING clause did not return a row"
+                )
+            return row[0]
+
+    def get_project_by_id(self, github_url: str) -> Optional[Project]:
+        with self.conn:
+            cursor = self.conn.cursor()
+            cursor.execute(
+                """
+                SELECT
+                    github_url,
+                    description,
+                    created_at,
+                    updated_at
+                FROM projects
+                WHERE github_url = ?
+                """,
+                (github_url,),
+            )
+            row = cursor.fetchone()
+            if not row:
+                return None
+
+            return Project(
+                github_url=row["github_url"],
+                description=row["description"],
+                created_at=row["created_at"],
+                updated_at=row["updated_at"],
+            )
 
     def flatten_cmds_to_disk(self) -> List[PromptFlattenResult]:
         """Flatten all cmd_category prompts from database to disk directories
@@ -1084,7 +1148,8 @@ class PromptService:
                             )
 
                             # Ensure parent directory exists
-                            target_path.parent.mkdir(parents=True, exist_ok=True)
+                            target_path.parent.mkdir(
+                                parents=True, exist_ok=True)
 
                             # Write content to file
                             target_path.write_text(
@@ -1282,7 +1347,8 @@ class PromptService:
                         target_path.parent.mkdir(parents=True, exist_ok=True)
 
                         # Write content to file
-                        target_path.write_text(prompt.data.content, encoding="utf-8")
+                        target_path.write_text(
+                            prompt.data.content, encoding="utf-8")
 
                         results.append(
                             PromptFlattenResult(

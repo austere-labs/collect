@@ -48,4 +48,9 @@ check:
 migrate:
 	uv run yoyo apply --config yoyo.ini --batch
 
+restartapi:
+	curl -X POST http://localhost:8081/restart
+	sleep 2 && curl -X GET http://localhost:8081/health
+
+
 
