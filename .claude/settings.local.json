@@ -5,6 +5,7 @@
       "Bash(cat:*)",
       "Bash(uv:*)",
       "Bash(bash:*)",
+      "Bash(git:*)",
       "Bash(gemini --prompt * cat:*)",
       "TodoWrite",
       "Read",
