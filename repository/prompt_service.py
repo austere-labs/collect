@@ -15,7 +15,6 @@ from repository.prompt_models import (
     Prompt,
     PromptCreateResult,
     PromptDeleteResult,
-    PromptFlattenResult,
     Project
 )
 from config import Config

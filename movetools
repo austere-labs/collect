@@ -150,10 +150,20 @@ tool_count=0
 copied_tools=()
 
 for tool in "$TOOLS_DIR"/*; do
+    # Skip __pycache__ directories
+    if [ -d "$tool" ]; then
+        dir_name=$(basename "$tool")
+        if [ "$dir_name" = "__pycache__" ]; then
+            continue
+        fi
+        # Skip all directories, we only want files
+        continue
+    fi
+    
     if [ -f "$tool" ]; then
         tool_name=$(basename "$tool")
-        # Skip CLAUDE.md file
-        if [ "$tool_name" = "CLAUDE.md" ]; then
+        # Skip CLAUDE.md and __init__.py files
+        if [ "$tool_name" = "CLAUDE.md" ] || [ "$tool_name" = "__init__.py" ]; then
             continue
         fi
         if cp "$tool" "$TARGET_DIR/" 2>/dev/null; then
