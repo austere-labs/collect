@@ -67,9 +67,14 @@ fi
 echo ""
 
 # Also delete feature1 and feature2 branches if they exist
-echo -e "${RED}🔴 Deleting feature branches...${NC}"
-git branch -D feature1 2>/dev/null || echo -e "${BLUE}ℹ️  Branch ${YELLOW}feature1${BLUE} already deleted or doesn't exist${NC}"
-git branch -D feature2 2>/dev/null || echo -e "${BLUE}ℹ️  Branch ${YELLOW}feature2${BLUE} already deleted or doesn't exist${NC}"
+echo -e "${RED}🔴 Deleting local feature branches...${NC}"
+git branch -D feature1 2>/dev/null || echo -e "${BLUE}ℹ️  Local branch ${YELLOW}feature1${BLUE} already deleted or doesn't exist${NC}"
+git branch -D feature2 2>/dev/null || echo -e "${BLUE}ℹ️  Local branch ${YELLOW}feature2${BLUE} already deleted or doesn't exist${NC}"
 
 echo ""
-echo -e "${BOLD}${GREEN}✅ Successfully removed worktrees and branches!${NC}"
+echo -e "${RED}🌐 Deleting remote feature branches...${NC}"
+git push origin --delete feature1 2>/dev/null || echo -e "${BLUE}ℹ️  Remote branch ${YELLOW}feature1${BLUE} already deleted or doesn't exist${NC}"
+git push origin --delete feature2 2>/dev/null || echo -e "${BLUE}ℹ️  Remote branch ${YELLOW}feature2${BLUE} already deleted or doesn't exist${NC}"
+
+echo ""
+echo -e "${BOLD}${GREEN}✅ Successfully removed worktrees, local branches, and remote branches!${NC}"

@@ -27,7 +27,7 @@ TOOLS_DIR="$PROJECT_DIR/tools"
 # Enhanced printing functions
 print_header() {
     echo -e "${BOLD}${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    echo -e "${BOLD}${WHITE}  🔧 MOVETOOLS - Tool Installation Script${NC}"
+    echo -e "${BOLD}${WHITE}  🔧 SYNCTOOLS - Tool Installation Script${NC}"
     echo -e "${BOLD}${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 }
 
@@ -62,7 +62,7 @@ usage() {
     echo -e "  $0 [target_directory]"
     echo ""
     echo -e "${BOLD}DESCRIPTION:${NC}"
-    echo -e "  ${BOLD}MOVETOOLS${NC} is a comprehensive installation and backup script for the collect project."
+    echo -e "  ${BOLD}SYNCTOOLS${NC} is a comprehensive installation and backup script for the collect project."
     echo -e "  It performs two main functions:"
     echo ""
     echo -e "  ${BOLD}1. Tool Installation:${NC}"
