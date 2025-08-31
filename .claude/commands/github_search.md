@@ -1,6 +1,7 @@
 ---
-argument-hint: [filename] [optional: --repo owner/repo] [optional: --language lang]
-description: Search GitHub for files by name, then download or read selected files
+argument-hint: [filename] [repo]
+description: Search for a specific file by name in a specified GitHub repository
+allowed-tools: [Bash(gh:*), Bash(gh api:*), Bash(gh search code:*), Read]
 ---
 
 ## GitHub File Search Tool
@@ -15,19 +16,16 @@ You will receive a filename and optional parameters. Follow these steps:
 
 #### 1. Parse Arguments
 - Extract the filename from the first argument
-- Check for optional `--repo owner/repo` flag to limit search to specific repository  
-- Check for optional `--language lang` flag to filter by programming language
+- Extract the repository name from the second argument
 - Check for optional `--limit N` to override default result limit (default: 10)
 
 #### 2. Execute GitHub Search
-Use the GitHub CLI to search for files:
+Use the GitHub CLI to search for files in the specified repository:
 ```bash
-gh search code --filename "{filename}" --limit 10 --json path,repository,url,sha
+gh search code --filename "{filename}" --repo austere-labs/{repo} --limit 10 --json path,repository,url,sha
 ```
 
 Add additional flags if provided:
-- If `--repo` specified: add `--repo {owner/repo}`
-- If `--language` specified: add `--language {language}`
 - If `--limit` specified: use that number instead of 10
 
 #### 3. Display Search Results
@@ -60,17 +58,17 @@ Once user selects a number:
 Ask: "Would you like to (d)ownload or (r)ead this file? [d/r]:"
 
 **For Download (d):**
-- Get file content using: `gh api repos/{owner}/{repo}/contents/{path} --jq -r '.download_url' | xargs curl -s -o {filename}`
+- Get file content using: `gh api repos/{owner}/{repo}/contents/{path} | jq -r '.content' | base64 -d > {filename}`
 - Save to current directory with original filename
 - Confirm: "Downloaded {filename} to current directory"
 
 **For Read (r):**
-- Get and display file content using: `gh api repos/{owner}/{repo}/contents/{path} --jq -r '.download_url' | xargs curl -s`
+- Get and display file content using: `gh api repos/{owner}/{repo}/contents/{path} | jq -r '.content' | base64 -d`
 - Display the content with syntax highlighting if possible
 - Show first 50 lines, then ask if user wants to see more for large files
 
 #### 6. Handle Edge Cases
-- **No results found**: Display "No files found matching '{filename}'"
+- **No results found**: If no results with just repo name, try with username/repo format
 - **Invalid selection**: Ask user to try again
 - **API rate limit**: Display helpful error message
 - **Authentication required**: Prompt user to run `gh auth login`
@@ -89,9 +87,9 @@ Ask: "Would you like to (d)ownload or (r)ead this file? [d/r]:"
 - Offer suggestions for refining search if no results found
 
 ### Example Usage Patterns
-- `github_search package.json` - Find all package.json files
-- `github_search README.md --language javascript` - Find README files in JS repos
-- `github_search config.yml --repo microsoft/vscode` - Search specific repository
-- `github_search database.py --limit 5` - Limit results to 5 files
+- `github_search package.json myrepo` - Find package.json in myrepo
+- `github_search README.md owner/project` - Find README.md in owner/project repository
+- `github_search config.yml myorg/service --language yaml` - Find config.yml with language filter
+- `github_search database.py myproject --limit 5` - Limit results to 5 files
 
 Process the filename: {filename}
