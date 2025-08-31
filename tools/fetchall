@@ -249,9 +249,11 @@ if ! command -v jq &> /dev/null; then
     exit 1
 fi
 
-# Create temp file for tracking stats
+# Create temp files for tracking stats and downloaded files
 STATS_FILE=$(mktemp)
+DOWNLOADED_FILES=$(mktemp)
 echo "0 0 0 0 0 0 0 0 0" > "$STATS_FILE"
+echo "" > "$DOWNLOADED_FILES"
 
 # Determine the base directory
 # If we're in a 'tools' subdirectory, use the parent directory
@@ -284,6 +286,7 @@ echo ""
 update_stats() {
     local category="$1"
     local action="$2"  # downloaded, skipped, or failed
+    local filename="$3"  # optional filename for downloaded files
     
     # Read current stats
     read d_s s_s f_s d_c s_c f_c d_g s_g f_g < "$STATS_FILE"
@@ -292,21 +295,21 @@ update_stats() {
     case "$category" in
         settings)
             case "$action" in
-                downloaded) ((d_s++)) ;;
+                downloaded) ((d_s++)); [ -n "$filename" ] && echo "$filename" >> "$DOWNLOADED_FILES" ;;
                 skipped) ((s_s++)) ;;
                 failed) ((f_s++)) ;;
             esac
             ;;
         commands)
             case "$action" in
-                downloaded) ((d_c++)) ;;
+                downloaded) ((d_c++)); [ -n "$filename" ] && echo "$filename" >> "$DOWNLOADED_FILES" ;;
                 skipped) ((s_c++)) ;;
                 failed) ((f_c++)) ;;
             esac
             ;;
         guides)
             case "$action" in
-                downloaded) ((d_g++)) ;;
+                downloaded) ((d_g++)); [ -n "$filename" ] && echo "$filename" >> "$DOWNLOADED_FILES" ;;
                 skipped) ((s_g++)) ;;
                 failed) ((f_g++)) ;;
             esac
@@ -412,7 +415,7 @@ download_file() {
                 chmod +x "$local_path"
             fi
             echo -e "${GREEN}✓${NC}"
-            update_stats "$category" "downloaded"
+            update_stats "$category" "downloaded" "$local_path"
             return 0
         else
             echo -e "${RED}✗${NC} (decode error)"
@@ -559,6 +562,15 @@ for category in settings commands guides; do
     fi
 done
 
+# Show downloaded files if any
+if [ $TOTAL_DOWNLOADED -gt 0 ]; then
+    echo ""
+    echo -e "${GREEN}Downloaded files:${NC}"
+    while IFS= read -r file; do
+        [ -n "$file" ] && echo "  • $file"
+    done < "$DOWNLOADED_FILES"
+fi
+
 echo ""
 echo "Total:"
 print_success "$TOTAL_DOWNLOADED files downloaded successfully"
@@ -572,7 +584,7 @@ if [ $TOTAL_FAILED -gt 0 ]; then
 fi
 
 # Clean up
-rm -f "$STATS_FILE"
+rm -f "$STATS_FILE" "$DOWNLOADED_FILES"
 
 echo ""
 if [ $TOTAL_DOWNLOADED -gt 0 ] || [ $TOTAL_SKIPPED -gt 0 ]; then
