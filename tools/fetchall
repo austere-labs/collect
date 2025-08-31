@@ -324,12 +324,64 @@ download_file() {
     local is_executable="$3"
     local category="$4"
     
+    # Get remote file info including last modified date
+    local remote_info=$(gh api repos/$REPO/contents/$remote_path 2>/dev/null)
+    if [ $? -ne 0 ]; then
+        echo -n "  $local_path... "
+        echo -e "${RED}✗${NC} (remote file not found)"
+        update_stats "$category" "failed"
+        return 1
+    fi
+    
+    # Get remote file's last commit date (when it was last modified)
+    local remote_commits=$(gh api "repos/$REPO/commits?path=$remote_path&per_page=1" 2>/dev/null)
+    local remote_date=""
+    if [ $? -eq 0 ]; then
+        remote_date=$(echo "$remote_commits" | jq -r '.[0].commit.committer.date' 2>/dev/null)
+    fi
+    
     # Check if file exists and handle accordingly
     if [ -f "$local_path" ] && [ "$FORCE_OVERWRITE" = false ]; then
-        echo -n "  $local_path (exists, skipping)... "
-        echo -e "${YELLOW}→${NC}"
-        update_stats "$category" "skipped"
-        return 0
+        # If we have remote date, compare timestamps
+        if [ -n "$remote_date" ] && [ "$remote_date" != "null" ]; then
+            # Convert remote date to epoch timestamp
+            local remote_epoch=""
+            
+            # Check if this is GNU date (has --version) or BSD date
+            if date --version &> /dev/null; then
+                # GNU date (Linux or macOS with coreutils)
+                remote_epoch=$(date -d "$remote_date" "+%s" 2>/dev/null)
+            else
+                # BSD date (macOS default)
+                local clean_date=$(echo "$remote_date" | sed 's/Z$//')
+                remote_epoch=$(date -j -f "%Y-%m-%dT%H:%M:%S" "$clean_date" "+%s" 2>/dev/null)
+            fi
+            
+            # Get local file modification time
+            local local_epoch=""
+            if stat --version &> /dev/null; then
+                # GNU stat (Linux or macOS with coreutils)
+                local_epoch=$(stat -c "%Y" "$local_path" 2>/dev/null)
+            else
+                # BSD stat (macOS default)
+                local_epoch=$(stat -f "%m" "$local_path" 2>/dev/null)
+            fi
+            
+            # Compare timestamps if both are available
+            if [ -n "$remote_epoch" ] && [ -n "$local_epoch" ] && [ "$remote_epoch" -gt "$local_epoch" ]; then
+                echo -n "  $local_path (remote newer, updating)... "
+            else
+                echo -n "  $local_path (exists, skipping)... "
+                echo -e "${YELLOW}→${NC}"
+                update_stats "$category" "skipped"
+                return 0
+            fi
+        else
+            echo -n "  $local_path (exists, skipping)... "
+            echo -e "${YELLOW}→${NC}"
+            update_stats "$category" "skipped"
+            return 0
+        fi
     fi
     
     if [ -f "$local_path" ]; then
@@ -338,8 +390,8 @@ download_file() {
         echo -n "  $local_path... "
     fi
     
-    # Download the file using gh api
-    CONTENT=$(gh api repos/$REPO/contents/$remote_path --jq '.content' 2>/dev/null)
+    # Download the file using the remote info we already fetched
+    CONTENT=$(echo "$remote_info" | jq -r '.content')
     
     if [ $? -eq 0 ] && [ -n "$CONTENT" ]; then
         # Decode base64 content and save to file
