@@ -84,7 +84,7 @@ class GeminiMCP:
         concat = prompt + response
 
         ai_response = self.send_message(
-            concat, max_tokens=1024, model="gemini-2.5-flash-preview-05-20"
+            concat, max_tokens=1024, model="gemini-2.5-flash"
         )
 
         return self.extract_text(ai_response)
@@ -97,7 +97,7 @@ class GeminiMCP:
 
             # Use provided model or default
             if model is None:
-                model = "gemini-2.0-flash"
+                model = "gemini-2.5-flash"
 
             base_url = self.config.gemini_base_url
             url = f"{base_url}models/{model}:generateContent?key={gemini_key}"

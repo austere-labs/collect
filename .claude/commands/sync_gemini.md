@@ -7,7 +7,7 @@ model: claude-sonnet-4-20250514
 # Code base summary: Analyze the source and source-tree provided, create a GEMINI.md output that can be compared to the existing `GEMINI.md` or `CLAUDE.md`. 
 
 <PRE-WORKFLOW-INSTRUCTIONS>
-Run the following bash commands in parellel:
+Run the following bash commands in parallel:
 
 ```bash
 uv run python tools/buildsrc

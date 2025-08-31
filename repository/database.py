@@ -16,10 +16,7 @@ class SQLite3Database:
         """Context manager for database connections"""
         # Setup phase: runs when entering 'with' block
         # Enable PARSE_DECLTYPES to use our custom datetime converters
-        conn = sqlite3.connect(
-            self.db_path,
-            detect_types=sqlite3.PARSE_DECLTYPES
-        )
+        conn = sqlite3.connect(self.db_path, detect_types=sqlite3.PARSE_DECLTYPES)
         conn.row_factory = sqlite3.Row  # enables column access by name
 
         # Connection optimizations

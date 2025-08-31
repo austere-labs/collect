@@ -4,11 +4,16 @@
 /Users/benjaminmetz/python/collect
 ├── __marimo__
 │   └── cache
+├── agents
+│   └── tools.py
+├── agentwork.py
+├── anthropic_tool_use.md
 ├── api
 │   ├── __init__.py
 │   ├── prompt_api_models.py
 │   └── prompt_api.py
 ├── api.py
+├── build_agent.md
 ├── CLAUDE_DRAFT.md
 ├── CLAUDE.md
 ├── collect.py
@@ -32,6 +37,7 @@
 │   └── 20250810_02_add-github-url-to-prompt-history.sql
 ├── models
 │   ├── __init__.py
+│   ├── anthropic_models.py
 │   ├── anthropic_mpc.py
 │   ├── anthropic_prompt_generate.py
 │   ├── anthropic_prompt_improve.py
@@ -85,13 +91,14 @@
 │   │   └── summary_20250601_085957.json
 │   └── test_diff.md
 ├── secret_manager.py
+├── simple_agent.md
 ├── test_collect.py
 ├── test_generate_prompt.py
 ├── test_llmrunner.py
-├── test_toml_validator.py
-├── toml_validator.py
+├── tool_calling.md
+├── tool_use.md
 ├── uv.lock
 └── yoyo.ini
 
-18 directories, 73 files
+19 directories, 79 files
 ```

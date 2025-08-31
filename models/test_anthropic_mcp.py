@@ -2,6 +2,22 @@ import pytest
 from config import Config
 from secret_manager import SecretManager
 from models.anthropic_mpc import AnthropicMCP
+from models.anthropic_models import Message, AnthropicRequest, ToolChoice
+from agents.tools import (
+    tool_convert_markdown_to_toml_gemini,
+    convert_markdown_to_toml_gemini,
+)
+
+from typing import Optional, Dict, Any
+from pathlib import Path
+
+
+def read_file(file_path: str, encoding: str = "utf-8") -> Optional[str]:
+    try:
+        return Path(file_path).read_text(encoding=encoding)
+    except (FileNotFoundError, PermissionError, UnicodeDecodeError) as e:
+        print(f"Error reading file {file_path}: {str(e)}")
+        return None
 
 
 @pytest.fixture
@@ -21,6 +37,44 @@ def test_get_model_list(anthropic_mcp):
 
     for model_name in results:
         print(model_name)
+
+
+def test_get_request(anthropic_mcp):
+    markdown_file = read_file(".claude/commands/example.md")
+    toml_prompt = f"""
+    <INSTRUCTIONS>
+    Please convert the the `markdown_file` to TOML format.
+    </INSTRUCTIONS>
+    {markdown_file}
+    """
+    message = Message(role="user", content=toml_prompt)
+
+    req = AnthropicRequest(
+        model=anthropic_mcp.model,
+        max_tokens=1024,
+        messages=[message],
+        tools=[tool_convert_markdown_to_toml_gemini],
+        tool_choice=ToolChoice(type="auto"),
+    )
+
+    resp = anthropic_mcp.get(req)
+    for content in resp.content:
+        if hasattr(content, "type") and content.type == "tool_use":
+            try:
+                result = execute_tool(content.name, content.input)
+                print(result)
+            except Exception as e:
+                print(f"Tool call failed with: {str(e)}")
+
+
+def execute_tool(tool_name: str, tool_input: Dict[str, Any]) -> str:
+    tool_registry = {"convert_markdown_to_toml_gemini": convert_markdown_to_toml_gemini}
+    if tool_name == "convert_markdown_to_toml_gemini":
+        markdown_doc = tool_input["markdown_doc"]
+        model = tool_input.get("model", "gemini-2.5-flash")
+
+    result = tool_registry[tool_name](markdown_doc, model)
+    return result
 
 
 def test_send_message(anthropic_mcp):
@@ -89,7 +143,7 @@ def test_generate_prompt(anthropic_mcp):
     print(f"Generated prompt: {content.text[:100]}...")
     print(
         f"Usage: {response.usage.input_tokens} input, {
-          response.usage.output_tokens} output tokens"
+            response.usage.output_tokens} output tokens"
     )
 
 
@@ -169,7 +223,7 @@ def test_improve_prompt(anthropic_mcp):
     print(f"Assistant prefill: {assistant_content.text[:50]}...")
     print(
         f"Usage: {usage.input_tokens} input, {
-          usage.output_tokens} output tokens"
+            usage.output_tokens} output tokens"
     )
 
 
@@ -246,5 +300,5 @@ def test_templatize_prompt(anthropic_mcp):
     print(f"Variables: {response.variable_values}")
     print(
         f"Usage: {usage.input_tokens} input, {
-          usage.output_tokens} output tokens"
+            usage.output_tokens} output tokens"
     )

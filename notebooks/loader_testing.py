@@ -9,30 +9,32 @@ def _():
     # Import tools with alias, ensuring we get the local package
     import sys
     from pathlib import Path
-    
+
     # Add project root to the FRONT of sys.path to prioritize local packages
     project_root = Path(__file__).parent.parent
     project_root_str = str(project_root.resolve())
-    
+
     # Remove any existing entries first to avoid duplicates
     if project_root_str in sys.path:
         sys.path.remove(project_root_str)
-    
+
     # Insert at the beginning so it takes priority
     sys.path.insert(0, project_root_str)
-    
+
     # Clear any cached imports
-    if 'tools' in sys.modules:
-        del sys.modules['tools']
-    if 'tools.loader' in sys.modules:
-        del sys.modules['tools.loader']
-    
+    if "tools" in sys.modules:
+        del sys.modules["tools"]
+    if "tools.loader" in sys.modules:
+        del sys.modules["tools.loader"]
+
     # Now import the local tools package
     import tools as mytools
-    
-    print(f"Imported tools from: {mytools.__file__ if hasattr(mytools, '__file__') else 'unknown'}")
+
+    print(
+        f"Imported tools from: {mytools.__file__ if hasattr(mytools, '__file__') else 'unknown'}"
+    )
     print(f"Has loader attribute: {hasattr(mytools, 'loader')}")
-    
+
     return (mytools,)
 
 
@@ -52,14 +54,20 @@ def _(mytools):
 def _(plans_data):
     # Display plan details
     import json
+
     print("Plans data structure:")
-    print(json.dumps({
-        "project_name": plans_data["project_name"],
-        "github_url": plans_data["github_url"],
-        "plan_count": len(plans_data["plans"]),
-        "error_count": len(plans_data["errors"]),
-        "sample_plan": plans_data["plans"][0] if plans_data["plans"] else None
-    }, indent=2))
+    print(
+        json.dumps(
+            {
+                "project_name": plans_data["project_name"],
+                "github_url": plans_data["github_url"],
+                "plan_count": len(plans_data["plans"]),
+                "error_count": len(plans_data["errors"]),
+                "sample_plan": plans_data["plans"][0] if plans_data["plans"] else None,
+            },
+            indent=2,
+        )
+    )
     return
 
 

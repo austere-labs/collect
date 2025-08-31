@@ -3,7 +3,7 @@ from secret_manager import SecretManager
 from models.anthropic_prompt_generate import PromptGenerateResponse
 from models.anthropic_prompt_improve import PromptImproveResponse
 from models.anthropic_prompt_templatize import PromptTemplatizeResponse
-
+from models.anthropic_models import AnthropicRequest, AnthropicResponse
 import requests
 
 
@@ -78,6 +78,21 @@ class AnthropicMCP:
             raise ValueError(f"Missing required configuration or secret: {e}")
         except Exception as e:
             raise RuntimeError(f"Unexpected error in send_message: {e}")
+
+    def get(self, request: AnthropicRequest) -> AnthropicResponse:
+        try:
+            data = request.model_dump(exclude_none=True)
+            url = "https://api.anthropic.com/v1/messages"
+            response = requests.post(url, headers=self.headers, json=data)
+            response.raise_for_status()
+            response_data = response.json()
+
+            resp = AnthropicResponse(**response_data)
+            return resp
+        except requests.exceptions.RequestException as e:
+            raise RuntimeError(f"Failed to send request to Anthropic API: {str(e)}")
+        except Exception as e:
+            raise RuntimeError(f"Unexpected error in get method: {str(e)}")
 
     def count_tokens(self, message: str, model: str = None):
         # Use provided model or default to config model

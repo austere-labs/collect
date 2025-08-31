@@ -15,7 +15,7 @@ from repository.prompt_models import (
     Prompt,
     PromptCreateResult,
     PromptDeleteResult,
-    Project
+    Project,
 )
 from config import Config
 
@@ -246,8 +246,7 @@ class PromptService:
             tags=all_tags,
         )
 
-        content_hash = hashlib.sha256(
-            prompt_content.encode("utf-8")).hexdigest()
+        content_hash = hashlib.sha256(prompt_content.encode("utf-8")).hexdigest()
 
         timestamp = datetime.now(timezone.utc)
 
@@ -756,8 +755,7 @@ class PromptService:
                 error_type=type(e).__name__,
             )
 
-    def bulk_save_in_db(
-            self, prompts: List[Prompt]) -> List[PromptCreateResult]:
+    def bulk_save_in_db(self, prompts: List[Prompt]) -> List[PromptCreateResult]:
         """
         Bulk load/save prompts into the database
 

@@ -39,8 +39,7 @@ class Config:
         self.anthropic_default_code_review_model = os.getenv(
             "ANTHROPIC_DEFAULT_CODE_REVIEW_MODEL"
         )
-        self.xai_default_code_review_model = os.getenv(
-            "XAI_DEFAULT_CODE_REVIEW_MODEL")
+        self.xai_default_code_review_model = os.getenv("XAI_DEFAULT_CODE_REVIEW_MODEL")
 
         # GitHub configuration
         self.github_url = os.getenv("GITHUB_URL")

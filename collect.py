@@ -120,8 +120,10 @@ async def get_docs(url: str, extract_value: str = None, ctx: Context = None) -> 
 
     Args:
         url: The URL of the documentation page to fetch
-        extract_value: Optional. Specific section/topic to extract(e.g., "authentication",
-                      "API endpoints", "installation guide"). If not provided, returns
+        extract_value: Optional.
+        Specific section/topic to extract(e.g., "authentication",
+                      "API endpoints", "installation guide").
+                      If not provided, returns
                       the entire page content.
         ctx: MCP context(automatically provided)
 

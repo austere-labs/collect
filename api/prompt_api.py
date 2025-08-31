@@ -3,8 +3,7 @@ from repository.database import SQLite3Database
 from repository.prompt_service import PromptService
 from config import Config
 from api.prompt_api_models import PlanLoader
-from repository.prompt_models import (
-    PromptType, PromptPlanStatus, Project)
+from repository.prompt_models import PromptType, PromptPlanStatus, Project
 import os
 import sys
 import asyncio
@@ -58,8 +57,7 @@ async def get_prompt(
 
 @prompt_api_router.get("/projects/{github_url:path}")
 async def get_project(
-    github_url: str,
-    prompt_service: PromptService = Depends(get_prompt_service)
+    github_url: str, prompt_service: PromptService = Depends(get_prompt_service)
 ) -> Union[Project, dict]:
     """
     Get a project by its GitHub URL.
@@ -79,7 +77,7 @@ async def get_project(
         if not project:
             raise HTTPException(
                 status_code=404,
-                detail=f"No project found with GitHub URL: {github_url}"
+                detail=f"No project found with GitHub URL: {github_url}",
             )
         return project
     except HTTPException:
@@ -88,15 +86,13 @@ async def get_project(
     except Exception as e:
         logger.error(f"Failed to retrieve project with url: {github_url}: {e}")
         raise HTTPException(
-            status_code=500,
-            detail=f"Failed to retrieve project: {str(e)}"
+            status_code=500, detail=f"Failed to retrieve project: {str(e)}"
         )
 
 
 @prompt_api_router.post("/register/project")
 async def register_project(
-    project: Project,
-    prompt_service: PromptService = Depends(get_prompt_service)
+    project: Project, prompt_service: PromptService = Depends(get_prompt_service)
 ) -> str:
     """
     Register a new project or update an existing one.
@@ -117,8 +113,7 @@ async def register_project(
     except Exception as e:
         logger.error(f"Failed to register project: {e}")
         raise HTTPException(
-            status_code=500,
-            detail=f"Failed to register project: {str(e)}"
+            status_code=500, detail=f"Failed to register project: {str(e)}"
         )
 
 
@@ -127,8 +122,7 @@ async def register_project(
     summary="Load project plans into database",
 )
 async def load_plans(
-    plan_loader: PlanLoader,
-    prompt_service: PromptService = Depends(get_prompt_service)
+    plan_loader: PlanLoader, prompt_service: PromptService = Depends(get_prompt_service)
 ) -> dict:
     """
     Load project plans into the database.
@@ -171,7 +165,7 @@ async def load_plans(
         "total_plans": len(results),
         "successful_plans": len(results) - len(failed_plans),
         "failed_count": len(failed_plans),
-        "errors": errors
+        "errors": errors,
     }
 
 
