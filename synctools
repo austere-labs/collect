@@ -21,7 +21,13 @@ TARGET_DIR=${1:-~/bin}
 TARGET_DIR="${TARGET_DIR/#\~/$HOME}"
 
 # Get the directory where this script is located (project home)
-PROJECT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+# Smart detection: if running from ~/bin or ~/.local/bin, use hardcoded path
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+if [ "$SCRIPT_DIR" = "$HOME/bin" ] || [ "$SCRIPT_DIR" = "$HOME/.local/bin" ]; then
+    PROJECT_DIR="/Users/benjaminmetz/python/collect"
+else
+    PROJECT_DIR="$SCRIPT_DIR"
+fi
 TOOLS_DIR="$PROJECT_DIR/tools"
 
 # Enhanced printing functions

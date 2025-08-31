@@ -130,6 +130,7 @@ alias ll='ls -l --color'
 alias tll='tree -C -L 2'
 alias oc='cursor .'
 alias onv='nvim .'
+alias nv='nvim '
 alias runz='zig run src/main.zig'
 alias cperr="zig run src/main.zig 2>&1 | tee /dev/tty | awk '/error:/{found=1} found {print}' | pbcopy"
 

@@ -67,10 +67,9 @@ show_usage() {
     
     # Resources
     echo -e "${BOLD}${BLUE}RESOURCES DOWNLOADED:${RESET}"
-    echo -e "  ${GREEN}✓${RESET} ${CYAN}movetools${RESET}                  ${DIM}(single script, if available)${RESET}"
-    echo -e "  ${GREEN}✓${RESET} ${CYAN}tools/*${RESET}                    ${DIM}(all scripts from /tools/)${RESET}"
     echo -e "  ${GREEN}✓${RESET} ${CYAN}.claude/settings.local.json${RESET} ${DIM}(Claude Code settings file)${RESET}"
     echo -e "  ${GREEN}✓${RESET} ${CYAN}.claude/commands/*.md${RESET}      ${DIM}(command templates, recursive)${RESET}"
+    echo -e "  ${GREEN}✓${RESET} ${CYAN}.gemini/settings.json${RESET}      ${DIM}(Gemini settings file)${RESET}"
     echo -e "  ${GREEN}✓${RESET} ${CYAN}.gemini/commands/*.toml${RESET}    ${DIM}(Gemini TOML configs, recursive)${RESET}"
     echo -e "  ${GREEN}✓${RESET} ${CYAN}guides/*.md${RESET}                ${DIM}(documentation guides)${RESET}"
     echo ""
@@ -79,7 +78,6 @@ show_usage() {
     echo -e "${BOLD}${BLUE}SPECIAL FEATURES:${RESET}"
     echo -e "  ${YELLOW}•${RESET} Auto-creates missing directories"
     echo -e "  ${YELLOW}•${RESET} Preserves directory structure for commands"
-    echo -e "  ${YELLOW}•${RESET} Sets executable permissions on scripts"
     echo -e "  ${YELLOW}•${RESET} Smart parent directory detection"
     echo ""
     
@@ -144,10 +142,9 @@ show_llm_usage() {
     echo -e "  ${BOLD}Source:${RESET} ${UNDERLINE}https://github.com/$REPO${RESET}"
     echo ""
     echo -e "  ${BOLD}Resources Downloaded:${RESET}"
-    echo -e "  ${GREEN}✓${RESET} ${CYAN}movetools${RESET}                  ${DIM}→ Single script file (if available)${RESET}"
-    echo -e "  ${GREEN}✓${RESET} ${CYAN}tools/*${RESET}                    ${DIM}→ All scripts from /tools/ directory${RESET}"
     echo -e "  ${GREEN}✓${RESET} ${CYAN}.claude/settings.local.json${RESET} ${DIM}→ Claude Code settings file${RESET}"
     echo -e "  ${GREEN}✓${RESET} ${CYAN}.claude/commands/*.md${RESET}      ${DIM}→ Command template files (recursive)${RESET}"
+    echo -e "  ${GREEN}✓${RESET} ${CYAN}.gemini/settings.json${RESET}      ${DIM}→ Gemini settings file${RESET}"
     echo -e "  ${GREEN}✓${RESET} ${CYAN}.gemini/commands/*.toml${RESET}    ${DIM}→ Gemini TOML configs (recursive)${RESET}"
     echo -e "  ${GREEN}✓${RESET} ${CYAN}guides/*.md${RESET}                ${DIM}→ Guide markdown files${RESET}"
     echo ""
@@ -155,12 +152,11 @@ show_llm_usage() {
     # Directory Structure
     echo -e "${BOLD}${BLUE}🗂️  LOCAL DIRECTORY STRUCTURE${RESET}"
     echo -e "  ${MAGENTA}┌─ Project Root${RESET}"
-    echo -e "  ${MAGENTA}├─${RESET} ${CYAN}movetools${RESET}               ${DIM}# Single script file${RESET}"
-    echo -e "  ${MAGENTA}├─${RESET} ${CYAN}tools/${RESET}                  ${DIM}# Scripts directory${RESET}"
     echo -e "  ${MAGENTA}├─${RESET} ${CYAN}.claude/${RESET}"
     echo -e "  ${MAGENTA}│  ├─${RESET} ${CYAN}settings.local.json${RESET} ${DIM}# Claude Code settings${RESET}"
     echo -e "  ${MAGENTA}│  └─${RESET} ${CYAN}commands/${RESET}           ${DIM}# Command templates${RESET}"
     echo -e "  ${MAGENTA}├─${RESET} ${CYAN}.gemini/${RESET}"
+    echo -e "  ${MAGENTA}│  ├─${RESET} ${CYAN}settings.json${RESET}       ${DIM}# Gemini settings${RESET}"
     echo -e "  ${MAGENTA}│  └─${RESET} ${CYAN}commands/${RESET}           ${DIM}# Gemini templates${RESET}"
     echo -e "  ${MAGENTA}└─${RESET} ${CYAN}guides/${RESET}                 ${DIM}# Guide files${RESET}"
     echo ""
@@ -184,7 +180,6 @@ show_llm_usage() {
     echo -e "  ${GREEN}•${RESET} Downloads multiple resource types in one execution"
     echo -e "  ${GREEN}•${RESET} Creates necessary directories automatically"
     echo -e "  ${GREEN}•${RESET} Preserves directory structure for commands"
-    echo -e "  ${GREEN}•${RESET} Sets executable permissions for scripts"
     echo -e "  ${GREEN}•${RESET} Shows real-time progress indicators"
     echo -e "  ${GREEN}•${RESET} Provides category-based summary"
     echo -e "  ${GREEN}•${RESET} Skips existing files by default"
@@ -256,7 +251,7 @@ fi
 
 # Create temp file for tracking stats
 STATS_FILE=$(mktemp)
-echo "0 0 0 0 0 0 0 0 0 0 0 0 0 0 0" > "$STATS_FILE"
+echo "0 0 0 0 0 0 0 0 0" > "$STATS_FILE"
 
 # Determine the base directory
 # If we're in a 'tools' subdirectory, use the parent directory
@@ -269,7 +264,7 @@ fi
 
 # Create directories if they don't exist
 print_info "Creating necessary directories..."
-DIRS_TO_CREATE=("$BASE_DIR/tools" "$BASE_DIR/.claude/commands" "$BASE_DIR/.gemini/commands" "$BASE_DIR/guides")
+DIRS_TO_CREATE=("$BASE_DIR/.claude/commands" "$BASE_DIR/.gemini/commands" "$BASE_DIR/guides")
 
 for dir in "${DIRS_TO_CREATE[@]}"; do
     if [ ! -d "$dir" ]; then
@@ -291,24 +286,10 @@ update_stats() {
     local action="$2"  # downloaded, skipped, or failed
     
     # Read current stats
-    read d_mt s_mt f_mt d_t s_t f_t d_s s_s f_s d_c s_c f_c d_g s_g f_g < "$STATS_FILE"
+    read d_s s_s f_s d_c s_c f_c d_g s_g f_g < "$STATS_FILE"
     
     # Update the appropriate counter
     case "$category" in
-        movetools)
-            case "$action" in
-                downloaded) ((d_mt++)) ;;
-                skipped) ((s_mt++)) ;;
-                failed) ((f_mt++)) ;;
-            esac
-            ;;
-        tools)
-            case "$action" in
-                downloaded) ((d_t++)) ;;
-                skipped) ((s_t++)) ;;
-                failed) ((f_t++)) ;;
-            esac
-            ;;
         settings)
             case "$action" in
                 downloaded) ((d_s++)) ;;
@@ -333,7 +314,7 @@ update_stats() {
     esac
     
     # Write updated stats
-    echo "$d_mt $s_mt $f_mt $d_t $s_t $f_t $d_s $s_s $f_s $d_c $s_c $f_c $d_g $s_g $f_g" > "$STATS_FILE"
+    echo "$d_s $s_s $f_s $d_c $s_c $f_c $d_g $s_g $f_g" > "$STATS_FILE"
 }
 
 # Function to download a file
@@ -427,47 +408,7 @@ process_directory() {
     done
 }
 
-# 1. Download movetools (if it exists in the repository)
-print_info "Fetching movetools..."
-# First check if movetools exists in the repository
-MOVETOOLS_CHECK=$(gh api repos/$REPO/contents/movetools 2>/dev/null)
-if [ $? -eq 0 ]; then
-    download_file "movetools" "$BASE_DIR/movetools" true "movetools"
-else
-    print_info "movetools not found in repository, skipping..."
-fi
 
-echo ""
-
-# 1.5. Download synctools (if it exists in the repository)
-print_info "Fetching synctools..."
-# First check if synctools exists in the repository
-SYNCTOOLS_CHECK=$(gh api repos/$REPO/contents/synctools 2>/dev/null)
-if [ $? -eq 0 ]; then
-    download_file "synctools" "$BASE_DIR/synctools" true "movetools"
-else
-    print_info "synctools not found in repository, skipping..."
-fi
-
-echo ""
-
-# 2. Download tools/*
-print_info "Fetching tools..."
-TOOLS_CONTENTS=$(gh api repos/$REPO/contents/tools 2>/dev/null)
-if [ $? -eq 0 ]; then
-    echo "$TOOLS_CONTENTS" | jq -c '.[]' | while IFS= read -r item; do
-        name=$(echo "$item" | jq -r '.name')
-        type=$(echo "$item" | jq -r '.type')
-        
-        if [ "$type" = "file" ]; then
-            download_file "tools/$name" "$BASE_DIR/tools/$name" true "tools"
-        fi
-    done
-else
-    print_error "Failed to fetch tools directory"
-fi
-
-echo ""
 
 # 3. Download .claude/settings.local.json
 print_info "Fetching .claude/settings.local.json..."
@@ -476,6 +417,17 @@ if [ $? -eq 0 ]; then
     download_file ".claude/settings.local.json" "$BASE_DIR/.claude/settings.local.json" false "settings"
 else
     print_info ".claude/settings.local.json not found in repository, skipping..."
+fi
+
+echo ""
+
+# 3.5. Download .gemini/settings.json
+print_info "Fetching .gemini/settings.json..."
+GEMINI_SETTINGS_CHECK=$(gh api repos/$REPO/contents/.gemini/settings.json 2>/dev/null)
+if [ $? -eq 0 ]; then
+    download_file ".gemini/settings.json" "$BASE_DIR/.gemini/settings.json" false "settings"
+else
+    print_info ".gemini/settings.json not found in repository, skipping..."
 fi
 
 echo ""
@@ -519,18 +471,16 @@ echo "Summary:"
 echo ""
 
 # Read final stats
-read d_mt s_mt f_mt d_t s_t f_t d_s s_s f_s d_c s_c f_c d_g s_g f_g < "$STATS_FILE"
+read d_s s_s f_s d_c s_c f_c d_g s_g f_g < "$STATS_FILE"
 
 # Calculate totals
-TOTAL_DOWNLOADED=$((d_mt + d_t + d_s + d_c + d_g))
-TOTAL_SKIPPED=$((s_mt + s_t + s_s + s_c + s_g))
-TOTAL_FAILED=$((f_mt + f_t + f_s + f_c + f_g))
+TOTAL_DOWNLOADED=$((d_s + d_c + d_g))
+TOTAL_SKIPPED=$((s_s + s_c + s_g))
+TOTAL_FAILED=$((f_s + f_c + f_g))
 
 # Print category summaries
-for category in movetools tools settings commands guides; do
+for category in settings commands guides; do
     case "$category" in
-        movetools) d=$d_mt; s=$s_mt; f=$f_mt ;;
-        tools) d=$d_t; s=$s_t; f=$f_t ;;
         settings) d=$d_s; s=$s_s; f=$f_s ;;
         commands) d=$d_c; s=$s_c; f=$f_c ;;
         guides) d=$d_g; s=$s_g; f=$f_g ;;
