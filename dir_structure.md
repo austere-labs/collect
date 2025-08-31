@@ -49,7 +49,6 @@
 │   ├── test_openai_mcp.py
 │   ├── test_xai_mcp.py
 │   └── xai_mcp.py
-├── movetools
 ├── notebooks
 │   ├── __marimo__
 │   │   └── cache
@@ -92,6 +91,7 @@
 │   └── test_diff.md
 ├── secret_manager.py
 ├── simple_agent.md
+├── synctools
 ├── test_collect.py
 ├── test_generate_prompt.py
 ├── test_llmrunner.py

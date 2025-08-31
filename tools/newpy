@@ -511,6 +511,18 @@ PROJECT_NAME := $proj
 marimo:
 	uv run marimo edit
 
+.PHONY: synctools
+synctools:
+	./synctools
+
+.PHONY: buildsrc
+buildsrc: 
+	./tools/buildsrc
+
+.PHONY: tree
+tree:
+	./tools/buildsrc --tree
+
 .PHONY: ensuregithub
 ensuregithub:
 	./tools/ensure-github-url
@@ -527,33 +539,26 @@ test:
 test-fast:
 	uv run pytest -v -n auto -m "not slow"
 
-check:
+test-slow:
+	uv run pytest -v -s -m slow
+
+test-single:
+	uv run pytest -v -s
+
+check: 
 	make lint
 	make format
+	make synctools
 	make ensuregithub
-	make test
+	make buildsrc
+	make tree
 
-start:
-	uv run main.py
-
-docker-build:
-	docker build -t \$(PROJECT_NAME) .
-
-docker-run:
-	docker run -p 8080:8080 \$(PROJECT_NAME)
-
-create-kernal:
-	python -m ipykernel install --user --name \$(PROJECT_NAME) --display-name "Python 3.11 (\$(PROJECT_NAME))"
-
-# Database management
 migrate:
-	yoyo apply --config yoyo.ini --batch
+	uv run yoyo apply --config yoyo.ini --batch
 
-migrate-rollback:
-	yoyo rollback --config yoyo.ini
-
-migrate-status:
-	yoyo list --config yoyo.ini
+restartapi:
+	curl -X POST http://localhost:8081/restart
+	sleep 2 && curl -X GET http://localhost:8081/health
 EOF
 
 cat > .env <<EOF

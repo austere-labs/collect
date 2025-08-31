@@ -439,6 +439,18 @@ fi
 
 echo ""
 
+# 1.5. Download synctools (if it exists in the repository)
+print_info "Fetching synctools..."
+# First check if synctools exists in the repository
+SYNCTOOLS_CHECK=$(gh api repos/$REPO/contents/synctools 2>/dev/null)
+if [ $? -eq 0 ]; then
+    download_file "synctools" "$BASE_DIR/synctools" true "movetools"
+else
+    print_info "synctools not found in repository, skipping..."
+fi
+
+echo ""
+
 # 2. Download tools/*
 print_info "Fetching tools..."
 TOOLS_CONTENTS=$(gh api repos/$REPO/contents/tools 2>/dev/null)

@@ -3,9 +3,9 @@ PROJECT_NAME := collect
 marimo:
 	uv run marimo edit
 
-.PHONY: movetools
+.PHONY: synctools
 movetools:
-	./movetools
+	./synctools
 
 .PHONY: buildsrc
 buildsrc: 
@@ -40,7 +40,7 @@ test-single:
 check: 
 	make lint
 	make format
-	make movetools
+	make synctools
 	make ensuregithub
 	make buildsrc
 	make tree
