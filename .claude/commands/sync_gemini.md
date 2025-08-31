@@ -1,5 +1,5 @@
 ---
-allowed-tools: Bash(uv:*), Bash(cat:*), Bash(gemini --prompt:* cat:*), TodoWrite, Read, Write
+allowed-tools: Bash(uv:*), Bash(make:*), Bash(cat:*), Bash(gemini --prompt:* cat:*), TodoWrite, Read, Write
 description: This prompt will provide the source and the source tree to Gemini CLI to analyze/compare to existing CLAUDE.md and write a draft called CLAUDE_DRAFT.md
 model: claude-sonnet-4-20250514
 ---
@@ -10,11 +10,11 @@ model: claude-sonnet-4-20250514
 Run the following bash commands in parallel:
 
 ```bash
-uv run python tools/buildsrc
+make buildsrc
 ```
 
 ```bash
-uv run python tools/buildsrc --tree
+make buildsrc --tree
 ```
 
 ```bash
