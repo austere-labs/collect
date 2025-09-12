@@ -511,17 +511,13 @@ PROJECT_NAME := $proj
 marimo:
 	uv run marimo edit
 
-.PHONY: synctools
-synctools:
-	./synctools
-
 .PHONY: buildsrc
 buildsrc: 
-	./tools/buildsrc
+	buildsrc
 
 .PHONY: tree
 tree:
-	./tools/buildsrc --tree
+	buildsrc --tree
 
 .PHONY: ensuregithub
 ensuregithub:
@@ -548,17 +544,11 @@ test-single:
 check: 
 	make lint
 	make format
-	make synctools
-	make ensuregithub
 	make buildsrc
 	make tree
 
 migrate:
 	uv run yoyo apply --config yoyo.ini --batch
-
-restartapi:
-	curl -X POST http://localhost:8081/restart
-	sleep 2 && curl -X GET http://localhost:8081/health
 EOF
 
 cat > .env <<EOF

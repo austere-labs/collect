@@ -1,3 +1,6 @@
+---
+model: claude-sonnet-4-20250514
+---
 Read the file at the path: {file_name}
 
 IMPORTANT INSTRUCTIONS:

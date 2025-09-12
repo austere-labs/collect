@@ -1,5 +1,6 @@
 ---
 allowed-tools: Bash(extract:*)
+argument-hint: [file] [method signature]
 description: Extract complete function or method definitions from source code
 ---
 
