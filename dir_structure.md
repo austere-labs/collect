@@ -4,6 +4,7 @@
 /Users/benjaminmetz/python/collect
 ├── __marimo__
 │   └── cache
+├── _progress
 ├── agents
 │   └── tools.py
 ├── agentwork.py
@@ -100,5 +101,5 @@
 ├── uv.lock
 └── yoyo.ini
 
-19 directories, 79 files
+20 directories, 79 files
 ```

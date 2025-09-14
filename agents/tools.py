@@ -92,7 +92,7 @@ def convert_markdown_to_toml_claude_code(
 
     try:
         result = subprocess.run(
-            ["claude", "--model", model, "--prompt", prompt_with_args],
+            ["claude", "--model", model, "-p", prompt_with_args],
             capture_output=True,
             text=True,
             check=True,

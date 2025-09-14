@@ -70,6 +70,8 @@ alias gwl='git worktree list'
 alias rebase='git pull --rebase origin main'
 alias pull='git pull origin main'
 
+alias cores='sysctl -n hw.ncpu'
+
 # Worktree navigation functions
 cd1() {
     local project_name=$(basename "$(pwd)")

@@ -13,16 +13,19 @@ import argparse
 import os
 import xml.etree.ElementTree as ET
 from pathlib import Path
-from typing import Iterator
+from typing import Iterator, Tuple, Optional, List, Dict
 import pathspec
 import sys
 import subprocess
+import time
 from dataclasses import dataclass
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from rich.console import Console
 from rich.text import Text
 from rich.panel import Panel
 from rich.table import Table
 from rich.syntax import Syntax
+from rich.progress import Progress, TaskID
 from rich import box
 
 
@@ -86,9 +89,15 @@ class ColorfulHelpFormatter(argparse.HelpFormatter):
                 "\n  • .gemini/commands directory",
                 "\n  • tools/ directory",
                 "\n  • guides/ directory",
+                "\n  • resources/ directory",
+                "\n  • dotfiles/ directory",
+                "\n  • _progress/ directory",
                 "\n  • _docs/ directory",
                 "\n  • All .gitignore patterns",
-                "\n  • Binary and cache files"
+                "\n  • Binary and cache files",
+                "\n  • All markdown files (*.md)",
+                "\n  • All JSON files (*.json)",
+                "\n  • uv.lock, requirements.txt, .sync_cache.json"
             ),
             title="📋 Description",
             title_align="left",
@@ -136,6 +145,18 @@ class ColorfulHelpFormatter(argparse.HelpFormatter):
             "buildsrc --tree --dry-run",
             "Preview tree generation without creating output"
         )
+        usage_table.add_row(
+            "buildsrc --with-descriptions",
+            "Generate XML with AI-powered file descriptions"
+        )
+        usage_table.add_row(
+            "buildsrc --with-descriptions --verbose",
+            "Generate descriptions with detailed progress output"
+        )
+        usage_table.add_row(
+            "buildsrc --with-descriptions --parallel-workers 16",
+            "Generate descriptions using 16 parallel workers for faster processing"
+        )
 
         console.print(usage_table)
 
@@ -176,6 +197,16 @@ class ColorfulHelpFormatter(argparse.HelpFormatter):
             "Generate directory tree structure instead of XML",
             "False"
         )
+        options_table.add_row(
+            "--with-descriptions",
+            "Generate AI descriptions for each file using Claude",
+            "False"
+        )
+        options_table.add_row(
+            "--parallel-workers N",
+            "Number of parallel workers for description generation",
+            "8"
+        )
 
         console.print(options_table)
 
@@ -183,19 +214,33 @@ class ColorfulHelpFormatter(argparse.HelpFormatter):
         xml_example = '''<?xml version="1.0" encoding="UTF-8"?>
 <source_code project="collect">
   <file path="collect.py">
-    #!/usr/bin/env python3
-    import asyncio
-    # ... file content ...
+    <description>
+      ## Overview
+      Main MCP server entry point that provides web fetching tools...
+      ## Technical Details
+      - Python 3+ with asyncio for async operations...
+    </description>
+    <content>
+      #!/usr/bin/env python3
+      import asyncio
+      # ... file content ...
+    </content>
   </file>
   <file path="models/anthropic_mcp.py">
-    from typing import Dict, Any
-    # ... file content ...
+    <description>
+      ## Overview
+      Anthropic Claude API integration wrapper...
+    </description>
+    <content>
+      from typing import Dict, Any
+      # ... file content ...
+    </content>
   </file>
 </source_code>'''
 
         xml_panel = Panel(
             Syntax(xml_example, "xml", theme="monokai", line_numbers=True),
-            title="📄 Generated XML Structure",
+            title="📄 Generated XML Structure (with --with-descriptions)",
             title_align="left",
             border_style="bright_magenta",
             padding=(1, 2)
@@ -255,7 +300,7 @@ class FileProcessor:
         try:
             # Check file extension first
             text_extensions = {
-                '.py', '.md', '.txt', '.yml', '.yaml', '.json', '.toml', '.ini',
+                '.py', '.txt', '.yml', '.yaml', '.json', '.toml', '.ini',
                 '.sql', '.sh', '.lua', '.js', '.ts', '.html', '.css', '.xml',
                 '.cfg', '.conf', '.gitignore', '.env', '.lock'
             }
@@ -314,6 +359,9 @@ class SourceXMLBuilder:
             '.gemini/commands',
             'tools',
             'guides',
+            'resources',
+            'dotfiles',
+            '_progress',
             '__pycache__',
             '.pytest_cache',
             '.git',
@@ -347,6 +395,9 @@ class SourceXMLBuilder:
             '.gemini/commands',
             'tools',
             'guides',
+            'resources',
+            'dotfiles',
+            '_progress',
             '_docs'
         ]
 
@@ -382,6 +433,22 @@ class SourceXMLBuilder:
                         (rel_path, "gitignore pattern"))
                     continue
 
+                # Skip specific files, markdown files, and JSON files
+                excluded_files = {'uv.lock',
+                                  'requirements.txt', '.sync_cache.json'}
+                if file_name in excluded_files or file_name.endswith('.md') or file_name.endswith('.json'):
+                    self.stats.files_skipped += 1
+                    rel_path = self.file_processor.get_relative_path(file_path)
+                    if file_name.endswith('.md'):
+                        reason = "markdown file"
+                    elif file_name.endswith('.json'):
+                        reason = "JSON file"
+                    else:
+                        reason = "excluded file"
+                    self.stats.skipped_files.append(
+                        (rel_path, reason))
+                    continue
+
                 # Skip if not a text file
                 if not self.file_processor.is_text_file(file_path):
                     self.stats.files_skipped += 1
@@ -392,7 +459,7 @@ class SourceXMLBuilder:
 
                 yield file_path
 
-    def build_xml(self, dry_run: bool = False, verbose: bool = False) -> str:
+    def build_xml(self, dry_run: bool = False, verbose: bool = False, with_descriptions: bool = False, parallel_workers: int = 8) -> str:
         """Build the XML content."""
         if verbose:
             print(f"Scanning project: {self.project_root}")
@@ -410,28 +477,142 @@ class SourceXMLBuilder:
                 print(f"  - {rel_path}")
             return ""
 
+        # Collect all file data first
+        if verbose:
+            print(f"Reading {len(files_to_process)} files...")
+
+        file_data = []
         for file_path in files_to_process:
             if verbose:
                 rel_path = self.file_processor.get_relative_path(file_path)
-                print(f"Processing: {rel_path}")
+                print(f"Reading: {rel_path}")
 
+            content = self.file_processor.read_file_content(file_path)
+            file_data.append((file_path, content))
+
+            self.stats.files_processed += 1
+            self.stats.total_size += len(content)
+
+        # Generate descriptions in parallel if requested
+        descriptions = {}
+        if with_descriptions and file_data:
+            descriptions = self.generate_descriptions_parallel(
+                file_data,
+                workers=parallel_workers,
+                verbose=verbose
+            )
+
+        # Build XML tree
+        if verbose:
+            print("Building XML tree...")
+
+        for file_path, content in file_data:
             # Create file element
             file_element = ET.SubElement(root, 'file')
             rel_path = self.file_processor.get_relative_path(file_path)
             file_element.set('path', rel_path)
 
-            # Read and add file content
-            content = self.file_processor.read_file_content(file_path)
-            file_element.text = content
+            # Add description if available
+            if with_descriptions and file_path in descriptions:
+                description_element = ET.SubElement(
+                    file_element, 'description')
+                description_element.text = descriptions[file_path]
 
-            self.stats.files_processed += 1
-            self.stats.total_size += len(content)
+            # Add file content
+            content_element = ET.SubElement(file_element, 'content')
+            content_element.text = content
 
         # Create XML string
         ET.indent(root, space="  ", level=0)
         xml_str = ET.tostring(root, encoding='unicode', xml_declaration=True)
 
         return xml_str
+
+    def create_description(self, file: str) -> str:
+        description_instruction_prompt = f"""
+        Analyze the provided code and create a concise description.
+        Keep it brief and focused on the essentials.
+
+        Provide:
+        - What this code does (3-4 sentences)
+        - Key functions/classes and their purpose
+        - Main technologies/frameworks used
+        - Notable implementation details (if any)
+
+        Keep the response under 200 words. Use clear, technical language.
+
+        [CODE TO ANALYZE]:
+        {file}
+        """
+
+        GEMINI_MODEL = "gemini-2.5-flash"
+
+        result = subprocess.run(
+            ["gemini",
+             "--model",
+             GEMINI_MODEL,
+             "--prompt",
+             description_instruction_prompt],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        return result.stdout.strip()
+
+    def generate_descriptions_parallel(
+        self,
+        file_data: List[Tuple[Path, str]],
+        workers: int = 8,
+        verbose: bool = False
+    ) -> Dict[Path, str]:
+        """Generate descriptions for multiple files in parallel."""
+        if not file_data:
+            return {}
+
+        descriptions = {}
+
+        if verbose:
+            print(f"Generating descriptions for {
+                  len(file_data)} files using {workers} parallel workers...")
+
+        # Create a rich progress bar
+        with Progress() as progress:
+            task = progress.add_task(
+                "Generating descriptions...", total=len(file_data))
+
+            with ThreadPoolExecutor(max_workers=workers) as executor:
+                # Submit all tasks
+                future_to_file = {
+                    executor.submit(self.create_description, content): (path, content)
+                    for path, content in file_data
+                }
+
+                # Process completed tasks
+                for future in as_completed(future_to_file):
+                    path, content = future_to_file[future]
+                    rel_path = self.file_processor.get_relative_path(path)
+
+                    try:
+                        # 60 second timeout per file
+                        description = future.result(timeout=60)
+                        descriptions[path] = description
+                        if verbose:
+                            print(f"  ✅ Generated description for: {rel_path}")
+                    except Exception as e:
+                        descriptions[path] = "[Description generation failed]"
+                        if verbose:
+                            print(f"  ❌ Failed to generate description for {
+                                  rel_path}: {e}")
+
+                    progress.update(task, advance=1)
+
+        successful = sum(1 for desc in descriptions.values()
+                         if desc != "[Description generation failed]")
+        if verbose:
+            print(f"Description generation complete: {
+                  successful}/{len(file_data)} successful")
+
+        return descriptions
 
     def write_xml(self, xml_content: str) -> None:
         """Write XML content to file."""
@@ -565,6 +746,9 @@ class TreeGenerator:
             '.gemini/commands',
             'tools',
             'guides',
+            'resources',
+            'dotfiles',
+            '_progress',
             '__pycache__',
             '.pytest_cache',
             '.git',
@@ -704,6 +888,11 @@ def main():
                         help='Verbose output showing file processing')
     parser.add_argument('--tree', action='store_true',
                         help='Generate directory tree structure instead of XML')
+    parser.add_argument('--with-descriptions', action='store_true',
+                        help='Generate AI descriptions for each file (slower but more informative)')
+    parser.add_argument('--parallel-workers', type=int, default=8,
+                        metavar='N',
+                        help='Number of parallel workers for description generation (default: 8)')
 
     args = parser.parse_args()
 
@@ -721,7 +910,7 @@ def main():
 
             # Build XML
             xml_content = builder.build_xml(
-                dry_run=args.dry_run, verbose=args.verbose)
+                dry_run=args.dry_run, verbose=args.verbose, with_descriptions=args.with_descriptions, parallel_workers=args.parallel_workers)
 
             if not args.dry_run:
                 # Write to file

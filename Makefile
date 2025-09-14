@@ -9,7 +9,7 @@ movetools:
 
 .PHONY: buildsrc
 buildsrc: 
-	./tools/buildsrc
+	 ./tools/buildsrc --with-descriptions --verbose --parallel-workers 16
 
 .PHONY: buildsrc
 tree:

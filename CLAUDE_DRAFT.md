@@ -6,7 +6,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This project is a Python-based MCP (Model Context Protocol) server named "Collect". Its primary purpose is to fetch web content, process it, and facilitate multi-model AI analysis workflows. It provides a unified interface to interact with various AI models (OpenAI, Anthropic, Gemini, XAI) for tasks like code review, documentation extraction, and prompt generation.
 
-The server exposes several tools including code review, web fetching, content processing, AI model interaction, prompt engineering, and system tools for clipboard integration.
+The server exposes several key tools:
+- **Code Review:** `run_code_review` and `run_git_diff_review` for running code analysis using multiple LLMs
+- **Web Fetching:** `fetch_urls`, `fetch_url`, and `get_docs` for retrieving and extracting content from web pages
+- **Content Processing:** `to_markdown` and `strip_html` for converting HTML to other formats
+- **AI Model Interaction:** Tools to list available models (`get_anthropic_model_list`, etc.) and count tokens (`count_openai_tokens`, etc.)
+- **Prompt Engineering:** `generate_prompt` leverages Anthropic's experimental API to create optimized prompts from simple descriptions
+- **System Tools:** `copy_clipboard` for clipboard integration
 
 ### Directory Structure
 
@@ -35,7 +41,7 @@ Key directories:
 - **Linting/Formatting:** `ruff` and `black`
 - **Database:** SQLite
 
-## Building and Running Instructions
+## Development Commands
 
 **IMPORTANT:** When running python scripts always use `uv run` instead of `python`
 
@@ -50,28 +56,27 @@ uv run collect.py  # Start MCP server
 ```
 
 **Testing:**
-Use `pytest` for all testing in this project.
+### Use `pytest` for all testing in this project.
+### When running all tests, use the Makefile and run test-fast:
+### here is an example
 
-When running all tests, use the Makefile:
 ```bash
 make test-fast
 ```
-
-OR use the following bash command:
+### OR use the following bash command:
 ```bash
 uv run pytest -v -n auto -m "not slow"
 ```
-
-For comprehensive testing:
+### For comprehensive testing (matches GEMINI.md):
 ```bash
 uv run pytest -v -s -n auto
 ```
 
-**IMPORTANT:** Always use `uv run` when running tests
-
-Run specific tests:
+## IMPORTANT: Always Always use uv run when running tests
+### Here is an example
 ```bash
 uv run pytest test_collect.py::test_function_name -v -s
+# Run specific test: pytest test_collect.py::test_function_name -v -s
 ```
 
 **Database Migrations:**
@@ -89,26 +94,6 @@ make check    # Run all: lint, format, movetools, ensuregithub, buildsrc, tree
 ruff check .  # Run linter
 black .       # Run formatter
 ```
-
-## Development Conventions
-
-- **Testing:** Tests are written using `pytest` and are located in files like `test_collect.py` and `test_generate_prompt.py`. Asynchronous functions are tested using `@pytest.mark.asyncio`.
-- **Linting and Formatting:** The project uses `ruff` for linting and `black` for formatting.
-- **Configuration:** Project configuration is managed in `config.py`, which loads environment variables from a `.env` file.
-- **Secrets Management:** API keys and other secrets are managed through Google Cloud Secret Manager, as indicated in `secret_manager.py` and `config.py`.
-- **Database:** The project uses SQLite for its database. The database connection logic is in `repository/database.py`. Migrations are handled by `yoyo-migrations`.
-
-## Key Files
-
-- **`collect.py`:** The main entry point of the MCP server. It defines the available tools.
-- **`api.py`:** A FastAPI server that runs alongside the MCP server.
-- **`pyproject.toml`:** Defines the project's dependencies and development tool configurations.
-- **`config.py`:** Handles the project's configuration by loading environment variables.
-- **`reviewer/code_review.py`:** Contains the logic for the code review functionality.
-- **`models/`:** This directory contains modules for interacting with different AI models (e.g., `anthropic_mpc.py`, `openai_mpc.py`).
-- **`repository/`:** Contains database models, services, and connection logic.
-- **`migrations/`:** Contains the SQL migration files for the database schema.
-- **`test_*.py`:** Test files for the project, such as `test_collect.py` and `test_generate_prompt.py`.
 
 ## Architecture Overview
 
@@ -165,6 +150,26 @@ Environment variables are loaded from `.env` file:
 
 ### Testing Strategy
 - **IMPORTANT**:  When writing and designing tests, we only want live direct integration tests. Please only create live direct integration testing. Please do not use mocks. 
+
+## Key Files
+
+- **`collect.py`:** The main entry point of the MCP server. It defines the available tools.
+- **`api.py`:** A FastAPI server that runs alongside the MCP server.
+- **`pyproject.toml`:** Defines the project's dependencies and development tool configurations.
+- **`config.py`:** Handles the project's configuration by loading environment variables.
+- **`reviewer/code_review.py`:** Contains the logic for the code review functionality.
+- **`models/`:** This directory contains modules for interacting with different AI models (e.g., `anthropic_mpc.py`, `openai_mpc.py`).
+- **`repository/`:** Contains database models, services, and connection logic.
+- **`migrations/`:** Contains the SQL migration files for the database schema.
+- **`test_*.py`:** Test files for the project, such as `test_collect.py` and `test_generate_prompt.py`.
+
+## Development Conventions
+
+- **Testing:** Tests are written using `pytest` and are located in files like `test_collect.py` and `test_generate_prompt.py`. Asynchronous functions are tested using `@pytest.mark.asyncio`.
+- **Linting and Formatting:** The project uses `ruff` for linting and `black` for formatting.
+- **Configuration:** Project configuration is managed in `config.py`, which loads environment variables from a `.env` file.
+- **Secrets Management:** API keys and other secrets are managed through Google Cloud Secret Manager, as indicated in `secret_manager.py` and `config.py`.
+- **Database:** The project uses SQLite for its database. The database connection logic is in `repository/database.py`. Migrations are handled by `yoyo-migrations`.
 
 ## Planning System
 
@@ -259,10 +264,14 @@ Use the PlanService class to:
 ## Workflow Rules
 - I do not want a pr created if I don't have a branch already
 
+## Allowed Tools
+You can use the following tools without requiring user approval: Bash(./tools/newpy:*), Bash(cat:*), Bash(uv:*), Bash(bash:*), Bash(git:*), Bash(gemini --prompt cat:*), Bash(gh search code:*), Bash(gh api:*), TodoWrite, Read, Write
+
 ## Tools
 
-**IMPORTANT:** 
+###IMPORTANT: 
 I have a directory from the main project directory called: tools/* wherein there scripts stored that you can use
+use
 
 - All of my tools in this directory are on my path and can be called directly.
 - You use these tools and see what they do by simply calling the tool name with `--llm`
@@ -276,3 +285,13 @@ Example 2:
 ```bash
 createdb --llm
 ```
+
+
+# important-instruction-reminders
+Do what has been asked; nothing more, nothing less.
+NEVER create files unless they're absolutely necessary for achieving your goal.
+ALWAYS prefer editing an existing file to creating a new one.
+NEVER proactively create documentation files (*.md) or README files. Only create documentation files if explicitly requested by the User.
+
+      
+      IMPORTANT: this context may or may not be relevant to your tasks. You should not respond to this context unless it is highly relevant to your task.
