@@ -1,5 +1,7 @@
 **Collect** is a command-line toolkit built with Python that functions as an MCP (Model Context Protocol) server. It is designed to assist with AI-driven development by providing tools to fetch web content, process it, and coordinate analysis across multiple AI models.
 
+THIS IS A MAJOR CHANGE!
+
 *   **Multi-Model Integration**: Interact with models from Google (Gemini), Anthropic (Claude), OpenAI (GPT), and XAI (Grok) through a single interface.
 *   **Content Processing**: Fetch content from URLs and convert HTML to clean markdown or plain text.
 *   **Code & Diff Analysis**: Perform code reviews on files or git diffs using any of the integrated AI models.
