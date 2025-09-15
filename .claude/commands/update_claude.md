@@ -14,7 +14,7 @@ make buildsrc
 ```
 
 ```bash
-make buildsrc --tree
+make make tree
 ```
 
 ```bash
@@ -47,7 +47,7 @@ $(cat source.md)
 
 **IMPORTANT:** DO NOT under any circumstances try to analyze the current git repository.
 
-Your only job is to analyze the provided data in the prompt which has the entire source tree and source code with supplied xml tags specifying the file and its directory structure and then understand the project structure, technologies, conventions, key files, and architecture. 
+Your only job is to analyze the provided data in the prompt which has the entire source tree and source code with supplied xml tags specifying the file, its directory location, a descritpion and its place in the directory structure. Finally then to understand the project structure, technologies, conventions, key files, and architecture. 
 
 Focus on identifying: 
 - Project Overview and purpose
@@ -63,7 +63,7 @@ Focus on identifying:
 - Testing approaches, 
 - Directory organization and purpose of each major component.
 
-IMPORTANT: Do not overwrite the existing GEMINI.md file or try to create it.
+IMPORTANT: Do not overwrite the existing GEMINI.md or CLAUDE.md file or try to create it.
 
 Based on your analysis, output comprehensive GEMINI.md content in markdown format suitable for the Gemini Code Assistant context.
 "

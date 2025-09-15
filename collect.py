@@ -12,7 +12,6 @@ from models.openai_mpc import OpenAIMCP
 from models.xai_mcp import XaiMCP
 from models.gemini_mcp import GeminiMCP
 from fetcher import Fetcher
-import pyperclip
 from reviewer.code_review import CodeReviewer
 import subprocess
 import atexit
@@ -182,7 +181,8 @@ async def copy_clipboard(text: str) -> str:
 
     Note: The text will replace any existing clipboard content.
     """
-    pyperclip.copy(text)
+    subprocess.run(["pbcopy"], input=text, text=True, check=True, capture_output=True)
+    return "Text copied to clipboard successfully"
 
 
 @mcp.tool()

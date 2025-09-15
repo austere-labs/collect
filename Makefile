@@ -3,21 +3,21 @@ PROJECT_NAME := collect
 marimo:
 	uv run marimo edit
 
-.PHONY: synctools
+.PHONY: sync
 movetools:
 	./synctools
 
 .PHONY: buildsrc
 buildsrc: 
-	 ./tools/buildsrc --with-descriptions --verbose --parallel-workers 16
+	 buildsrc --with-descriptions --verbose --parallel-workers 16
 
 .PHONY: buildsrc
 tree:
-	./tools/buildsrc --tree
+	buildsrc --tree
 
 .PHONY: ensuregithub
 ensuregithub:
-	./tools/ensure-github-url
+	ensure-github-url
 
 lint:
 	ruff check .
@@ -40,7 +40,7 @@ test-single:
 check: 
 	make lint
 	make format
-	make synctools
+	make sync
 	make ensuregithub
 	make buildsrc
 	make tree

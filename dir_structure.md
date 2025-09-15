@@ -4,7 +4,6 @@
 /Users/benjaminmetz/python/collect
 ├── __marimo__
 │   └── cache
-├── _progress
 ├── agents
 │   └── tools.py
 ├── agentwork.py
@@ -20,18 +19,16 @@
 ├── collect.py
 ├── config.py
 ├── dir_structure.md
-├── dotfiles
-│   ├── ghostty
-│   │   ├── config
-│   │   └── config.36e1a6b8.bak
-│   └── nvim
-│       └── init.lua
 ├── fetcher.py
 ├── filterModel.md
 ├── GEMINI.md
 ├── initial_load.py
 ├── llmrunner.py
 ├── Makefile
+├── makefiles
+│   ├── go
+│   ├── javascript
+│   └── python
 ├── migrations
 │   ├── 20250727_01_create-prompt-tables.sql
 │   ├── 20250810_01_add-projects-table.sql
@@ -66,9 +63,6 @@
 │   ├── test_datetime_adapters.py
 │   └── test_prompt_service.py
 ├── requirements.txt
-├── resources
-│   ├── git-worktrees.md
-│   └── sqlite3-commands.md
 ├── reviewer
 │   ├── __init__.py
 │   ├── code_review.py
@@ -101,5 +95,5 @@
 ├── uv.lock
 └── yoyo.ini
 
-20 directories, 79 files
+19 directories, 74 files
 ```
