@@ -29,21 +29,25 @@ GCP_PROJECT_ID=your_project_id  # If using Vertex AI
 import os
 import re
 from typing import Optional, Dict, Any
-from dataclasses import dataclass
+from pydantic import BaseModel, Field
 from google import generativeai as genai
 from dotenv import load_dotenv
 
-@dataclass
-class VideoAnalysis:
+class TimestampEntry(BaseModel):
+    """Model for individual timestamp entries"""
+    time: str = Field(..., description="Timestamp in format HH:MM or HH:MM:SS")
+    description: str = Field(..., description="Description of what happens at this timestamp")
+
+class VideoAnalysis(BaseModel):
     """Data structure for video analysis results"""
-    url: str
-    title: Optional[str]
-    duration: Optional[str]
-    summary: str
-    key_topics: list[str]
-    timestamps: list[Dict[str, str]]
-    sentiment: Optional[str]
-    content_type: Optional[str]
+    url: str = Field(..., description="YouTube video URL")
+    title: Optional[str] = Field(None, description="Video title")
+    duration: Optional[str] = Field(None, description="Video duration")
+    summary: str = Field(..., description="Comprehensive video summary")
+    key_topics: list[str] = Field(default_factory=list, description="List of key topics discussed")
+    timestamps: list[TimestampEntry] = Field(default_factory=list, description="Key moments with timestamps")
+    sentiment: Optional[str] = Field(None, description="Overall sentiment of the content")
+    content_type: Optional[str] = Field(None, description="Classification of content type")
 
 class YouTubeVideoReader:
     def __init__(self, api_key: Optional[str] = None):
@@ -130,7 +134,7 @@ class YouTubeVideoReader:
             duration=None,  # Could extract from video metadata  
             summary=response_text,  # Full response for now
             key_topics=[],  # Parse from response
-            timestamps=[],  # Parse from response
+            timestamps=[],  # Parse from response using TimestampEntry models
             sentiment=None,  # Parse from response
             content_type=None  # Parse from response
         )
@@ -175,31 +179,30 @@ def analyze_video(youtube_url: str, output: str, format: str, custom_prompt: str
 def format_analysis(analysis: VideoAnalysis, format_type: str) -> str:
     """Format analysis results based on output type"""
     if format_type == 'json':
-        import json
-        return json.dumps(analysis.__dict__, indent=2, ensure_ascii=False)
+        return analysis.model_dump_json(indent=2)
     
     elif format_type == 'markdown':
         return f"""# YouTube Video Analysis
         
-## Video Information
-- **URL**: {analysis.url}
-- **Title**: {analysis.title or 'N/A'}
-- **Duration**: {analysis.duration or 'N/A'}
+        ## Video Information
+        - **URL**: {analysis.url}
+        - **Title**: {analysis.title or 'N/A'}
+        - **Duration**: {analysis.duration or 'N/A'}
 
-## Summary
-{analysis.summary}
+        ## Summary
+        {analysis.summary}
 
-## Key Topics
-{chr(10).join(f"- {topic}" for topic in analysis.key_topics)}
+        ## Key Topics
+        {chr(10).join(f"- {topic}" for topic in analysis.key_topics)}
 
-## Key Timestamps
-{chr(10).join(f"- **{ts.get('time', 'N/A')}**: {ts.get('description', 'N/A')}" for ts in analysis.timestamps)}
+        ## Key Timestamps
+        {chr(10).join(f"- **{ts.time}**: {ts.description}" for ts in analysis.timestamps)}
 
-## Content Analysis
-- **Content Type**: {analysis.content_type or 'N/A'}
-- **Sentiment**: {analysis.sentiment or 'N/A'}
-"""
-    
+        ## Content Analysis
+        - **Content Type**: {analysis.content_type or 'N/A'}
+        - **Sentiment**: {analysis.sentiment or 'N/A'}
+        """
+        
     else:  # text format
         return analysis.summary
 
@@ -212,6 +215,7 @@ if __name__ == '__main__':
 ```python
 from typing import Dict, List, Optional
 import re
+from youtube_reader import TimestampEntry  # Import from main module
 
 class VideoMetadataExtractor:
     """Extract additional metadata from YouTube videos"""
@@ -242,12 +246,12 @@ class ResponseParser:
     """Parse Gemini responses into structured data"""
     
     @staticmethod
-    def extract_timestamps(text: str) -> List[Dict[str, str]]:
+    def extract_timestamps(text: str) -> List[TimestampEntry]:
         """Extract timestamps from response text"""
         timestamp_pattern = r'(\d{1,2}:\d{2}(?::\d{2})?)\s*[-:]\s*(.+?)(?=\n|\d{1,2}:\d{2}|$)'
         matches = re.findall(timestamp_pattern, text, re.MULTILINE)
         
-        return [{"time": match[0], "description": match[1].strip()} 
+        return [TimestampEntry(time=match[0], description=match[1].strip()) 
                 for match in matches]
     
     @staticmethod
@@ -272,34 +276,36 @@ class ResponseParser:
 ### 5. Configuration and Settings
 **File**: `config.py`
 ```python
-from pydantic import BaseSettings
+from pydantic_settings import BaseSettings
+from pydantic import Field
 from typing import Optional
 
 class Settings(BaseSettings):
     """Application settings with environment variable support"""
     
     # API Configuration
-    gemini_api_key: str
-    gcp_project_id: Optional[str] = None
+    gemini_api_key: str = Field(..., description="Gemini API key from Google AI Studio")
+    gcp_project_id: Optional[str] = Field(None, description="Google Cloud Project ID")
     
     # Model Configuration
-    model_name: str = "gemini-2.5-pro"
-    max_tokens: int = 8192
-    temperature: float = 0.3
+    model_name: str = Field("gemini-2.5-pro", description="Gemini model to use")
+    max_tokens: int = Field(8192, description="Maximum tokens for response")
+    temperature: float = Field(0.3, ge=0.0, le=1.0, description="Model temperature")
     
     # Video Processing Settings
-    max_video_duration: int = 7200  # 2 hours in seconds
-    frame_rate: int = 1  # Frames per second for analysis
-    media_resolution: str = "default"  # or "low" for longer videos
+    max_video_duration: int = Field(7200, description="Maximum video duration in seconds")
+    frame_rate: int = Field(1, ge=1, description="Frames per second for analysis")
+    media_resolution: str = Field("default", description="Media resolution (default or low)")
     
     # Output Settings
-    default_output_format: str = "markdown"
-    include_timestamps: bool = True
-    include_sentiment: bool = True
+    default_output_format: str = Field("markdown", description="Default output format")
+    include_timestamps: bool = Field(True, description="Include timestamps in output")
+    include_sentiment: bool = Field(True, description="Include sentiment analysis")
     
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
+    model_config = {
+        "env_file": ".env",
+        "env_file_encoding": "utf-8"
+    }
 
 # Global settings instance
 settings = Settings()
@@ -345,7 +351,8 @@ settings = Settings()
 ```python
 google-generativeai>=0.8.0     # Gemini API client
 python-dotenv>=1.0.0           # Environment management
-pydantic>=2.0.0                # Data validation and settings
+pydantic>=2.0.0                # Data validation and models
+pydantic-settings>=2.0.0       # Settings management
 click>=8.0.0                   # CLI interface
 asyncio                        # Built-in async support
 ```
