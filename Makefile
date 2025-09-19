@@ -1,5 +1,8 @@
 PROJECT_NAME := collect
 
+upgradecodex:
+	npm install -g @openai/codex@latest
+
 marimo:
 	uv run marimo edit
 
