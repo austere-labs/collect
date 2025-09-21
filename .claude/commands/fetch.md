@@ -5,6 +5,10 @@ argument-hint: [url] [instructions]
 model: claude-opus-4-20250514
 ---
 
+## IMPORTANT INSTRUCTIONS:
+- Please do not use any MCP tools.
+- Only use the WebFetch tool
+
 # WebFetch and Extract
 
 Fetch content using a URL and extract specific information based on provided instructions.

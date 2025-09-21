@@ -1,9 +1,11 @@
 from config import Config
 from secret_manager import SecretManager
 import requests
+import re
 from fetcher import Fetcher
 from mcp.server.fastmcp import Context
-from typing import Dict, List
+from typing import Dict, List, Optional
+from models.youtube_models import VideoAnalysis
 
 
 class GeminiMCP:
@@ -18,6 +20,12 @@ class GeminiMCP:
         self.model = model
         self.api_key = self.secret_mgr.get_secret(self.config.gemini_api_key_path)
         self.base_url = self.config.gemini_base_url
+        self.headers = self.build_headers()
+        self.gemini_token_limit = 1048576
+
+    def build_headers(self) -> dict:
+        headers = {"x-goog-api-key": self.api_key, "Content-Type": "application/json"}
+        return headers
 
     def get_model_list(self) -> Dict:
         try:
@@ -92,26 +100,16 @@ class GeminiMCP:
     def send_message(
         self, message: str, max_tokens: int = 1024, model: str = None
     ) -> dict:
+        model = model or self.model
         try:
-            gemini_key = self.secret_mgr.get_secret(self.config.gemini_api_key_path)
-
-            # Use provided model or default
-            if model is None:
-                model = "gemini-2.5-flash"
-
-            base_url = self.config.gemini_base_url
-            url = f"{base_url}models/{model}:generateContent?key={gemini_key}"
-
-            headers = {"Content-Type": "application/json"}
-
+            url = f"{self.base_url}models/{model}:generateContent"
             data = {
                 "contents": [{"parts": [{"text": message}]}],
                 "generationConfig": {"maxOutputTokens": max_tokens},
             }
 
-            response = requests.post(url, headers=headers, json=data)
+            response = requests.post(url, headers=self.headers, json=data)
             response.raise_for_status()
-
             return response.json()
 
         except requests.exceptions.RequestException as e:
@@ -121,13 +119,103 @@ class GeminiMCP:
         except Exception as e:
             raise RuntimeError(f"Unexpected error in send_message: {e}")
 
+    def validate_youtube_url(self, url: str) -> bool:
+        """Validate YouTube URL format"""
+        youtube_patterns = [
+            r"(?:https?://)?(?:www\.)?youtube\.com/watch\?v=([^&\n?#]*)",
+            r"(?:https?://)?(?:www\.)?youtu\.be/([^&\n?#]*)",
+            r"(?:https?://)?(?:www\.)?youtube\.com/embed/([^&\n?#]*)",
+        ]
+        return any(re.match(pattern, url) for pattern in youtube_patterns)
+
+    async def analyze_video(
+        self, youtube_url: str, prompt: Optional[str] = None
+    ) -> VideoAnalysis:
+        """
+        Analyze YouTube video using Gemini's multimodal capabilities
+
+        Args:
+            youtube_url: Valid YouTube video URL
+            custom_prompt: Optional custom analysis prompt
+
+        Returns:
+            VideoAnalysis object with comprehensive results
+        """
+
+        if not self.validate_youtube_url(youtube_url):
+            raise ValueError(f"Invalid YouTube URL provided: {youtube_url}")
+
+        # Default comprehensive analysis prompt
+        default_prompt = """
+        Please analyze this YouTube video comprehensively and provide:
+
+        1. **Video Summary**: A detailed 3-4 paragraph summary of the main content
+        2. **Key Topics**: List the 5-10 most important topics discussed
+        3. **Timestamps**: Identify 8-12 key moments with timestamps and descriptions
+        4. **Content Type**: Classify the video (educational, entertainment, news, tutorial, etc.)
+        5. **Sentiment**: Overall tone and sentiment of the content
+        6. **Main Takeaways**: 3-5 key insights or actionable points
+
+        Focus on both visual and audio elements. Pay attention to:
+        - Spoken content and dialogue
+        - Visual elements, graphics, and text shown
+        - Scene changes and transitions
+        - Background music or sounds that add context
+
+        Format your response in a structured way with clear sections.
+        """
+        prompt = prompt or default_prompt
+
+        data = {
+            "contents": [
+                {"parts": [{"text": prompt}, {"file_data": {"file_uri": youtube_url}}]}
+            ]
+        }
+        url = f"{self.base_url}models/{self.model}:generateContent"
+
+        try:
+            response = requests.post(url, headers=self.headers, json=data)
+            response.raise_for_status()
+            return response.json()
+
+        except requests.exceptions.RequestException as e:
+            raise RuntimeError(f"Failed to send msg to Gemini: {str(e)}")
+        except Exception as e:
+            raise RuntimeError(f"Unexpected error when sending video: {str(e)}")
+
+    def _parse_analysis_response(self, response: str, url: str) -> VideoAnalysis:
+        """Parse Gemini response into structured VideoAnalysis object"""
+        # This would contain logic to extract structured data from the response
+        # For now, return basic structure - implement parsing based on response format
+
+        return VideoAnalysis(
+            url=url,
+            title=None,  # Could extract from video metadata
+            duration=None,  # Could extract from video metadata
+            summary=response,  # Full response for now
+            key_topics=[],  # Parse from response
+            timestamps=[],  # Parse from response using TimestampEntry models
+            sentiment=None,  # Parse from response
+            content_type=None,  # Parse from response
+        )
+
+    async def count_tokens_video(self, youtube_url: str) -> int:
+        data = {"contents": [{"parts": [{"file_data": {"file_uri": youtube_url}}]}]}
+
+        url = f"{self.base_url}models/{self.model}:countTokens"
+        response = requests.post(url, headers=self.headers, json=data)
+        response.raise_for_status()
+        result = response.json()
+
+        return result["totalTokens"]
+
     def count_tokens(self, message: str, model: str = None) -> int:
         try:
             gemini_key = self.secret_mgr.get_secret(self.config.gemini_api_key_path)
 
             # Use provided model or default
             if model is None:
-                model = "gemini-2.0-flash"
+                model = "gemini-2.5-flash"
 
             # Fix common model name errors
             if model == "gemini-2.5-pro-preview":

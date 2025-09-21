@@ -7,13 +7,11 @@
 ├── agents
 │   └── tools.py
 ├── agentwork.py
-├── anthropic_tool_use.md
 ├── api
 │   ├── __init__.py
 │   ├── prompt_api_models.py
 │   └── prompt_api.py
 ├── api.py
-├── build_agent.md
 ├── CLAUDE_DRAFT.md
 ├── CLAUDE.md
 ├── collect.py
@@ -46,7 +44,8 @@
 │   ├── test_gemini_mcp.py
 │   ├── test_openai_mcp.py
 │   ├── test_xai_mcp.py
-│   └── xai_mcp.py
+│   ├── xai_mcp.py
+│   └── youtube_models.py
 ├── notebooks
 │   ├── __marimo__
 │   │   └── cache
@@ -85,15 +84,12 @@
 │   │   └── summary_20250601_085957.json
 │   └── test_diff.md
 ├── secret_manager.py
-├── simple_agent.md
 ├── synctools
 ├── test_collect.py
 ├── test_generate_prompt.py
 ├── test_llmrunner.py
-├── tool_calling.md
-├── tool_use.md
 ├── uv.lock
 └── yoyo.ini
 
-19 directories, 74 files
+19 directories, 70 files
 ```
