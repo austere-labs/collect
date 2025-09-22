@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 from pydantic import BaseModel, Field
 from enum import Enum
 
@@ -36,3 +36,38 @@ class VideoAnalysis(BaseModel):
     content_type: Optional[str] = Field(
         None, description="Classification of content type"
     )
+
+
+class TokenDetails(BaseModel):
+    modality: str
+    tokenCount: int
+
+
+class UsageMetadata(BaseModel):
+    promptTokenCount: int
+    candidatesTokenCount: int
+    totalTokenCount: int
+    promptTokensDetails: List[TokenDetails]
+    thoughtsTokenCount: int
+
+
+class ContentPart(BaseModel):
+    text: str
+
+
+class Content(BaseModel):
+    parts: List[ContentPart]
+    role: str
+
+
+class Candidate(BaseModel):
+    content: Content
+    finishReason: str
+    index: int
+
+
+class GeminiYouTubeResponse(BaseModel):
+    candidates: List[Candidate]
+    usageMetadata: UsageMetadata
+    modelVersion: str
+    responseId: str

@@ -2,6 +2,7 @@ import pytest
 from config import Config
 from secret_manager import SecretManager
 from models.gemini_mcp import GeminiMCP
+from models.youtube_models import GeminiYouTubeResponse
 
 
 @pytest.fixture
@@ -16,13 +17,14 @@ def gemini_mcp():
 async def test_token_count_youtube(gemini_mcp):
     yt_url = "https://www.youtube.com/watch?v=4GiqzUHD5AA"
     token_count = await gemini_mcp.count_tokens_video(yt_url)
-    print(f"Token count is: {token_count}")
+    assert token_count == 391156
 
 
+@pytest.mark.asyncio
 async def test_youtube(gemini_mcp):
-    yt_url = "https://www.youtube.com/watch?v=4GiqzUHD5AA"
-    response = await gemini_mcp.analyze_video(yt_url)
-    print(response)
+    yt_url = "https://youtu.be/FaMADv_GXqs?si=aYfvjEeW7Qc4sQ_h"
+    resp: GeminiYouTubeResponse = await gemini_mcp.analyze_video(yt_url)
+    assert resp.candidates[0].content.parts[0].text != ""
 
 
 def test_get_model_list(gemini_mcp):

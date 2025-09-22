@@ -5,7 +5,7 @@ import re
 from fetcher import Fetcher
 from mcp.server.fastmcp import Context
 from typing import Dict, List, Optional
-from models.youtube_models import VideoAnalysis
+from models.youtube_models import VideoAnalysis, GeminiYouTubeResponse
 
 
 class GeminiMCP:
@@ -18,18 +18,21 @@ class GeminiMCP:
         self.config = config
         self.secret_mgr = secret_mgr
         self.model = model
-        self.api_key = self.secret_mgr.get_secret(self.config.gemini_api_key_path)
+        self.api_key = self.secret_mgr.get_secret(
+            self.config.gemini_api_key_path)
         self.base_url = self.config.gemini_base_url
         self.headers = self.build_headers()
         self.gemini_token_limit = 1048576
 
     def build_headers(self) -> dict:
-        headers = {"x-goog-api-key": self.api_key, "Content-Type": "application/json"}
+        headers = {"x-goog-api-key": self.api_key,
+                   "Content-Type": "application/json"}
         return headers
 
     def get_model_list(self) -> Dict:
         try:
-            gemini_key = self.secret_mgr.get_secret(self.config.gemini_api_key_path)
+            gemini_key = self.secret_mgr.get_secret(
+                self.config.gemini_api_key_path)
 
             base_url = self.config.gemini_base_url
             url = f"{base_url}models?key={gemini_key}"
@@ -39,7 +42,8 @@ class GeminiMCP:
             return self.filter_models(["2.0", "2.5"], response.json())
 
         except requests.exceptions.RequestException as e:
-            raise RuntimeError(f"Failed to get model list from Gemini API: {e}")
+            raise RuntimeError(
+                f"Failed to get model list from Gemini API: {e}")
         except KeyError as e:
             raise ValueError(f"Missing required configuration or secret: {e}")
         except Exception as e:
@@ -150,11 +154,10 @@ class GeminiMCP:
         Please analyze this YouTube video comprehensively and provide:
 
         1. **Video Summary**: A detailed 3-4 paragraph summary of the main content
-        2. **Key Topics**: List the 5-10 most important topics discussed
-        3. **Timestamps**: Identify 8-12 key moments with timestamps and descriptions
-        4. **Content Type**: Classify the video (educational, entertainment, news, tutorial, etc.)
-        5. **Sentiment**: Overall tone and sentiment of the content
-        6. **Main Takeaways**: 3-5 key insights or actionable points
+        2. **Key Topics**: List the 3-5 most important topics discussed
+        3. **Timestamps**: Identify 5-7 key moments with timestamps and descriptions
+        4. **Main Takeaways**: 3-5 key insights or actionable points
+        5. **Key quotes from the speaker**: Identify critical quotes that are pertinent to the content presented.
 
         Focus on both visual and audio elements. Pay attention to:
         - Spoken content and dialogue
@@ -162,13 +165,14 @@ class GeminiMCP:
         - Scene changes and transitions
         - Background music or sounds that add context
 
-        Format your response in a structured way with clear sections.
+        Format your response in a structured markdown with clear sections.
         """
         prompt = prompt or default_prompt
 
         data = {
             "contents": [
-                {"parts": [{"text": prompt}, {"file_data": {"file_uri": youtube_url}}]}
+                {"parts": [{"text": prompt}, {
+                    "file_data": {"file_uri": youtube_url}}]}
             ]
         }
         url = f"{self.base_url}models/{self.model}:generateContent"
@@ -176,12 +180,14 @@ class GeminiMCP:
         try:
             response = requests.post(url, headers=self.headers, json=data)
             response.raise_for_status()
-            return response.json()
+            response_data = response.json()
+            return GeminiYouTubeResponse(**response_data)
 
         except requests.exceptions.RequestException as e:
             raise RuntimeError(f"Failed to send msg to Gemini: {str(e)}")
         except Exception as e:
-            raise RuntimeError(f"Unexpected error when sending video: {str(e)}")
+            raise RuntimeError(
+                f"Unexpected error when sending video: {str(e)}")
 
     def _parse_analysis_response(self, response: str, url: str) -> VideoAnalysis:
         """Parse Gemini response into structured VideoAnalysis object"""
@@ -200,7 +206,16 @@ class GeminiMCP:
         )
 
     async def count_tokens_video(self, youtube_url: str) -> int:
-        data = {"contents": [{"parts": [{"file_data": {"file_uri": youtube_url}}]}]}
+        data = {
+            "contents": [
+                {"parts": [
+                    {
+                        "file_data": {"file_uri": youtube_url}
+                    }
+                ]
+                }
+            ]
+        }
 
         url = f"{self.base_url}models/{self.model}:countTokens"
         response = requests.post(url, headers=self.headers, json=data)
@@ -211,7 +226,8 @@ class GeminiMCP:
 
     def count_tokens(self, message: str, model: str = None) -> int:
         try:
-            gemini_key = self.secret_mgr.get_secret(self.config.gemini_api_key_path)
+            gemini_key = self.secret_mgr.get_secret(
+                self.config.gemini_api_key_path)
 
             # Use provided model or default
             if model is None:
