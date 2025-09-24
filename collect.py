@@ -20,7 +20,6 @@ import time
 mcp = FastMCP("Collect")
 
 
-@mcp.tool()
 async def run_code_review(from_file: str, to_file: str = "codereview"):
     """
     Run code review on a diff file using multiple LLM models.
@@ -36,7 +35,6 @@ async def run_code_review(from_file: str, to_file: str = "codereview"):
     return await reviewer.review_code(from_file, to_file)
 
 
-@mcp.tool()
 async def run_git_diff_review(to_file: str = "codereview", staged_only: bool = True):
     """
     Run code review on git diff output.
@@ -53,7 +51,6 @@ async def run_git_diff_review(to_file: str = "codereview", staged_only: bool = T
     return await reviewer.review_diff_from_git(to_file, staged_only)
 
 
-@mcp.tool()
 async def fetch_urls(urls: List[str], ctx: Context = None) -> str:
     """
     Fetch content from multiple URLs concurrently and merge the responses.
@@ -80,7 +77,6 @@ async def fetch_urls(urls: List[str], ctx: Context = None) -> str:
     return merged_responses
 
 
-@mcp.tool()
 async def fetch_url(url: str, ctx: Context = None) -> str:
     """
     Fetch raw content from a single URL.
@@ -181,11 +177,11 @@ async def copy_clipboard(text: str) -> str:
 
     Note: The text will replace any existing clipboard content.
     """
-    subprocess.run(["pbcopy"], input=text, text=True, check=True, capture_output=True)
+    subprocess.run(["pbcopy"], input=text, text=True,
+                   check=True, capture_output=True)
     return "Text copied to clipboard successfully"
 
 
-@mcp.tool()
 def strip_html(html: str) -> str:
     """
     Remove all HTML tags and return plain text content.
@@ -208,7 +204,6 @@ def strip_html(html: str) -> str:
     return soup.get_text()
 
 
-@mcp.tool()
 def to_markdown(html: str) -> str:
     """Extract and convert HTML content to markdown using markdownify
     and readabilipy
@@ -493,7 +488,8 @@ async def generate_prompt(prompt: str, target_model: str = None) -> str:
         # Set up Anthropic MCP client
         config = Config()
         secret_mgr = SecretManager(config.project_id)
-        anthropic_mcp = AnthropicMCP(config, secret_mgr, config.anthropic_model_sonnet)
+        anthropic_mcp = AnthropicMCP(
+            config, secret_mgr, config.anthropic_model_sonnet)
 
         # Call generate_prompt API with new signature
         response = anthropic_mcp.generate_prompt(task_content, target_model)

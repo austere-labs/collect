@@ -132,9 +132,39 @@ class GeminiMCP:
         ]
         return any(re.match(pattern, url) for pattern in youtube_patterns)
 
+    def validate_response(self, response: GeminiYouTubeResponse) -> bool:
+        """
+        Validate that the Gemini response has the expected structure
+
+        Args:
+            response: GeminiYouTubeResponse object to validate
+
+        Returns:
+            bool: True if response is valid, False otherwise
+        """
+        if not response or not response.candidates:
+            return False
+
+        if len(response.candidates) == 0:
+            return False
+
+        candidate = response.candidates[0]
+        if not candidate.content or not candidate.content.parts:
+            return False
+
+        if len(candidate.content.parts) == 0:
+            return False
+
+        # Check if the first part has text
+        first_part = candidate.content.parts[0]
+        if not hasattr(first_part, 'text') or not first_part.text:
+            return False
+
+        return True
+
     async def analyze_video(
         self, youtube_url: str, prompt: Optional[str] = None
-    ) -> VideoAnalysis:
+    ) -> GeminiYouTubeResponse:
         """
         Analyze YouTube video using Gemini's multimodal capabilities
 
@@ -168,14 +198,94 @@ class GeminiMCP:
         Format your response in a structured markdown with clear sections.
         """
         prompt = prompt or default_prompt
+        url = f"{self.base_url}models/{self.model}:generateContent"
+        token_count = await self.count_tokens_video(youtube_url)
+
+        if token_count >= self.gemini_token_limit:
+            # then we need to split the video by some means
+            first_chunk = {
+                "contents": [
+                    {"parts": [
+                        {
+                            "file_data": {"file_uri": youtube_url},
+                            "video_metadata": {
+                                "start_offset": "0s",
+                                "end_offset": "1800s"
+                            }
+                        },
+                        {"text": prompt}
+                    ]}
+                ]
+            }
+            second_chunk = {
+                "contents": [
+                    {"parts": [
+                        {
+                            "file_data": {"file_uri": youtube_url},
+                            "video_metadata": {
+                                "start_offset": "1800s"
+                            }
+                        },
+                        {"text": prompt}
+                    ]}
+                ]
+            }
+
+            try:
+                import asyncio
+                import httpx
+
+                async def make_request(chunk_data):
+                    async with httpx.AsyncClient(timeout=300.0) as client:
+                        response = await client.post(
+                            url, headers=self.headers, json=chunk_data)
+                        response.raise_for_status()
+                        return response.json()
+
+                # Make both requests concurrently
+                first_chunk_resp_data, second_chunk_resp_data = await asyncio.gather(
+                    make_request(first_chunk),
+                    make_request(second_chunk)
+                )
+
+                first_response = GeminiYouTubeResponse(**first_chunk_resp_data)
+                second_response = GeminiYouTubeResponse(
+                    **second_chunk_resp_data)
+
+                # Validate both responses
+                if not self.validate_response(first_response) or not self.validate_response(second_response):
+                    raise RuntimeError(
+                        "Invalid response structure from Gemini API")
+
+                chunk1 = first_response.candidates[0].content.parts[0].text
+                chunk2 = second_response.candidates[0].content.parts[0].text
+                combined = f"{chunk1}\n\n-- Second Half --\n\n{chunk2}"
+
+                # Create new response with combined text
+                from copy import deepcopy
+                combined_response_data = deepcopy(first_chunk_resp_data)
+                combined_response_data['candidates'][0]['content']['parts'][0]['text'] = combined
+
+                return GeminiYouTubeResponse(**combined_response_data)
+
+            except httpx.RequestError as e:
+                raise RuntimeError(f"Failed to send msg to Gemini: {str(e)}")
+            except Exception as e:
+                raise RuntimeError(
+                    f"Unexpected error when sending video: {str(e)}")
 
         data = {
             "contents": [
-                {"parts": [{"text": prompt}, {
-                    "file_data": {"file_uri": youtube_url}}]}
+                {"parts": [
+                    {"text": prompt}, {
+                        "file_data": {
+                            "file_uri": youtube_url
+                        }
+                    }
+                ]
+                }
             ]
         }
-        url = f"{self.base_url}models/{self.model}:generateContent"
 
         try:
             response = requests.post(url, headers=self.headers, json=data)

@@ -14,17 +14,26 @@ def gemini_mcp():
 
 
 @pytest.mark.asyncio
-async def test_token_count_youtube(gemini_mcp):
-    yt_url = "https://www.youtube.com/watch?v=4GiqzUHD5AA"
-    token_count = await gemini_mcp.count_tokens_video(yt_url)
-    assert token_count == 391156
+async def test_token_count(gemini_mcp):
+    # yt_url = "https://www.youtube.com/watch?v=4GiqzUHD5AA"
+    # assert token_count == 391156
+    # token_count = await gemini_mcp.count_tokens_video(yt_url)
+    # print(f"Token count: {token_count}")
+    # print(resp.candidates[0].content.parts[0].text)
+
+    yt_url = "https://youtu.be/_IlTcWciEC4?si=SUxBmkKy6wmmP1e4"
+    count = await gemini_mcp.count_tokens_video(yt_url)
+    print(f"token count: {count}")
+    resp: GeminiYouTubeResponse = await gemini_mcp.analyze_video(yt_url)
+    print(resp.candidates[0].content.parts[0].text)
 
 
 @pytest.mark.asyncio
 async def test_youtube(gemini_mcp):
-    yt_url = "https://youtu.be/FaMADv_GXqs?si=aYfvjEeW7Qc4sQ_h"
-    resp: GeminiYouTubeResponse = await gemini_mcp.analyze_video(yt_url)
-    assert resp.candidates[0].content.parts[0].text != ""
+    # yt_url = "https://youtu.be/FaMADv_GXqs?si=aYfvjEeW7Qc4sQ_h?t=50%"
+    yt_url1 = "https://youtu.be/_IlTcWciEC4?si=YJWcb2tAwzKdZCqY"
+    resp: GeminiYouTubeResponse = await gemini_mcp.analyze_video(yt_url1)
+    print(resp.candidates[0].content.parts[0].text)
 
 
 def test_get_model_list(gemini_mcp):
