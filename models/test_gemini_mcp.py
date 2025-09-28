@@ -3,6 +3,7 @@ from config import Config
 from secret_manager import SecretManager
 from models.gemini_mcp import GeminiMCP
 from models.youtube_models import GeminiYouTubeResponse
+from datetime import timedelta
 
 
 @pytest.fixture
@@ -15,6 +16,7 @@ def gemini_mcp():
 
 @pytest.mark.asyncio
 async def test_token_count(gemini_mcp):
+    video_length = "mm:ss - 22.05"
     # yt_url = "https://www.youtube.com/watch?v=4GiqzUHD5AA"
     # assert token_count == 391156
     # token_count = await gemini_mcp.count_tokens_video(yt_url)
@@ -26,6 +28,11 @@ async def test_token_count(gemini_mcp):
     print(f"token count: {count}")
     resp: GeminiYouTubeResponse = await gemini_mcp.analyze_video(yt_url)
     print(resp.candidates[0].content.parts[0].text)
+
+
+def parse_video_duration(duration_str: str) -> timedelta:
+    minutes, seconds = map(int, duration_str.split(':'))
+    return timedelta(minutes=minutes, seconds=seconds)
 
 
 @pytest.mark.asyncio
