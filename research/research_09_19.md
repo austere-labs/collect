@@ -23,6 +23,7 @@
 - [Gemini youtube url api](https://ai.google.dev/gemini-api/docs/video-understanding#youtube)
 - [The Prompt Report: A Systematic Survey of Prompt Engineering Techniques](https://arxiv.org/pdf/2406.06608)
 - [12 Factor Agents](https://github.com/humanlayer/12-factor-agents)
+- [Claude Code SDK](https://docs.claude.com/en/docs/claude-code/sdk/sdk-python)
 
 ## High-Level Ideas Garnered from Above
 1. **GEPA Framework Potential**: The GEPA paper is extremely compelling for using [DSPY](https://dspy.ai/tutorials/gepa_ai_program/) for both building and improving prompts as well as using its agent framework. I've included a paper above from Sander Schulohoff where he describes DSPy beating 20 hours of his work in 10 minutes. I've linked to a Claude summary of that part of the paper here: [Claude summary of DSPy prompt improvement](https://github.com/austere-labs/collect/blob/main/research/DSPy-Beats-Human-Prompt-Engineering.md)
@@ -50,6 +51,8 @@
 12. **YouTube Integration**: In addition I built a simple Youtube reader using this API in Gemini: [youtube url api](https://ai.google.dev/gemini-api/docs/video-understanding#youtube)
 
 13. **Enhanced Learning**: I plan to use this extensively to improve my speed of groking information from youtube interviews and combining them with papers/links.
+
+14. **Claude Code SDK**: I've started to play with the Claude Code SDK for both building agents as well as using it as a tools for a base agent. Examples include Planning and Todos...
 
 ## Ideas on How to Process Large Code Bases
 - **Agentic Over RAG**: Agentic search and the models ability to understand the project structure is the better direction over RAG or other types of indexing.
