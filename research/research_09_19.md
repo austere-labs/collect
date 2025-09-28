@@ -25,7 +25,7 @@
 - [12 Factor Agents](https://github.com/humanlayer/12-factor-agents)
 
 ## High-Level Ideas Garnered from Above
-1. **GEPA Framework Potential**: The GEPA paper is extremely compelling for using [DSPY](https://dspy.ai/tutorials/gepa_ai_program/) for both building and improving prompts as well as using its agent framework. I read a paper on prompting about 2 months ago (that I cannot for the life of me find) that showed DSPY prompt improvers beating the best prompt engineering efforts. I have a Deep Research running right now to see if I can find that (AAnd I found it) ... anyway, I am wondering if prompt engineering (as we know it) is dead if we can algorithmically tune prompts that beat Reinforcement Learning, which lead me to the GEPA paper.
+1. **GEPA Framework Potential**: The GEPA paper is extremely compelling for using [DSPY](https://dspy.ai/tutorials/gepa_ai_program/) for both building and improving prompts as well as using its agent framework. I've included a paper above from Sander Schulohoff where he describes DSPy beating 20 hours of his work in 10 minutes. I've linked to a Claude summary of that part of the paper here: [Claude summary of DSPy prompt improvement](https://github.com/austere-labs/collect/blob/main/research/DSPy-Beats-Human-Prompt-Engineering.md)
 
 2. **GEPA as Agent Tool**: You could use GEPA as a tool in an agent to improve its interaction with the LLM.
 
