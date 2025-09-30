@@ -2,28 +2,35 @@
 
 ## Reading List: Posts, Papers and Videos Consumed
 
+### YouTube Videos
+- [Huong Won Chung - OpenAI - Stanford talk on doing AI research](https://www.youtube.com/watch?v=orDKvo8h71o)
+- [Context Engineering for Agents - Lance Martin on Latent Space](https://www.youtube.com/watch?v=_IlTcWciEC4)
+
+### Papers
 - [Open AI guide to building agents](https://cdn.openai.com/business-guides-and-resources/a-practical-guide-to-building-agents.pdf)
+- [LIMI paper - 78 carefully chosen examples improves LLM responses dramatically](https://arxiv.org/pdf/2509.17567)
+- [The Prompt Report: A Systematic Survey of Prompt Engineering Techniques](https://arxiv.org/pdf/2406.06608)
+- [GEPA: Reflective Prompt Evolution can Outperform Reinforcement Learning](https://arxiv.org/pdf/2507.19457)
+
+### Blog Posts
 - [Anthropic guide to building agents](https://www.anthropic.com/engineering/building-effective-agents)
 - [Anthropic guide to building multi agent systems](https://www.anthropic.com/engineering/multi-agent-research-system)
 - [Manus - Context Engineering for Agents](https://manus.im/blog/Context-Engineering-for-AI-Agents-Lessons-from-Building-Manus)
 - [Lance Martin - Context engineering for Agents](https://rlancemartin.github.io/2025/06/23/context_engineering/)
 - [Lance Martin - Learning the Bitter Lesson](https://rlancemartin.github.io/2025/07/30/bitter_lesson/)
-- [Huong Won Chung - OpenAI - Stanford talk on doing AI research](https://www.youtube.com/watch?v=orDKvo8h71o)
 - [The state of AI Agents - Lance Martin](https://rlancemartin.github.io/2025/06/10/aie/)
 - [Hugging Face - Open source Deep Research](https://huggingface.co/blog/open-deep-research#:~:text=From%20building%20,it%20can%20still%20use%20it)
 - [Cognition - Don't build multi-agent systems](https://cognition.ai/blog/dont-build-multi-agents#principles-of-context-engineering)
 - [Simon Willison on the Anthropic post of multi agent systems](https://simonwillison.net/2025/Jun/14/multi-agent-research-system/)
 - [Simon Willison on tracing Claude to understand its agentic props](https://simonwillison.net/2025/Jun/2/claude-trace/)
 - [Link to Open Deep Research - Lance Martin](https://github.com/langchain-ai/open_deep_research)
-- [LIMI paper - 78 carefully chosen examples improves LLM responses dramatically](https://arxiv.org/pdf/2509.17567)
 - [X post summarizing LIMI paper](https://x.com/rohanpaul_ai/status/1970827405297082385?s=12)
 - [Author of ripgrep - deep explanation of design choices for file searching](https://burntsushi.net/ripgrep/#gathering-files-to-search)
-- [Context Engineering for Agents - Lance Martin on Latent Space](https://www.youtube.com/watch?v=_IlTcWciEC4)
 - [Drew Bruenig on how Long Contexts Fail](https://www.dbreunig.com/2025/06/22/how-contexts-fail-and-how-to-fix-them.html)
 - [Gemini youtube url api](https://ai.google.dev/gemini-api/docs/video-understanding#youtube)
-- [The Prompt Report: A Systematic Survey of Prompt Engineering Techniques](https://arxiv.org/pdf/2406.06608)
 - [12 Factor Agents](https://github.com/humanlayer/12-factor-agents)
 - [Claude Code SDK](https://docs.claude.com/en/docs/claude-code/sdk/sdk-python)
+- [Things you can do with Claude Code SDK - Dex Horthy](https://theouterloop.substack.com/p/a-few-fun-things-you-can-do-with)
 
 ## High-Level Ideas Garnered from Above
 1. **GEPA Framework Potential**: The GEPA paper is extremely compelling for using [DSPY](https://dspy.ai/tutorials/gepa_ai_program/) for both building and improving prompts as well as using its agent framework. I've included a paper above from Sander Schulohoff where he describes DSPy beating 20 hours of his work in 10 minutes. I've linked to a Claude summary of that part of the paper here: [Claude summary of DSPy prompt improvement](https://github.com/austere-labs/collect/blob/main/research/DSPy-Beats-Human-Prompt-Engineering.md)
