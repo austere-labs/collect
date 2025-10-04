@@ -1,6 +1,5 @@
 ---
 description: "Reads and displays the contents of a specified file without making any modifications"
-model: sonnet
 argument-hint: [file_name]
 ---
 Read the file at the path: {file_name}

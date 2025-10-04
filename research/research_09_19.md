@@ -5,6 +5,7 @@
 ### YouTube Videos
 - [Huong Won Chung - OpenAI - Stanford talk on doing AI research](https://www.youtube.com/watch?v=orDKvo8h71o)
 - [Context Engineering for Agents - Lance Martin on Latent Space](https://www.youtube.com/watch?v=_IlTcWciEC4)
+- [Sander Schuloff on Prompt Engineering](https://www.youtube.com/watch?v=eKuFqQKYRrA)
 
 ### Papers
 - [Open AI guide to building agents](https://cdn.openai.com/business-guides-and-resources/a-practical-guide-to-building-agents.pdf)
@@ -31,6 +32,7 @@
 - [12 Factor Agents](https://github.com/humanlayer/12-factor-agents)
 - [Claude Code SDK](https://docs.claude.com/en/docs/claude-code/sdk/sdk-python)
 - [Things you can do with Claude Code SDK - Dex Horthy](https://theouterloop.substack.com/p/a-few-fun-things-you-can-do-with)
+- [Context engineering for agents](https://www.youtube.com/watch?v=IS_y40zY-hc)
 
 ## High-Level Ideas Garnered from Above
 1. **GEPA Framework Potential**: The GEPA paper is extremely compelling for using [DSPY](https://dspy.ai/tutorials/gepa_ai_program/) for both building and improving prompts as well as using its agent framework. I've included a paper above from Sander Schulohoff where he describes DSPy beating 20 hours of his work in 10 minutes. I've linked to a Claude summary of that part of the paper here: [Claude summary of DSPy prompt improvement](https://github.com/austere-labs/collect/blob/main/research/DSPy-Beats-Human-Prompt-Engineering.md)

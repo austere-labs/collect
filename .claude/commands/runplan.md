@@ -2,7 +2,6 @@
 allowed-tools: Bash, TodoWrite, TodoList, Read
 argument-hint: plan [filepath]
 description: Executes approved implementation plans from the _docs/plans/approved/ directory. Validates plan format, creates a todo list for tracking, implements specified changes with strict scope control, runs tests and quality checks, and moves completed plans to the completed/ directory with documentation.
-model: claude-opus-4-1-20250805
 ---
 ## Execute the implementation plan: $ARGUMENTS
 
