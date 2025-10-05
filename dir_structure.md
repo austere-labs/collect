@@ -1,9 +1,7 @@
 # Directory Structure
 
 ```
-/Users/benjaminmetz/python/collect
-├── __marimo__
-│   └── cache
+/Users/benjaminmetz/python/collect-wt1
 ├── agents
 │   └── tools.py
 ├── agentwork.py
@@ -23,10 +21,7 @@
 ├── initial_load.py
 ├── llmrunner.py
 ├── Makefile
-├── makefiles
-│   ├── go
-│   ├── javascript
-│   └── python
+├── memory_map_files.md
 ├── migrations
 │   ├── 20250727_01_create-prompt-tables.sql
 │   ├── 20250810_01_add-projects-table.sql
@@ -44,11 +39,11 @@
 │   ├── test_gemini_mcp.py
 │   ├── test_openai_mcp.py
 │   ├── test_xai_mcp.py
+│   ├── test_youtube.py
 │   ├── xai_mcp.py
-│   └── youtube_models.py
+│   ├── youtube_models.py
+│   └── youtube.py
 ├── notebooks
-│   ├── __marimo__
-│   │   └── cache
 │   ├── loader_testing.py
 │   └── prompt_service_notebook.py
 ├── pyproject.toml
@@ -62,6 +57,11 @@
 │   ├── test_datetime_adapters.py
 │   └── test_prompt_service.py
 ├── requirements.txt
+├── research
+│   ├── DSPy-Beats-Human-Prompt-Engineering.md
+│   ├── go_repo_crawler.md
+│   ├── research_09_19.md
+│   └── Sutskever's_List_v1_MEAP.pdf
 ├── reviewer
 │   ├── __init__.py
 │   ├── code_review.py
@@ -91,5 +91,5 @@
 ├── uv.lock
 └── yoyo.ini
 
-19 directories, 70 files
+12 directories, 77 files
 ```

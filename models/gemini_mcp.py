@@ -1,11 +1,9 @@
 from config import Config
 from secret_manager import SecretManager
 import requests
-import re
 from fetcher import Fetcher
 from mcp.server.fastmcp import Context
-from typing import Dict, List, Optional
-from models.youtube_models import VideoAnalysis, GeminiYouTubeResponse
+from typing import Dict, List
 
 
 class GeminiMCP:
@@ -18,21 +16,18 @@ class GeminiMCP:
         self.config = config
         self.secret_mgr = secret_mgr
         self.model = model
-        self.api_key = self.secret_mgr.get_secret(
-            self.config.gemini_api_key_path)
+        self.api_key = self.secret_mgr.get_secret(self.config.gemini_api_key_path)
         self.base_url = self.config.gemini_base_url
         self.headers = self.build_headers()
         self.gemini_token_limit = 1048576
 
     def build_headers(self) -> dict:
-        headers = {"x-goog-api-key": self.api_key,
-                   "Content-Type": "application/json"}
+        headers = {"x-goog-api-key": self.api_key, "Content-Type": "application/json"}
         return headers
 
     def get_model_list(self) -> Dict:
         try:
-            gemini_key = self.secret_mgr.get_secret(
-                self.config.gemini_api_key_path)
+            gemini_key = self.secret_mgr.get_secret(self.config.gemini_api_key_path)
 
             base_url = self.config.gemini_base_url
             url = f"{base_url}models?key={gemini_key}"
@@ -42,8 +37,7 @@ class GeminiMCP:
             return self.filter_models(["2.0", "2.5"], response.json())
 
         except requests.exceptions.RequestException as e:
-            raise RuntimeError(
-                f"Failed to get model list from Gemini API: {e}")
+            raise RuntimeError(f"Failed to get model list from Gemini API: {e}")
         except KeyError as e:
             raise ValueError(f"Missing required configuration or secret: {e}")
         except Exception as e:
@@ -123,221 +117,9 @@ class GeminiMCP:
         except Exception as e:
             raise RuntimeError(f"Unexpected error in send_message: {e}")
 
-    def validate_youtube_url(self, url: str) -> bool:
-        """Validate YouTube URL format"""
-        youtube_patterns = [
-            r"(?:https?://)?(?:www\.)?youtube\.com/watch\?v=([^&\n?#]*)",
-            r"(?:https?://)?(?:www\.)?youtu\.be/([^&\n?#]*)",
-            r"(?:https?://)?(?:www\.)?youtube\.com/embed/([^&\n?#]*)",
-        ]
-        return any(re.match(pattern, url) for pattern in youtube_patterns)
-
-    def validate_response(self, response: GeminiYouTubeResponse) -> bool:
-        """
-        Validate that the Gemini response has the expected structure
-
-        Args:
-            response: GeminiYouTubeResponse object to validate
-
-        Returns:
-            bool: True if response is valid, False otherwise
-        """
-        if not response or not response.candidates:
-            return False
-
-        if len(response.candidates) == 0:
-            return False
-
-        candidate = response.candidates[0]
-        if not candidate.content or not candidate.content.parts:
-            return False
-
-        if len(candidate.content.parts) == 0:
-            return False
-
-        # Check if the first part has text
-        first_part = candidate.content.parts[0]
-        if not hasattr(first_part, 'text') or not first_part.text:
-            return False
-
-        return True
-
-    async def analyze_video(
-        self, youtube_url: str, prompt: Optional[str] = None
-    ) -> GeminiYouTubeResponse:
-        """
-        Analyze YouTube video using Gemini's multimodal capabilities
-
-        Args:
-            youtube_url: Valid YouTube video URL
-            custom_prompt: Optional custom analysis prompt
-
-        Returns:
-            VideoAnalysis object with comprehensive results
-        """
-
-        if not self.validate_youtube_url(youtube_url):
-            raise ValueError(f"Invalid YouTube URL provided: {youtube_url}")
-
-        # Default comprehensive analysis prompt
-        default_prompt = """
-        Please analyze this YouTube video comprehensively and provide:
-
-        1. **Video Summary**: A detailed 3-4 paragraph summary of the main content
-        2. **Key Topics**: List the 3-5 most important topics discussed
-        3. **Timestamps**: Identify 5-7 key moments with timestamps and descriptions
-        4. **Main Takeaways**: 3-5 key insights or actionable points
-        5. **Key quotes from the speaker**: Identify critical quotes that are pertinent to the content presented.
-
-        Focus on both visual and audio elements. Pay attention to:
-        - Spoken content and dialogue
-        - Visual elements, graphics, and text shown
-        - Scene changes and transitions
-        - Background music or sounds that add context
-
-        Format your response in a structured markdown with clear sections.
-        """
-        prompt = prompt or default_prompt
-        url = f"{self.base_url}models/{self.model}:generateContent"
-        token_count = await self.count_tokens_video(youtube_url)
-
-        if token_count >= self.gemini_token_limit:
-            # then we need to split the video by some means
-            first_chunk = {
-                "contents": [
-                    {"parts": [
-                        {
-                            "file_data": {"file_uri": youtube_url},
-                            "video_metadata": {
-                                "start_offset": "0s",
-                                "end_offset": "1800s"
-                            }
-                        },
-                        {"text": prompt}
-                    ]}
-                ]
-            }
-            second_chunk = {
-                "contents": [
-                    {"parts": [
-                        {
-                            "file_data": {"file_uri": youtube_url},
-                            "video_metadata": {
-                                "start_offset": "1800s"
-                            }
-                        },
-                        {"text": prompt}
-                    ]}
-                ]
-            }
-
-            try:
-                import asyncio
-                import httpx
-
-                async def make_request(chunk_data):
-                    async with httpx.AsyncClient(timeout=300.0) as client:
-                        response = await client.post(
-                            url, headers=self.headers, json=chunk_data)
-                        response.raise_for_status()
-                        return response.json()
-
-                # Make both requests concurrently
-                first_chunk_resp_data, second_chunk_resp_data = await asyncio.gather(
-                    make_request(first_chunk),
-                    make_request(second_chunk)
-                )
-
-                first_response = GeminiYouTubeResponse(**first_chunk_resp_data)
-                second_response = GeminiYouTubeResponse(
-                    **second_chunk_resp_data)
-
-                # Validate both responses
-                if not self.validate_response(first_response) or not self.validate_response(second_response):
-                    raise RuntimeError(
-                        "Invalid response structure from Gemini API")
-
-                chunk1 = first_response.candidates[0].content.parts[0].text
-                chunk2 = second_response.candidates[0].content.parts[0].text
-                combined = f"{chunk1}\n\n-- Second Half --\n\n{chunk2}"
-
-                # Create new response with combined text
-                from copy import deepcopy
-                combined_response_data = deepcopy(first_chunk_resp_data)
-                combined_response_data['candidates'][0]['content']['parts'][0]['text'] = combined
-
-                return GeminiYouTubeResponse(**combined_response_data)
-
-            except httpx.RequestError as e:
-                raise RuntimeError(f"Failed to send msg to Gemini: {str(e)}")
-            except Exception as e:
-                raise RuntimeError(
-                    f"Unexpected error when sending video: {str(e)}")
-
-        data = {
-            "contents": [
-                {"parts": [
-                    {"text": prompt}, {
-                        "file_data": {
-                            "file_uri": youtube_url
-                        }
-                    }
-                ]
-                }
-            ]
-        }
-
-        try:
-            response = requests.post(url, headers=self.headers, json=data)
-            response.raise_for_status()
-            response_data = response.json()
-            return GeminiYouTubeResponse(**response_data)
-
-        except requests.exceptions.RequestException as e:
-            raise RuntimeError(f"Failed to send msg to Gemini: {str(e)}")
-        except Exception as e:
-            raise RuntimeError(
-                f"Unexpected error when sending video: {str(e)}")
-
-    def _parse_analysis_response(self, response: str, url: str) -> VideoAnalysis:
-        """Parse Gemini response into structured VideoAnalysis object"""
-        # This would contain logic to extract structured data from the response
-        # For now, return basic structure - implement parsing based on response format
-
-        return VideoAnalysis(
-            url=url,
-            title=None,  # Could extract from video metadata
-            duration=None,  # Could extract from video metadata
-            summary=response,  # Full response for now
-            key_topics=[],  # Parse from response
-            timestamps=[],  # Parse from response using TimestampEntry models
-            sentiment=None,  # Parse from response
-            content_type=None,  # Parse from response
-        )
-
-    async def count_tokens_video(self, youtube_url: str) -> int:
-        data = {
-            "contents": [
-                {"parts": [
-                    {
-                        "file_data": {"file_uri": youtube_url}
-                    }
-                ]
-                }
-            ]
-        }
-
-        url = f"{self.base_url}models/{self.model}:countTokens"
-        response = requests.post(url, headers=self.headers, json=data)
-        response.raise_for_status()
-        result = response.json()
-
-        return result["totalTokens"]
-
     def count_tokens(self, message: str, model: str = None) -> int:
         try:
-            gemini_key = self.secret_mgr.get_secret(
-                self.config.gemini_api_key_path)
+            gemini_key = self.secret_mgr.get_secret(self.config.gemini_api_key_path)
 
             # Use provided model or default
             if model is None:

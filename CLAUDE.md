@@ -183,9 +183,10 @@ This is an MCP (Model Context Protocol) server that provides web content fetchin
 ### Models Package
 The `models/` directory contains unified API wrappers for different AI providers:
 - **anthropic_mpc.py**: Anthropic Claude API integration
-- **openai_mpc.py**: OpenAI API integration  
-- **gemini_mcp.py**: Google Gemini API integration
+- **openai_mpc.py**: OpenAI API integration
+- **gemini_mcp.py**: Google Gemini API integration (general text operations)
 - **xai_mcp.py**: XAI/Grok API integration
+- **youtube.py**: YouTube video analysis using Gemini multimodal API
 
 Each model wrapper follows the same pattern: configuration injection, secret management, and standardized methods like `send_message()`, `count_tokens()`, and `get_model_list()`.
 

@@ -177,8 +177,7 @@ async def copy_clipboard(text: str) -> str:
 
     Note: The text will replace any existing clipboard content.
     """
-    subprocess.run(["pbcopy"], input=text, text=True,
-                   check=True, capture_output=True)
+    subprocess.run(["pbcopy"], input=text, text=True, check=True, capture_output=True)
     return "Text copied to clipboard successfully"
 
 
@@ -488,8 +487,7 @@ async def generate_prompt(prompt: str, target_model: str = None) -> str:
         # Set up Anthropic MCP client
         config = Config()
         secret_mgr = SecretManager(config.project_id)
-        anthropic_mcp = AnthropicMCP(
-            config, secret_mgr, config.anthropic_model_sonnet)
+        anthropic_mcp = AnthropicMCP(config, secret_mgr, config.anthropic_model_sonnet)
 
         # Call generate_prompt API with new signature
         response = anthropic_mcp.generate_prompt(task_content, target_model)
