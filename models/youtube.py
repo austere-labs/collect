@@ -1,12 +1,13 @@
 from config import Config
 from secret_manager import SecretManager
 from models.youtube_models import GeminiYouTubeResponse
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 import re
 import requests
 import httpx
 import asyncio
 from copy import deepcopy
+from pathlib import Path
 
 
 class YouTubeReader:
@@ -37,7 +38,8 @@ class YouTubeReader:
         self.config = config
         self.secret_mgr = secret_mgr
         self.model = model
-        self.api_key = self.secret_mgr.get_secret(self.config.gemini_api_key_path)
+        self.api_key = self.secret_mgr.get_secret(
+            self.config.gemini_api_key_path)
         self.base_url = self.config.gemini_base_url
         self.headers = self._build_headers()
         self.gemini_token_limit = 1048576
@@ -106,7 +108,8 @@ class YouTubeReader:
         Returns:
             Total token count for the video
         """
-        data = {"contents": [{"parts": [{"file_data": {"file_uri": youtube_url}}]}]}
+        data = {"contents": [
+            {"parts": [{"file_data": {"file_uri": youtube_url}}]}]}
 
         url = f"{self.base_url}models/{self.model}:countTokens"
         response = requests.post(url, headers=self.headers, json=data)
@@ -197,25 +200,40 @@ class YouTubeReader:
 
         return chunks
 
-    def _get_default_prompt(self) -> str:
+    def _get_default_prompt(
+        self,
+        filename: str = "youtube_prompt.md",
+        encoding: str = "utf-8",
+        directory: Optional[Union[str, Path]] = None
+    ) -> str:
         """Get the default comprehensive analysis prompt."""
-        return """
-        Please analyze this YouTube video comprehensively and provide:
+        if directory:
+            file_path = Path(directory) / filename
+        else:
+            file_path = Path(filename)
 
-        1. **Video Summary**: A detailed 3-4 paragraph summary of the main content
-        2. **Key Topics**: List the 3-5 most important topics discussed
-        3. **Timestamps**: Identify 5-7 key moments with timestamps and descriptions
-        4. **Main Takeaways**: 3-5 key insights or actionable points
-        5. **Key quotes from the speaker**: Identify critical quotes that are pertinent to the content presented.
+        if file_path.exists() and file_path.is_file():
+            content = file_path.read_text(encoding=encoding)
+            return content
 
-        Focus on both visual and audio elements. Pay attention to:
-        - Spoken content and dialogue
-        - Visual elements, graphics, and text shown
-        - Scene changes and transitions
-        - Background music or sounds that add context
+        else:
+            return """
+            Please analyze this YouTube video comprehensively and provide:
 
-        Format your response in a structured markdown with clear sections.
-        """
+            1. **Video Summary**: A detailed 3-4 paragraph summary of the main content
+            2. **Key Topics**: List the 3-5 most important topics discussed
+            3. **Timestamps**: Identify 5-7 key moments with timestamps and descriptions
+            4. **Main Takeaways**: 3-5 key insights or actionable points
+            5. **Key quotes from the speaker**: Identify critical quotes that are pertinent to the content presented.
+
+            Focus on both visual and audio elements. Pay attention to:
+            - Spoken content and dialogue
+            - Visual elements, graphics, and text shown
+            - Scene changes and transitions
+            - Background music or sounds that add context
+
+            Format your response in a structured markdown with clear sections.
+            """
 
     async def _process_single_video(
         self, youtube_url: str, prompt: str, url: str
@@ -233,7 +251,8 @@ class YouTubeReader:
         """
         data = {
             "contents": [
-                {"parts": [{"text": prompt}, {"file_data": {"file_uri": youtube_url}}]}
+                {"parts": [{"text": prompt}, {
+                    "file_data": {"file_uri": youtube_url}}]}
             ]
         }
 
@@ -246,7 +265,8 @@ class YouTubeReader:
         except requests.exceptions.RequestException as e:
             raise RuntimeError(f"Failed to send msg to Gemini: {str(e)}")
         except Exception as e:
-            raise RuntimeError(f"Unexpected error when sending video: {str(e)}")
+            raise RuntimeError(
+                f"Unexpected error when sending video: {str(e)}")
 
     async def _process_chunks_concurrent(
         self,
@@ -313,7 +333,8 @@ class YouTubeReader:
         # Concatenate all text parts with chunk markers
         combined_text = "\n\n".join(
             [
-                f"--- Chunk {i+1} ({len(responses)} total chunks) ---\n{r.candidates[0].content.parts[0].text}"
+                f"--- Chunk {i+1} ({len(responses)} total chunks) ---\n{
+                    r.candidates[0].content.parts[0].text}"
                 for i, r in enumerate(responses)
             ]
         )
@@ -359,7 +380,8 @@ class YouTubeReader:
             tokens_per_second = await self.estimate_token_rate(youtube_url)
 
             # Calculate optimal chunks
-            chunk_boundaries = self.calculate_chunks(token_count, tokens_per_second)
+            chunk_boundaries = self.calculate_chunks(
+                token_count, tokens_per_second)
 
             # Process all chunks concurrently
             chunk_responses = await self._process_chunks_concurrent(
@@ -370,7 +392,8 @@ class YouTubeReader:
             for i, response in enumerate(chunk_responses):
                 if not self.validate_response(response):
                     raise RuntimeError(
-                        f"Invalid response structure from Gemini API for chunk {i+1}"
+                        f"Invalid response structure from Gemini API for chunk {
+                            i+1}"
                     )
 
             # Combine responses
