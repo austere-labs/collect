@@ -200,7 +200,7 @@ class YouTubeReader:
 
         return chunks
 
-    def _get_default_prompt(
+    def get_default_prompt(
         self,
         filename: str = "youtube_prompt.md",
         encoding: str = "utf-8",
@@ -364,7 +364,7 @@ class YouTubeReader:
         if not self.validate_youtube_url(youtube_url):
             raise ValueError(f"Invalid YouTube URL provided: {youtube_url}")
 
-        prompt = prompt or self._get_default_prompt()
+        prompt = prompt or self.get_default_prompt()
         url = f"{self.base_url}models/{self.model}:generateContent"
 
         # Get total token count
