@@ -196,6 +196,113 @@ batch_mode = off
 verbosity = 0
 EOF
 
+# create baseline CLAUDE.md file
+cat > CLAUDE.md <<EOF
+
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+### Directory Structure
+
+For the complete project directory structure, see [dir_structure.md](dir_structure.md).
+
+
+## Key Technologies
+
+- **Programming Language:** Python
+- **Frameworks:** `mcp` (Model Context Protocol), FastAPI
+- **Key Libraries:**
+  - `httpx` for asynchronous HTTP requests
+  - `yoyo-migrations` for database schema management
+- **Package Manager:** `uv`
+- **Testing:** `pytest` with `pytest-asyncio` and `pytest-xdist` for parallel testing
+- **Linting/Formatting:** `ruff` and `black`
+- **Database:** SQLite
+
+## Development Commands
+
+**IMPORTANT:** When running python scripts always use `uv run` instead of `python`
+
+**Setup:**
+```bash
+uv sync
+```
+
+### Testing Strategy
+- **IMPORTANT**:  When writing and designing tests, we only want live direct integration tests. Please only create live direct integration testing. Please do not use mocks. 
+
+## VERY IMPORTANT: When writing tests, PLEASE do not ever use mocks for tests. We ONLY use direct integration tests.
+
+## Use `pytest` for all testing in this project.
+
+## The following is the preferred structure for writing tests in python:
+1. Always use `@pytest.fixture` to create the object that you're going to test with
+
+Here is an example usage of `@pytest.fixture`:
+
+```python
+
+@pytest.fixture
+def youtube_reader():
+    """Fixture to create YouTubeReader instance"""
+    config = Config()
+    secret_mgr = SecretManager(config.project_id)
+    return YouTubeReader(config, secret_mgr, "gemini-2.5-flash")
+```
+2. Always use `@pytest.mark.asyncio` along with `async def` when defining the test
+
+The following is an example usage:
+```python
+@pytest.mark.asyncio
+async def test_validate_youtube_url(youtube_reader):
+    """Test YouTube URL validation"""
+    assert youtube_reader.validate_youtube_url(
+        "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+    )
+    assert youtube_reader.validate_youtube_url("https://youtu.be/dQw4w9WgXcQ")
+    assert not youtube_reader.validate_youtube_url("https://example.com")
+```
+
+### When running all tests, use the Makefile and run test-fast:
+### here is an example
+
+```bash
+make test-fast
+```
+### OR use the following bash command:
+```bash
+uv run pytest -v -n auto -m "not slow"
+```
+### For comprehensive testing (matches GEMINI.md):
+```bash
+uv run pytest -v -s -n auto
+```
+
+## IMPORTANT: Always Always use uv run when running tests
+### Here is an example
+```bash
+uv run pytest test_collect.py::test_function_name -v -s
+# Run specific test: pytest test_collect.py::test_function_name -v -s
+```
+
+**Database Migrations:**
+```bash
+uv run yoyo apply --config yoyo.ini --batch  # Apply database migrations
+```
+
+**Code Quality:**
+```bash
+make lint     # Run ruff check
+make format   # Run black formatter
+make check    # Run all: lint, format, movetools, ensuregithub, buildsrc, tree
+
+# Individual commands:
+ruff check .  # Run linter
+black .       # Run formatter
+```
+EOF
+
 # create database.py file in repository directory
 cat > repository/database.py <<EOF
 import sqlite3
