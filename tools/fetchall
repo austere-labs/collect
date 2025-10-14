@@ -70,7 +70,6 @@ show_usage() {
     echo -e "  ${GREEN}✓${RESET} ${CYAN}.claude/settings.local.json${RESET} ${DIM}(Claude Code settings file)${RESET}"
     echo -e "  ${GREEN}✓${RESET} ${CYAN}.claude/commands/*.md${RESET}      ${DIM}(command templates, recursive)${RESET}"
     echo -e "  ${GREEN}✓${RESET} ${CYAN}.gemini/settings.json${RESET}      ${DIM}(Gemini settings file)${RESET}"
-    echo -e "  ${GREEN}✓${RESET} ${CYAN}.gemini/commands/*.toml${RESET}    ${DIM}(Gemini TOML configs, recursive)${RESET}"
     echo -e "  ${GREEN}✓${RESET} ${CYAN}guides/*.md${RESET}                ${DIM}(documentation guides)${RESET}"
     echo ""
     
@@ -115,7 +114,7 @@ show_llm_usage() {
     # Header
     echo -e "${CYAN}${BOX_TOP}${RESET}"
     echo -e "${CYAN}${BOX_SIDE}${RESET}  ${BOLD}${MAGENTA}📦 FETCHALL USAGE GUIDE${RESET}                                              ${CYAN}${BOX_SIDE}${RESET}"
-    echo -e "${CYAN}${BOX_SIDE}${RESET}  ${DIM}Downloads resources from austere-labs/collect repository${RESET}              ${CYAN}${BOX_SIDE}${RESET}"
+    echo -e "${CYAN}${BOX_SIDE}${RESET}  ${DIM}Downloads resource from austere-labs/collect repository${RESET}              ${CYAN}${BOX_SIDE}${RESET}"
     echo -e "${CYAN}${BOX_MID}${RESET}"
     echo ""
     
@@ -145,7 +144,6 @@ show_llm_usage() {
     echo -e "  ${GREEN}✓${RESET} ${CYAN}.claude/settings.local.json${RESET} ${DIM}→ Claude Code settings file${RESET}"
     echo -e "  ${GREEN}✓${RESET} ${CYAN}.claude/commands/*.md${RESET}      ${DIM}→ Command template files (recursive)${RESET}"
     echo -e "  ${GREEN}✓${RESET} ${CYAN}.gemini/settings.json${RESET}      ${DIM}→ Gemini settings file${RESET}"
-    echo -e "  ${GREEN}✓${RESET} ${CYAN}.gemini/commands/*.toml${RESET}    ${DIM}→ Gemini TOML configs (recursive)${RESET}"
     echo -e "  ${GREEN}✓${RESET} ${CYAN}guides/*.md${RESET}                ${DIM}→ Guide markdown files${RESET}"
     echo ""
     
@@ -156,8 +154,7 @@ show_llm_usage() {
     echo -e "  ${MAGENTA}│  ├─${RESET} ${CYAN}settings.local.json${RESET} ${DIM}# Claude Code settings${RESET}"
     echo -e "  ${MAGENTA}│  └─${RESET} ${CYAN}commands/${RESET}           ${DIM}# Command templates${RESET}"
     echo -e "  ${MAGENTA}├─${RESET} ${CYAN}.gemini/${RESET}"
-    echo -e "  ${MAGENTA}│  ├─${RESET} ${CYAN}settings.json${RESET}       ${DIM}# Gemini settings${RESET}"
-    echo -e "  ${MAGENTA}│  └─${RESET} ${CYAN}commands/${RESET}           ${DIM}# Gemini templates${RESET}"
+    echo -e "  ${MAGENTA}│  └─${RESET} ${CYAN}settings.json${RESET}       ${DIM}# Gemini settings${RESET}"
     echo -e "  ${MAGENTA}└─${RESET} ${CYAN}guides/${RESET}                 ${DIM}# Guide files${RESET}"
     echo ""
     echo -e "  ${YELLOW}⚠️  Note:${RESET} ${DIM}When run from tools/ directory, files are placed in parent directory${RESET}"
@@ -266,7 +263,7 @@ fi
 
 # Create directories if they don't exist
 print_info "Creating necessary directories..."
-DIRS_TO_CREATE=("$BASE_DIR/.claude/commands" "$BASE_DIR/.gemini/commands" "$BASE_DIR/guides")
+DIRS_TO_CREATE=("$BASE_DIR/.claude/commands" "$BASE_DIR/guides")
 
 for dir in "${DIRS_TO_CREATE[@]}"; do
     if [ ! -d "$dir" ]; then
@@ -490,16 +487,6 @@ echo ""
 # 4. Download .claude/commands/*.md
 print_info "Fetching .claude/commands/*.md files..."
 process_directory ".claude/commands" "$BASE_DIR/.claude/commands" "commands" "md"
-
-# 5. Download .gemini/commands/*.toml (if it exists in the repo)
-print_info "Checking for .gemini/commands in repository..."
-GEMINI_CHECK=$(gh api repos/$REPO/contents/.gemini/commands 2>/dev/null)
-if [ $? -eq 0 ]; then
-    print_info "Found .gemini/commands in repository, downloading .toml files..."
-    process_directory ".gemini/commands" "$BASE_DIR/.gemini/commands" "commands" "toml"
-else
-    print_info ".gemini/commands not found in repository, skipping..."
-fi
 
 echo ""
 
