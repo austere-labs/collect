@@ -3,6 +3,7 @@
 Resources/Readings: 
 - [Drew Breunig's talk on DSPy](https://www.youtube.com/watch?v=zWXPxDMiJCY)  
 - [Drew Breunig's blog post on DSPy](https://www.dbreunig.com/2025/06/10/let-the-model-write-the-prompt.html)
+- [Overture Maps Data](https://overturemaps.org/download/)
 
 From OpenAI's GPT-4.1 Prompting Guide:
 - The Task - 1%
