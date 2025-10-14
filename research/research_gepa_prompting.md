@@ -4,6 +4,8 @@ Resources/Readings:
 - [Drew Breunig's talk on DSPy](https://www.youtube.com/watch?v=zWXPxDMiJCY)  
 - [Drew Breunig's blog post on DSPy](https://www.dbreunig.com/2025/06/10/let-the-model-write-the-prompt.html)
 - [Overture Maps Data](https://overturemaps.org/download/)
+- [Agent Design Patterns book](https://docs.google.com/document/d/1rsaK53T3Lg5KoGwvf8ukOUvbELRtH-V0LnOIFDxBryE/edit?tab=t.0#heading=h.pxcur8v2qagu)
+
 
 From OpenAI's GPT-4.1 Prompting Guide:
 - The Task - 1%
