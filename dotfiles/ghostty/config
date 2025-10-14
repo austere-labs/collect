@@ -1,6 +1,6 @@
 background-opacity = 0.82
 
-theme = catppuccin-mocha
+# theme = catppuccin-mocha
 keybind = shift+enter=text:\n
 macos-titlebar-style = hidden
 

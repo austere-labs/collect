@@ -56,6 +56,7 @@ db() {
 alias ask='claude -p '
 alias editmcp='nvim ~/Library/Application\ Support/Claude/claude_desktop_config.json'
 alias rip='claude --dangerously-skip-permissions'
+alias plan='claude --permission-mode plan'
 alias cmds='cd "$(git rev-parse --show-toplevel)/.claude/commands" && ls -l --color'
 alias gms='cd "$(git rev-parse --show-toplevel)/.gemini/commands" && ls -l --color'
 
@@ -115,6 +116,7 @@ checkport() {
 
 # uv shortcuts
 alias env='source .venv/bin/activate'
+alias denv='deactivate'
 alias da='deactivate'
 alias ipy='uv run ipython'
 
@@ -157,4 +159,4 @@ export PS1='b@m %~ % '
 # opencode
 export PATH=/Users/benjaminmetz/.opencode/bin:$PATH
 
-alias claude="/Users/benjaminmetz/.claude/local/claude"
+# alias claude="/Users/benjaminmetz/.claude/local/claude"
