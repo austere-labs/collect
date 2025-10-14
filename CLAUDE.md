@@ -44,7 +44,38 @@ uv run collect.py  # Start MCP server
 ```
 
 **Testing:**
-### Use `pytest` for all testing in this project.
+## VERY IMPORTANT: When writing tests, PLEASE do not ever use mocks for tests. We ONLY use direct integration tests.
+
+## Use `pytest` for all testing in this project.
+
+## The following is the preferred structure for writing tests in python:
+1. Always use `@pytest.fixture` to create the object that you're going to test with
+
+Here is an example `@pytest.fixture` from the file `models/test_youtube.py`:
+
+```python
+
+@pytest.fixture
+def youtube_reader():
+    """Fixture to create YouTubeReader instance"""
+    config = Config()
+    secret_mgr = SecretManager(config.project_id)
+    return YouTubeReader(config, secret_mgr, "gemini-2.5-flash")
+```
+2. Always use `@pytest.mark.asyncio` along with `async def` when defining the test
+
+The following is an example from the file `models/test_youtube.py`:
+```python
+@pytest.mark.asyncio
+async def test_validate_youtube_url(youtube_reader):
+    """Test YouTube URL validation"""
+    assert youtube_reader.validate_youtube_url(
+        "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+    )
+    assert youtube_reader.validate_youtube_url("https://youtu.be/dQw4w9WgXcQ")
+    assert not youtube_reader.validate_youtube_url("https://example.com")
+```
+
 ### When running all tests, use the Makefile and run test-fast:
 ### here is an example
 
