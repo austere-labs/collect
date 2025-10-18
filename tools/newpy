@@ -105,6 +105,7 @@ llm_usage() {
     echo ""
     echo "MAKEFILE COMMANDS:"
     echo "  - make marimo: Launch marimo notebook editor"
+    echo "  - make marimo <filename>: Open/create specified notebook file"
     echo "  - make ensuregithub: Ensure GitHub URL is set"
     echo "  - make lint: Run ruff check"
     echo "  - make format: Run black formatter"
@@ -509,10 +510,17 @@ cat > Makefile <<EOF
 PROJECT_NAME := $proj
 
 marimo:
-	uv run marimo edit
+	@if [ -z "\$(filter-out \$@,\$(MAKECMDGOALS))" ]; then \\
+		uv run marimo edit; \\
+	else \\
+		uv run marimo edit \$(filter-out \$@,\$(MAKECMDGOALS)); \\
+	fi
+
+%:
+	@:
 
 .PHONY: buildsrc
-buildsrc: 
+buildsrc:
 	buildsrc
 
 .PHONY: tree
@@ -529,7 +537,7 @@ lint:
 format:
 	black .
 
-test: 
+test:
 	uv run pytest -v -s -n auto
 
 test-fast:
@@ -541,7 +549,7 @@ test-slow:
 test-single:
 	uv run pytest -v -s
 
-check: 
+check:
 	make lint
 	make format
 	make buildsrc

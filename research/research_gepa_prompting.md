@@ -5,6 +5,15 @@ Resources/Readings:
 - [Drew Breunig's blog post on DSPy](https://www.dbreunig.com/2025/06/10/let-the-model-write-the-prompt.html)
 - [Overture Maps Data](https://overturemaps.org/download/)
 - [Agent Design Patterns book](https://docs.google.com/document/d/1rsaK53T3Lg5KoGwvf8ukOUvbELRtH-V0LnOIFDxBryE/edit?tab=t.0#heading=h.pxcur8v2qagu)
+- [Thread from AsfiShaheen on DSPy and GEPA](https://x.com/AsfiShaheen/status/1969076787394023741)
+
+The thread from AsfiShaheen is the single best DSPy short explainer I have seen.
+And he's a practitioner with a real world use case processing financial documents.
+
+Also this thread has some very nice implementation details for GEPA and pre-GEPA vs post-GEPA for a similar use case.
+- [GEPA Use Case](https://x.com/AsfiShaheen/status/1967203501018419422)
+
+> Critical quote from the above thread: "Just write the simplest Signature with Predict. See the results. Inspect the prompt. Compare it to what you originally had. Then get a set of examples that were done right. Use those with GEPA (latest optimizer) and then see how the performance improves even with a lower quality model.
 
 
 From OpenAI's GPT-4.1 Prompting Guide:

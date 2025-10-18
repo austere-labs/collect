@@ -4,7 +4,14 @@ upgradecodex:
 	npm install -g @openai/codex@latest
 
 marimo:
-	uv run marimo edit
+	@if [ -z "$(filter-out $@,$(MAKECMDGOALS))" ]; then \
+		uv run marimo edit; \
+	else \
+		uv run marimo edit $(filter-out $@,$(MAKECMDGOALS)); \
+	fi
+
+%:
+	@:
 
 .PHONY: sync
 movetools:

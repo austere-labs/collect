@@ -1,6 +1,6 @@
 ---
-description: Analyze YouTube video content using Gemini API and create a summary
 allowed-tools: Bash(uv:*)
+description: Analyze YouTube video content using Gemini API and create a summary
 argument-hint: [youtube_url] [filename]
 ---
 
