@@ -7,6 +7,7 @@
 Very promising idea here using RLLM (Recursive LLM):
 - [Recursive Language Models](https://alexzhang13.github.io/blog/2025/rlm/)
 - [X Conversation on Recursive LLM ideas](https://x.com/a1zhang/status/1978469116542337259)
+- [X summary post on RLM approach](https://x.com/a1zhang/status/1979055081178673164)
 - [github repo for Recursive LLM](https://github.com/alexzhang13/rlm)
 
 ### ON DECK 
@@ -34,12 +35,15 @@ Very promising idea here using RLLM (Recursive LLM):
 - [Why RL won - CEO of OpenPipe - latent space podcast](https://youtu.be/yYZBd25rl4Q?si=Iw_OJpd-Q26G-Q_A)
 
 #### Blogposts
+- [Intro to DSPy](https://www.rajapatnaik.com/blog/2025/10/10/intro-to-dspy)
 - [Claude Code Skills release - Simon Willison](https://simonwillison.net/2025/Oct/16/claude-skills/)
 - [Post Training 101](https://tokens-for-thoughts.notion.site/post-training-101)
 - [DGX Spark from Nvidia - Simon Willison](https://simonwillison.net/2025/Oct/14/nvidia-dgx-spark/)
 - [The Not-so Bitter Lesson Marius Vach](https://blog.mariusvach.com/posts/bitter-lesson)
+- [Why DSPy is worth using](https://blog.mariusvach.com/posts/why-use-dspy)
 - [Interesting post and solution to memory management for Claude](https://blog.fsck.com/2025/10/23/episodic-memory/)
-
+- [Building a Self-Correcting Fact Checker with DSPy](https://www.rajapatnaik.com/blog/2025/10/17/dspy-fact-checker)
+- [Example code for the above Fact Checker](https://github.com/raja-patnaik/dspy-examples/blob/main/dspy-gepa-deidentification/minimal_gepa_deid.py)
 #### Tutorials & Resources
 - [associated jupyter notebook](https://github.com/Shashikant86/London-Agentic-AI/tree/main/01_Context_Engineering/DSPy_GEPA_Mike)
 - [Fantastic DSPy + GEPA tutorial from HuggingFace](https://huggingface.co/learn/cookbook/en/dspy_gepa)
