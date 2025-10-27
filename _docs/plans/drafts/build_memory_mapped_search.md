@@ -1,7 +1,9 @@
 # Plan: Build Memory-Mapped Ripgrep-Style Search Tool
 
 ## Overview
-Implement a high-performance code search tool that leverages memory-mapped files for zero-copy searching with ripgrep-style features, optimized for Apple Silicon and large memory systems.
+Implement a high-performance code search tool that leverages memory-mapped files 
+for zero-copy searching with ripgrep-style features, optimized for Apple Silicon and large memory systems.
+
 
 ## Architecture Design
 

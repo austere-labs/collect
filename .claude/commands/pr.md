@@ -45,8 +45,8 @@ If working directly on the main branch with staged changes:
    - Specific change 1
    - Specific change 2
    
-   🤖 Generated with Claude Code
-   Co-Authored-By: Claude <noreply@anthropic.com>
+   Authored-By: Beno <ben@austerelabs.com>
+
    ```
 2. Commit the staged changes with `git commit`
 3. Push changes with `git push`
@@ -79,7 +79,8 @@ gh pr create --title "Clear, actionable title describing the change" --body "$(c
 - Breaking changes (if any)
 - Follow-up tasks needed
 
-🤖 Generated with Claude Code
+Authored By: Beno <ben@austerelabs.com>
+
 EOF
 )"
 ```
@@ -116,8 +117,6 @@ Implements JWT-based authentication for protected routes
 - Update user routes to require authentication (staged in routes/users.py)
 - Add error handling for invalid tokens (staged in utils/errors.py)
 
-🤖 Generated with Claude Code
-Co-Authored-By: Claude <noreply@anthropic.com>
 ```
 
 **Good PR Title & Body (based on staged changes):**
@@ -142,7 +141,8 @@ gh pr create --title "Add user authentication middleware to API endpoints" --bod
 ## Note
 All changes have been staged and are ready for review. No unstaged modifications included.
 
-🤖 Generated with Claude Code
+Authored-By: Beno <ben@austerelabs.com>
+
 EOF
 )"
 ```
