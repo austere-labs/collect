@@ -43,6 +43,62 @@ mkdir -p guides
 # Create main.go (empty file)
 touch cmd/app/main.go
 
+# Create README.md
+cat > README.md << EOF
+# $PROJECT_NAME
+
+A Go project created with quickgo.
+
+## Getting Started
+
+### Prerequisites
+
+- Go 1.21 or higher
+
+### Building
+
+\`\`\`bash
+make build
+\`\`\`
+
+### Running
+
+\`\`\`bash
+make run
+\`\`\`
+
+### Testing
+
+\`\`\`bash
+make test
+\`\`\`
+
+### Development
+
+Run verification checks (formatting, vetting, tidying):
+
+\`\`\`bash
+make verify
+\`\`\`
+
+Run all checks including build and test:
+
+\`\`\`bash
+make check
+\`\`\`
+
+## Project Structure
+
+- \`cmd/app/\` - Application entry point
+- \`internal/\` - Internal packages
+- \`guides/\` - Project documentation and guides
+
+## License
+
+Copyright © $(date +%Y)
+
+EOF
+
 # Create Makefile with project name
 cat > Makefile << EOF
 PROJECT_NAME=$PROJECT_NAME
@@ -148,6 +204,7 @@ go mod init "github.com/metzben/$PROJECT_NAME"
 # Initialize git repository
 echo -e "\n${GREEN}Initializing Git repository...${NC}"
 git init
+git branch -M main
 
 # Add initial files to git
 git add .
