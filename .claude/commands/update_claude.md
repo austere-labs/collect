@@ -1,7 +1,7 @@
 ---
 allowed-tools: Bash(uv:*), Bash(make:*), Bash(cat:*), Bash(gemini:*), Bash(rm:*), TodoWrite, Read, Write
 description: This prompt will provide the source and the source tree to Gemini CLI to analyze/compare to existing CLAUDE.md and write a draft called CLAUDE_DRAFT.md
-model: claude-sonnet-4-20250514
+model: claude-sonnet-4-5-20250929
 ---
 
 # Code base summary: Analyze the source and source-tree provided, create a CLAUDE_DRAFT.md output that can be compared to the existing `CLAUDE.md`. 

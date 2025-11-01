@@ -1,0 +1,1083 @@
+#!/usr/bin/env bash
+
+# create-go-project.sh
+# Script to create a new Go project with a standardized structure based on the tinystack template.
+# This includes cmd/, internal/, pkg/ directories, zerolog logging, GCP Secret Manager integration,
+# and a complete set of configuration files.
+
+set -e  # Exit on error
+set -u  # Exit on undefined variable
+
+#######################
+# CONFIGURATION
+#######################
+# Base directory where all Go projects will be created
+# This can be modified to suit your directory structure
+BASE_DIR="$HOME/go/src/github.com/metzben"
+
+#######################
+# COLORS FOR OUTPUT
+#######################
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+
+#######################
+# HELPER FUNCTIONS
+#######################
+
+# Print colored output
+print_green() {
+    echo -e "${GREEN}$1${NC}"
+}
+
+print_yellow() {
+    echo -e "${YELLOW}$1${NC}"
+}
+
+print_red() {
+    echo -e "${RED}$1${NC}"
+}
+
+# Show help menu
+show_help() {
+    cat << EOF
+Usage: $(basename "$0") <project-name> <module-name>
+
+Creates a new Go project with a standardized structure including:
+  - cmd/app/main.go entry point with zerolog logging
+  - internal/api with Application struct, routes, and endpoints
+  - internal/config for .env file parsing
+  - internal/secrets for Google Cloud Secret Manager integration
+  - pkg/assert for testing utilities
+  - _docs directory with approved/, completed/, drafts/ subdirectories
+  - Complete configuration files (.gitignore, Makefile, CLAUDE.md, etc.)
+
+Arguments:
+  project-name    Name of the project (will create directory at ${BASE_DIR}/<project-name>)
+  module-name     Go module name (e.g., github.com/username/project-name)
+
+Options:
+  --help, -h      Show this help message
+
+Examples:
+  $(basename "$0") myapi github.com/metzben/myapi
+  $(basename "$0") userservice github.com/metzben/userservice
+
+The script will:
+  1. Create project directory structure
+  2. Generate all source files with proper patterns
+  3. Initialize Go module (go mod init)
+  4. Download dependencies (go mod tidy)
+  5. Initialize git repository
+  6. Create initial commit
+  7. Optionally create GitHub repository (requires 'gh' CLI)
+
+Configuration:
+  BASE_DIR is currently set to: ${BASE_DIR}
+  Edit this script to change the base directory location.
+
+EOF
+}
+
+# Prompt user for a new project name
+prompt_for_new_name() {
+    local suggested_name="$1"
+    echo
+    read -p "Enter a new project name (or Ctrl+C to cancel): " new_name
+    if [ -z "$new_name" ]; then
+        print_red "Error: Project name cannot be empty"
+        exit 1
+    fi
+    echo "$new_name"
+}
+
+#######################
+# ARGUMENT PARSING
+#######################
+
+# Check for help flag
+if [ $# -eq 0 ] || [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+    show_help
+    exit 0
+fi
+
+# Check argument count
+if [ $# -ne 2 ]; then
+    print_red "Error: Invalid number of arguments"
+    echo
+    show_help
+    exit 1
+fi
+
+PROJECT_NAME="$1"
+MODULE_NAME="$2"
+
+#######################
+# DIRECTORY VALIDATION
+#######################
+
+# Ensure BASE_DIR exists
+if [ ! -d "$BASE_DIR" ]; then
+    print_yellow "Warning: Base directory does not exist: $BASE_DIR"
+    read -p "Create base directory? (y/N): " create_base
+    if [ "$create_base" = "y" ] || [ "$create_base" = "Y" ]; then
+        mkdir -p "$BASE_DIR"
+        print_green "Created base directory: $BASE_DIR"
+    else
+        print_red "Aborted"
+        exit 1
+    fi
+fi
+
+PROJECT_DIR="$BASE_DIR/$PROJECT_NAME"
+
+# Check if project directory already exists
+while [ -d "$PROJECT_DIR" ]; do
+    print_yellow "Warning: Directory already exists: $PROJECT_DIR"
+    PROJECT_NAME=$(prompt_for_new_name "$PROJECT_NAME")
+    PROJECT_DIR="$BASE_DIR/$PROJECT_NAME"
+done
+
+print_green "Creating new Go project: $PROJECT_NAME"
+print_green "Module name: $MODULE_NAME"
+print_green "Location: $PROJECT_DIR"
+echo
+
+#######################
+# CREATE DIRECTORIES
+#######################
+
+print_green "Creating directory structure..."
+
+mkdir -p "$PROJECT_DIR"
+mkdir -p "$PROJECT_DIR/cmd/app"
+mkdir -p "$PROJECT_DIR/cmd/cli"
+mkdir -p "$PROJECT_DIR/internal/api/url"
+mkdir -p "$PROJECT_DIR/internal/config"
+mkdir -p "$PROJECT_DIR/internal/secrets"
+mkdir -p "$PROJECT_DIR/pkg/assert"
+mkdir -p "$PROJECT_DIR/_docs/approved"
+mkdir -p "$PROJECT_DIR/_docs/completed"
+mkdir -p "$PROJECT_DIR/_docs/drafts"
+
+#######################
+# GENERATE FILES
+#######################
+
+print_green "Generating source files..."
+
+# cmd/app/main.go
+cat > "$PROJECT_DIR/cmd/app/main.go" << 'EOF'
+package main
+
+import (
+	"os"
+
+	"MODULE_NAME/internal/api"
+	"MODULE_NAME/internal/config"
+	"MODULE_NAME/internal/secrets"
+	"github.com/rs/zerolog"
+)
+
+func main() {
+	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
+	log := zerolog.New(os.Stdout).With().Timestamp().Logger()
+	log.Info().Msg("Starting application...")
+
+	envFile, openErr := os.Open(".env")
+	if openErr != nil {
+		log.Fatal().Err(openErr).Msg("failed to load .env file")
+	}
+
+	configuration, loadErr := config.Load(envFile)
+	if loadErr != nil {
+		log.Fatal().Err(loadErr).Msg("could not read .env file")
+	}
+
+	secretMgr, secretMgrErr := secrets.NewGoogleSecretsClient(configuration.GCPProjectID)
+	if secretMgrErr != nil {
+		log.Fatal().Err(secretMgrErr).Msg("cannot load secret manager")
+	}
+
+	app := api.Application{
+		Logger:        log,
+		Configuration: configuration,
+		SecretManager: secretMgr,
+	}
+
+	// start the server
+	serverErr := app.Serve()
+
+	if serverErr != nil {
+		log.Fatal().Msgf("server error: %s", serverErr)
+	}
+}
+EOF
+
+sed -i.bak "s|MODULE_NAME|$MODULE_NAME|g" "$PROJECT_DIR/cmd/app/main.go"
+rm -f "$PROJECT_DIR/cmd/app/main.go.bak"
+
+# cmd/cli/main.go
+cat > "$PROJECT_DIR/cmd/cli/main.go" << 'EOF'
+package main
+
+import (
+	"flag"
+	"fmt"
+	"os"
+)
+
+const (
+	version = "1.0.0"
+)
+
+func main() {
+	// Define command-line flags
+	var (
+		name    = flag.String("name", "World", "Name to greet")
+		verbose = flag.Bool("verbose", false, "Enable verbose output")
+		showVer = flag.Bool("version", false, "Show version information")
+	)
+
+	// Custom usage message
+	flag.Usage = func() {
+		fmt.Fprintf(os.Stderr, "Usage: %s [OPTIONS]\n\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "A simple CLI application.\n\n")
+		fmt.Fprintf(os.Stderr, "Options:\n")
+		flag.PrintDefaults()
+		fmt.Fprintf(os.Stderr, "\nExamples:\n")
+		fmt.Fprintf(os.Stderr, "  %s\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "  %s -name Alice\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "  %s -name Bob -verbose\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "  %s -version\n", os.Args[0])
+	}
+
+	// Parse flags
+	flag.Parse()
+
+	// Handle version flag
+	if *showVer {
+		fmt.Printf("Version: %s\n", version)
+		os.Exit(0)
+	}
+
+	// Verbose output
+	if *verbose {
+		fmt.Fprintf(os.Stderr, "Running in verbose mode...\n")
+		fmt.Fprintf(os.Stderr, "Name flag value: %s\n", *name)
+	}
+
+	// Main functionality
+	fmt.Printf("Hello, %s!\n", *name)
+
+	// Handle additional positional arguments
+	if len(flag.Args()) > 0 {
+		if *verbose {
+			fmt.Fprintf(os.Stderr, "Additional arguments provided: %v\n", flag.Args())
+		}
+		fmt.Println("Additional arguments:", flag.Args())
+	}
+}
+EOF
+
+# internal/api/application.go
+cat > "$PROJECT_DIR/internal/api/application.go" << 'EOF'
+package api
+
+import (
+	"context"
+	"net/http"
+	"os"
+	"os/signal"
+	"runtime"
+	"sync"
+	"syscall"
+	"time"
+
+	"MODULE_NAME/internal/config"
+	"MODULE_NAME/internal/secrets"
+	"github.com/rs/zerolog"
+)
+
+type Application struct {
+	Logger        zerolog.Logger
+	Configuration config.Configuration
+	sync.WaitGroup
+	SecretManager secrets.SecretManager
+}
+
+func (app *Application) Serve() error {
+
+	mux := http.NewServeMux()
+
+	srvr := &http.Server{
+		Addr:         app.Configuration.Port,
+		IdleTimeout:  time.Second * 2,
+		ReadTimeout:  time.Second * 2,
+		WriteTimeout: time.Second * 2,
+		Handler:      app.BuildRoutes(mux),
+	}
+
+	shutDownErrChan := make(chan error)
+
+	// will immediately be dispatched to the go scheduler
+	go func() {
+		runtime.Gosched()
+
+		// create the shutdown channel and provide it to the Notify func
+		// so that it can listen for provided signals
+		shutdown := make(chan os.Signal, 1)
+		signal.Notify(shutdown, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
+
+		// then we BLOCK... by attempting to read from the shutdown channel
+		// this go routine stops right here until it gets some kind of shutdown
+		// signal
+		s := <-shutdown
+
+		// if shutdown is initiated, then we run the following code
+		app.Logger.Info().Msgf("shutting server down with os signal: %s", s.String())
+
+		// we set the amount of time we are going to give for graceful shutdown here
+		// should be set in .env eventually
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		err := srvr.Shutdown(ctx)
+		if err != nil {
+			shutDownErrChan <- err
+		}
+		// RIGHT HERE IS WHERE WE SHUT STUFF DOWN
+		// example: app.UserRepo.Db.Close()
+		app.Logger.Info().Msg("shutting stuff DOWN!")
+
+		// wait for background tasks to complete
+		app.Wait()
+		shutDownErrChan <- nil
+	}()
+
+	app.Logger.Info().Msgf("starting server on port: %+v", app.Configuration.Port)
+	if prodServerErr := srvr.ListenAndServe(); prodServerErr != nil && prodServerErr != http.ErrServerClosed {
+		return prodServerErr
+	}
+
+	// this is a blocking read from the error channel
+	shuttingErr := <-shutDownErrChan
+	if shuttingErr != nil {
+		return shuttingErr
+	}
+
+	app.Logger.Info().Msgf("server has stopped gracefully on port: %+v\n", app.Configuration.Port)
+	return nil
+}
+EOF
+
+sed -i.bak "s|MODULE_NAME|$MODULE_NAME|g" "$PROJECT_DIR/internal/api/application.go"
+rm -f "$PROJECT_DIR/internal/api/application.go.bak"
+
+# internal/api/routes.go
+cat > "$PROJECT_DIR/internal/api/routes.go" << 'EOF'
+package api
+
+import (
+	"MODULE_NAME/internal/api/url"
+	"net/http"
+)
+
+func (app *Application) BuildRoutes(mux *http.ServeMux) *http.ServeMux {
+	mux.HandleFunc(url.Home, app.Home)
+	mux.HandleFunc(url.Health, app.Health)
+
+	return mux
+}
+EOF
+
+sed -i.bak "s|MODULE_NAME|$MODULE_NAME|g" "$PROJECT_DIR/internal/api/routes.go"
+rm -f "$PROJECT_DIR/internal/api/routes.go.bak"
+
+# internal/api/endpoints.go
+cat > "$PROJECT_DIR/internal/api/endpoints.go" << 'EOF'
+package api
+
+import (
+	"encoding/json"
+	"fmt"
+	"net/http"
+)
+
+func (app *Application) Home(w http.ResponseWriter, r *http.Request) {
+	app.Logger.Info().Msg("home route hit")
+	fmt.Fprintln(w, "Welcome to the API!")
+}
+
+type HealthResponse struct {
+	Status  string `json:"status"`
+	Message string `json:"message"`
+}
+
+func (app *Application) Health(w http.ResponseWriter, r *http.Request) {
+	app.Logger.Info().Msg("health check endpoint hit")
+
+	response := HealthResponse{
+		Status:  "ok",
+		Message: "Service is running",
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		app.Logger.Err(err).Msg("error encoding health response")
+	}
+}
+EOF
+
+# internal/api/url/urls.go
+cat > "$PROJECT_DIR/internal/api/url/urls.go" << 'EOF'
+package url
+
+const (
+	Home   = "/v1/"
+	Health = "/v1/health"
+)
+EOF
+
+# internal/config/env.go
+cat > "$PROJECT_DIR/internal/config/env.go" << 'EOF'
+package config
+
+import (
+	"bufio"
+	"fmt"
+	"os"
+	"strings"
+)
+
+type Configuration struct {
+	AppName      string `json:"appName"`
+	Port         string `json:"port"`
+	GCPProjectID string `json:"gcpProjectId"`
+}
+
+// dev or prod
+func buildConfiguration() Configuration {
+	return Configuration{
+		AppName:      os.Getenv("APP_NAME"),
+		Port:         os.Getenv("PORT"),
+		GCPProjectID: os.Getenv("GCP_PROJECT_ID"),
+	}
+}
+func Load(envFile *os.File) (Configuration, error) {
+	defer envFile.Close()
+
+	scanner := bufio.NewScanner(envFile)
+	isFileEmpty := true
+
+	for scanner.Scan() {
+		// read the next line
+		line := strings.TrimSpace(scanner.Text())
+		// skip commented lines
+		if strings.HasPrefix(line, "#") {
+			continue
+		}
+		// we need to skip blank lines
+		if line != "" {
+			// if we are here then we have a line
+			// and we do not have an empty file
+			isFileEmpty = false
+			// we need to make sure that there is an
+			// "=" in the line
+			if strings.Contains(line, "=") {
+				parts := strings.SplitN(line, "=", 2)
+				// ["APP_NAME", "goapi"]
+				key := strings.TrimSpace(parts[0])
+				value := strings.TrimSpace(parts[1])
+
+				// read these into os env vars
+				os.Setenv(key, value)
+			}
+		}
+	}
+
+	if isFileEmpty {
+		return Configuration{}, fmt.Errorf("file is empty: %s", envFile.Name())
+	}
+
+	// by the time you get here you need to be done with envFile
+	return buildConfiguration(), nil
+}
+EOF
+
+# internal/secrets/secretManager.go
+cat > "$PROJECT_DIR/internal/secrets/secretManager.go" << 'EOF'
+package secrets
+
+import (
+	"context"
+	"fmt"
+	"time"
+
+	secretmanager "cloud.google.com/go/secretmanager/apiv1"
+	"cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
+)
+
+type SecretManager interface {
+	CreateSecret(secretName string, secretValue []byte) (string, error)
+	GetSecret(versionName string) ([]byte, error)
+	DeleteSecret(projectID, secretID string) error
+	Close() error
+}
+
+// The secretmanager client will use your default application credentials.
+// Clients should be reused instead of created as needed.
+// The methods of Client are safe for concurrent use by multiple goroutines.
+// The returned client must be Closed when it is done being used.
+
+type GoogleSecretsClient struct {
+	ProjectID string
+	Client    *secretmanager.Client
+}
+
+func NewGoogleSecretsClient(projectID string) (GoogleSecretsClient, error) {
+	ctx := context.Background()
+	client, err := secretmanager.NewClient(ctx)
+	if err != nil {
+		return GoogleSecretsClient{}, fmt.Errorf("failed to setup client: %v", err)
+	}
+
+	return GoogleSecretsClient{
+		ProjectID: projectID,
+		Client:    client,
+	}, nil
+}
+
+func (gsc GoogleSecretsClient) CreateSecret(secretName string, secretValue []byte) (string, error) {
+	// Create the request to add the secret
+	secretReq := &secretmanagerpb.CreateSecretRequest{
+		Parent:   fmt.Sprintf("projects/%s", gsc.ProjectID),
+		SecretId: secretName,
+		Secret: &secretmanagerpb.Secret{
+			Replication: &secretmanagerpb.Replication{
+				Replication: &secretmanagerpb.Replication_Automatic_{
+					Automatic: &secretmanagerpb.Replication_Automatic{},
+				},
+			},
+		},
+	}
+	// Set context with timeout
+	ctxWithTimout, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+	secret, secretCreateErr := gsc.Client.CreateSecret(ctxWithTimout, secretReq)
+	if secretCreateErr != nil {
+		return "", fmt.Errorf("failed to create secret: %v", secretCreateErr)
+	}
+	// Create the request to add the secret version
+	versionReq := &secretmanagerpb.AddSecretVersionRequest{
+		Parent: secret.Name,
+		Payload: &secretmanagerpb.SecretPayload{
+			Data: secretValue,
+		},
+	}
+	// Set context with timeout
+	ctxwto, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+	// Call the API
+	version, addSecretVersionErr := gsc.Client.AddSecretVersion(ctxwto, versionReq)
+	if addSecretVersionErr != nil {
+		return "", fmt.Errorf("failed to add secret version: %v", addSecretVersionErr)
+	}
+	// Return the version name
+	return version.Name, nil
+}
+
+func (smc GoogleSecretsClient) GetSecret(versionName string) ([]byte, error) {
+	// Build the request
+	getSecretRequest := &secretmanagerpb.AccessSecretVersionRequest{
+		Name: versionName,
+	}
+	// Set context with timeout
+	ctxWithTimout, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+	// Call the API
+	result, err := smc.Client.AccessSecretVersion(ctxWithTimout, getSecretRequest)
+	if err != nil {
+		return nil, fmt.Errorf("error retrieving secret %v", err)
+	}
+	return result.Payload.Data, nil
+}
+
+func (smc GoogleSecretsClient) DeleteSecret(projectID, secretID string) error {
+	secretName := fmt.Sprintf("projects/%s/secrets/%s", projectID, secretID)
+
+	tctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// Build the request for deleting the secret version
+	req := &secretmanagerpb.DeleteSecretRequest{
+		Name: secretName,
+	}
+	// Call the API to delete the secret.
+	if err := smc.Client.DeleteSecret(tctx, req); err != nil {
+		return fmt.Errorf("failed to delete secret: %v", err)
+	}
+	return nil
+}
+
+func (smc GoogleSecretsClient) Close() error {
+	return smc.Client.Close()
+}
+EOF
+
+# pkg/assert/assert.go
+cat > "$PROJECT_DIR/pkg/assert/assert.go" << 'EOF'
+package assert
+
+import (
+	"reflect"
+	"strings"
+	"testing"
+
+	"golang.org/x/exp/constraints"
+)
+
+func Equal[T comparable](t *testing.T, expected, actual T) {
+	t.Helper()
+	if expected != actual {
+		t.Errorf("Received %v (type %v), expected %v (type %v)", actual, reflect.TypeOf(actual), expected, reflect.TypeOf(expected))
+	}
+}
+
+func NotEqual[T comparable](t *testing.T, expected, actual T) {
+	t.Helper()
+	if expected == actual {
+		t.Errorf("Received %v (type %v), expected value other than %v (type %v)", actual, reflect.TypeOf(actual), expected, reflect.TypeOf(expected))
+	}
+}
+
+func NotNil(t *testing.T, actual any) {
+	t.Helper()
+	if actual == nil {
+		t.Error("Expected a non-nil value, but got nil")
+	}
+}
+
+func Nil(t *testing.T, actual any) {
+	t.Helper()
+	if actual != nil {
+		t.Errorf("Expected nil, but got %v (type %v)", actual, reflect.TypeOf(actual))
+	}
+}
+
+func DeepEqual[T comparable](t *testing.T, expected, actual T) {
+	t.Helper()
+	if !reflect.DeepEqual(expected, actual) {
+		t.Errorf("Received %v (type %v), expected %v (type %v)", actual, reflect.TypeOf(actual), expected, reflect.TypeOf(expected))
+	}
+}
+
+// ErrorContains checks if the error message in out contains the text in
+// want. It returns true if it does, false otherwise.
+// This is safe when out is nil. Use an empty string for want if you want to
+// test that err is nil.
+func ErrorContains(out error, want string) bool {
+	if out == nil {
+		return want == ""
+	}
+	if want == "" {
+		return false
+	}
+	return strings.Contains(out.Error(), want)
+}
+
+// Between checks if a value is within the specified range (inclusive of min and max)
+func Between[T constraints.Ordered](t *testing.T, min, max, actual T) {
+	t.Helper()
+	if actual < min || actual > max {
+		t.Errorf("Expected value between %v and %v (inclusive), but got %v", min, max, actual)
+	}
+}
+EOF
+
+# .env
+cat > "$PROJECT_DIR/.env" << EOF
+APP_NAME=$PROJECT_NAME
+PORT=:8080
+GCP_PROJECT_ID=your-gcp-project-id
+EOF
+
+# .gitignore
+cat > "$PROJECT_DIR/.gitignore" << EOF
+# Project binaries
+$PROJECT_NAME
+$PROJECT_NAME-cli
+
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with \`go test -c\`
+*.test
+
+# Output of the go coverage tool
+*.out
+
+# Go workspace file
+go.work
+
+# Dependency directories
+vendor/
+
+# Environment variables
+.env.local
+
+# IDE specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS specific files
+.DS_Store
+Thumbs.db
+EOF
+
+# Makefile
+cat > "$PROJECT_DIR/Makefile" << EOF
+PROJECT_NAME=$PROJECT_NAME
+
+build:
+	go build -o \$(PROJECT_NAME) cmd/app/main.go
+
+build-cli:
+	go build -o \$(PROJECT_NAME)-cli cmd/cli/main.go
+
+build-all:
+	make build
+	make build-cli
+
+run:
+	make build
+	./\$(PROJECT_NAME)
+
+run-cli:
+	make build-cli
+	./\$(PROJECT_NAME)-cli
+
+test:
+	go test -v -cover ./...
+
+verify:
+	go mod tidy
+	go mod verify
+	go vet ./...
+	go fmt ./...
+
+check:
+	make verify
+	make build-all
+	make test
+	rm \$(PROJECT_NAME) \$(PROJECT_NAME)-cli
+
+clean:
+	rm -f \$(PROJECT_NAME) \$(PROJECT_NAME)-cli
+EOF
+
+# CLAUDE.md
+cat > "$PROJECT_DIR/CLAUDE.md" << 'EOF'
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Build Commands
+- Build API server: `make build`
+- Build CLI: `make build-cli`
+- Build both: `make build-all`
+- Run API server: `make run`
+- Run CLI: `make run-cli`
+- Test all: `make test`
+- Test single test: `go test -v -run TestName ./path/to/package`
+- Verify (format/lint): `make verify` (runs go mod tidy, verify, vet, fmt)
+- Complete check: `make check`
+- Clean binaries: `make clean`
+
+## Code Style Guidelines
+- **Imports**: Standard Go convention with grouped imports (stdlib first, then external packages)
+- **Formatting**: Use `go fmt` for consistent code formatting
+- **Types**: Use explicit type definitions with clear struct definitions
+- **Naming**: Follow Go conventions (CamelCase for exported, camelCase for unexported)
+- **Error Handling**: Handle errors explicitly with clear error messages
+- **Logging**: Use zerolog for structured logging
+- **Testing**: Use `t.Helper()` for test helper methods, use pkg/assert for assertions
+- **Context**: Use context with appropriate timeouts for cancellation
+- **Comments**: Add comments for complex logic, particularly around concurrency
+
+## Project Structure
+- Follow standard Go project layout with cmd/, internal/, and pkg/ directories
+- Use internal/secrets for Google Cloud Secret Manager integration
+EOF
+
+# README.md
+cat > "$PROJECT_DIR/README.md" << EOF
+# $PROJECT_NAME
+
+A Go application built with the standard project layout.
+
+## Features
+
+- **Structured Logging**: Uses zerolog for efficient, structured logging
+- **Configuration Management**: Custom .env file parser with no external dependencies
+- **Secret Management**: Integration with Google Cloud Secret Manager
+- **Graceful Shutdown**: HTTP server with proper signal handling
+- **Testing Utilities**: Generic assertion helpers in pkg/assert
+- **RESTful API**: Clean API structure with versioned endpoints
+- **CLI Application**: Simple command-line interface using Go's standard library
+
+## Project Structure
+
+\`\`\`
+$PROJECT_NAME/
+├── cmd/
+│   ├── app/
+│   │   └── main.go           # API server entry point
+│   └── cli/
+│       └── main.go           # CLI application entry point
+├── internal/
+│   ├── api/
+│   │   ├── url/
+│   │   │   └── urls.go      # URL constants
+│   │   ├── application.go   # Application struct and Serve method
+│   │   ├── routes.go        # Route definitions
+│   │   └── endpoints.go     # HTTP handlers
+│   ├── config/
+│   │   └── env.go           # Configuration loader
+│   └── secrets/
+│       └── secretManager.go # GCP Secret Manager client
+├── pkg/
+│   └── assert/
+│       └── assert.go        # Testing utilities
+├── _docs/
+│   ├── approved/            # Approved documentation
+│   ├── completed/           # Completed documentation
+│   └── drafts/              # Draft documentation
+├── .env                     # Environment variables
+├── .gitignore
+├── Makefile                 # Build automation
+├── CLAUDE.md                # AI development guidance
+└── README.md
+\`\`\`
+
+## Getting Started
+
+### Prerequisites
+
+- Go 1.21 or higher
+- GCP account (for Secret Manager features)
+- gcloud CLI configured with appropriate credentials
+
+### Installation
+
+1. Clone the repository:
+\`\`\`bash
+git clone <repository-url>
+cd $PROJECT_NAME
+\`\`\`
+
+2. Install dependencies:
+\`\`\`bash
+go mod download
+\`\`\`
+
+3. Configure environment variables in \`.env\`:
+\`\`\`bash
+APP_NAME=$PROJECT_NAME
+PORT=:8080
+GCP_PROJECT_ID=your-gcp-project-id
+\`\`\`
+
+### Running the Application
+
+Run the API server:
+\`\`\`bash
+make run
+\`\`\`
+
+Or run directly:
+\`\`\`bash
+go run cmd/app/main.go
+\`\`\`
+
+Run the CLI:
+\`\`\`bash
+make run-cli
+\`\`\`
+
+Or run directly:
+\`\`\`bash
+go run cmd/cli/main.go
+\`\`\`
+
+CLI usage examples:
+\`\`\`bash
+# Basic usage
+./\$(PROJECT_NAME)-cli
+
+# With custom name
+./\$(PROJECT_NAME)-cli -name Alice
+
+# Verbose mode
+./\$(PROJECT_NAME)-cli -name Bob -verbose
+
+# Show version
+./\$(PROJECT_NAME)-cli -version
+\`\`\`
+
+### Testing
+
+Run all tests:
+\`\`\`bash
+make test
+\`\`\`
+
+Run tests with coverage:
+\`\`\`bash
+go test -v -cover ./...
+\`\`\`
+
+### Building
+
+Build the API server:
+\`\`\`bash
+make build
+\`\`\`
+
+Build the CLI:
+\`\`\`bash
+make build-cli
+\`\`\`
+
+Build both:
+\`\`\`bash
+make build-all
+\`\`\`
+
+This creates binaries named \`$PROJECT_NAME\` and \`$PROJECT_NAME-cli\` in the project root.
+
+## Development
+
+### Code Quality
+
+Run verification (format, lint, vet):
+\`\`\`bash
+make verify
+\`\`\`
+
+Run complete check (verify, build, test):
+\`\`\`bash
+make check
+\`\`\`
+
+### API Endpoints
+
+- \`GET /v1/\` - Home endpoint
+- \`GET /v1/health\` - Health check
+
+## License
+
+[Add your license here]
+EOF
+
+#######################
+# GO MODULE SETUP
+#######################
+
+print_green "Initializing Go module..."
+cd "$PROJECT_DIR"
+go mod init "$MODULE_NAME"
+
+print_green "Downloading dependencies..."
+go mod tidy
+
+#######################
+# GIT INITIALIZATION
+#######################
+
+print_green "Initializing git repository..."
+git init
+
+# Create initial commit
+git add .
+git commit -m "Initial commit
+
+Generated with create-go-project.sh
+
+Project structure:
+- cmd/app: Application entry point with zerolog
+- internal/api: HTTP server with graceful shutdown
+- internal/config: Custom .env file parser
+- internal/secrets: GCP Secret Manager integration
+- pkg/assert: Generic test utilities
+- _docs: Documentation directories"
+
+print_green "Git repository initialized with initial commit"
+
+#######################
+# GITHUB REPO CREATION
+#######################
+
+# Check if gh CLI is available
+if command -v gh &> /dev/null; then
+    echo
+    read -p "Create GitHub repository? (y/N): " create_gh_repo
+    if [ "$create_gh_repo" = "y" ] || [ "$create_gh_repo" = "Y" ]; then
+        echo
+        print_yellow "Creating GitHub repository..."
+
+        # Offer public/private choice
+        read -p "Make repository private? (y/N): " make_private
+
+        if [ "$make_private" = "y" ] || [ "$make_private" = "Y" ]; then
+            gh repo create "$PROJECT_NAME" --private --source=. --remote=origin --push
+        else
+            gh repo create "$PROJECT_NAME" --public --source=. --remote=origin --push
+        fi
+
+        if [ $? -eq 0 ]; then
+            print_green "GitHub repository created and pushed successfully!"
+        else
+            print_yellow "GitHub repository creation failed or was cancelled"
+        fi
+    fi
+else
+    print_yellow "Note: 'gh' CLI not found. Skipping GitHub repository creation."
+    print_yellow "Install GitHub CLI from https://cli.github.com/ to enable this feature."
+fi
+
+#######################
+# SUCCESS MESSAGE
+#######################
+
+echo
+print_green "=========================================="
+print_green "Project created successfully!"
+print_green "=========================================="
+echo
+print_green "Project: $PROJECT_NAME"
+print_green "Location: $PROJECT_DIR"
+print_green "Module: $MODULE_NAME"
+echo
+print_green "Next steps:"
+echo "  1. cd $PROJECT_DIR"
+echo "  2. Update .env with your configuration"
+echo "  3. Run 'make run' to start the server"
+echo "  4. Visit http://localhost:8080/v1/ to test"
+echo
+print_green "Documentation directories created in _docs/:"
+echo "  - _docs/approved/   (approved documentation)"
+echo "  - _docs/completed/  (completed documentation)"
+echo "  - _docs/drafts/     (draft documentation)"
+echo
+print_green "Happy coding!"

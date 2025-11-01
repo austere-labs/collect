@@ -27,8 +27,11 @@ export PKG_CONFIG_PATH="$(brew --prefix sentencepiece)/lib/pkgconfig:$PKG_CONFIG
 export PATH="$(brew --prefix)/bin:$PATH"
 export PKG_CONFIG_PATH="$(brew --prefix sentencepiece)/lib/pkgconfig:$(brew --prefix protobuf)/lib/pkgconfig:$PKG_CONFIG_PATH"
 
+# shortcut to research markdown files
+alias research='cd $HOME/python/collect/research && ls -l --color'
+
 # shortcuts to project work
-alias gowork='cd $HOME/go/src/github.com/metzben && ls -lhG'
+alias gowork='cd $HOME/go/src/github.com/metzben && ls -l --color'
 alias py='cd $HOME/python && ls -l --color'
 alias collect='cd $HOME/python/collect && source .venv/bin/activate'
 alias agents='cd $HOME/python/agents && source .venv/bin/activate'
@@ -42,6 +45,16 @@ alias indicators='cd $HOME/python/indicators && ls -l'
 alias mcpstart='cd $HOME/python/startermcp && ls -l'
 alias tools='cd ~/bin && ls -l --color'
 alias plans='cd _docs/plans && tree -C -L 2'
+alias dspy='cd $HOME/python/dspy_work && source .venv/bin/activate && ls -l --color'
+
+# Database function - only works in elephnt directory
+eldb() {
+    if [[ "$PWD" == *"/elephnt" ]] || [[ "$PWD" == *"/elephnt/"* ]]; then
+        sqlite3 data/elephnt.db
+    else
+        echo "Not in elephnt directory. This command only works in the elephnt project."
+    fi
+}
 
 # Database function - only works in collect directory
 db() {

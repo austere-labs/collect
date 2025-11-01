@@ -1,7 +1,7 @@
 ---
 allowed-tools: Bash(sqlite3:*)
 description: Lists all plans in the database
-model: claude-sonnet-4-20250514
+model: claude-sonnet-4-5-20250929
 ---
 
 Run this bash command:

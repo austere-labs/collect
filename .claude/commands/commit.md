@@ -1,7 +1,7 @@
 ---
 allowed-tools: Bash(git status:*), Bash(git add:*), Bash(git diff:*), Bash(git log:*), Bash(git commit:*)
-description: Auto-stages all changes and creates a git commit with a well-crafted conventional commit message. Analyzes unstaged files, stages them with git add, reviews the changes, and commits with proper formatting including Claude Code attribution. Does not push to remote. 
-model: claude-sonnet-4-20250514
+description: Auto-stages all changes and creates a git commit with a well-crafted conventional commit message. Analyzes unstaged files, stages them with git add, reviews the changes, and commits with proper formatting including Claude Code attribution. Does not push to remote.
+model: claude-sonnet-4-5-20250929
 ---
 
 # Git Commit: Auto-stage and Commit Changes

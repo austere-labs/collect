@@ -1,6 +1,9 @@
 *“The skill of programming is the skill of building programs that don’t confuse the programmer.”*
 *“The best programs are those that manage to do some thing interesting while still being easy to understand.”*
 
+## 10/15/2025 AI Current State Reading and Research
+- [Hugging Face smol training playbook - training an llm from scratch](https://huggingface.co/spaces/HuggingFaceTB/smol-training-playbook#introduction)
+
 
 ## 10/15/2025 AI Current State Reading and Research
 

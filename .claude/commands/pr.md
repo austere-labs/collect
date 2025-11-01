@@ -1,7 +1,6 @@
 ---
 allowed-tools: Bash(git:*)
 description: Automates git commit and pull request creation for staged changes. Analyzes staged files, creates conventional commits with detailed messages, and handles both direct pushes to main and PR creation for feature branches. Includes automatic PR URL clipboard copying and follows best practices for commit messages and PR descriptions.
-model: claude-sonnet-4-20250514
 ---
 
 # Git Workflow: Staged Changes Commit and Pull Request Creation

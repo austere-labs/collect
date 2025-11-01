@@ -1,6 +1,6 @@
 ---
 description: "Creates comprehensive progress reports tracking session work, technical changes, issues, and context for continuity across Claude Code sessions"
-model: opus
+model: claude-opus-4-20250514
 argument-hint: "[filename]"
 allowed-tools: Read, Write, Bash, TodoWrite, Glob, Grep
 ---

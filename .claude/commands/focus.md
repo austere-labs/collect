@@ -1,7 +1,7 @@
 ---
 argument-hint: [instructions]
 description: A Claude Code command that restricts Claude to working only with user-provided context, preventing automatic file reading or web searches unless explicitly requested.
-model: opus
+model: claude-opus-4-20250514
 ---
 
 # Focus only on the data I have provided you.

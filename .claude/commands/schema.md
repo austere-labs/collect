@@ -1,7 +1,7 @@
 ---
 allowed-tools: Bash(sqlite3:*)
 description: Get the schema for the table name provided in the arguments
-model: claude-sonnet-4-20250514
+model: claude-sonnet-4-5-20250929
 ---
 
 # Using `sqlite3` get the schema of the table name provided in the arguments to this prompt

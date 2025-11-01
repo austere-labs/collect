@@ -1,7 +1,7 @@
 ---
 allowed-tools: Bash(pbcopy:*), Bash(echo:*), Bash(cat:*)
 description: Copy content to clipboard using pbcopy
-model: sonnet
+model: claude-sonnet-4-5-20250929
 ---
 
 # Copy to Clipboard with pbcopy
