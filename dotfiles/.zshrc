@@ -33,10 +33,14 @@ alias research='cd $HOME/python/collect/research && ls -l --color'
 # shortcuts to project work
 alias gowork='cd $HOME/go/src/github.com/metzben && ls -l --color'
 alias py='cd $HOME/python && ls -l --color'
+alias js='cd $HOME/javascript && ls -l --color'
+alias kata='cd $HOME/javascript/kata-machine/src/day1 && nvim .'
 alias collect='cd $HOME/python/collect && source .venv/bin/activate'
 alias agents='cd $HOME/python/agents && source .venv/bin/activate'
 alias el='cd $HOME/go/src/github.com/metzben/elephnt && ls -l --color'
+alias infra='cd infra/ && ls -l --color'
 alias tiny='cd $HOME/go/src/github.com/metzben/tinystack && ls -lhG'
+alias learn='cd $HOME/go/src/github.com/metzben/learn && ls -l --color'
 alias ai='cd $HOME/python/aiwork && ls -lhG'
 alias mcp='cd $HOME/python/mcpwork && ls -lhG'
 alias base='cd $HOME/base && nvim .'
@@ -71,7 +75,7 @@ alias editmcp='nvim ~/Library/Application\ Support/Claude/claude_desktop_config.
 alias rip='claude --dangerously-skip-permissions'
 alias plan='claude --permission-mode plan'
 alias cmds='cd "$(git rev-parse --show-toplevel)/.claude/commands" && ls -l --color'
-alias gms='cd "$(git rev-parse --show-toplevel)/.gemini/commands" && ls -l --color'
+alias skills='cd "$(git rev-parse --show-toplevel)/.claude/skills" && ls -l --color'
 
 # git shortcuts
 alias gs='git status'
