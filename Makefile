@@ -13,7 +13,7 @@ marimo:
 %:
 	@:
 
-.PHONY: sync
+.PHONY: synctools
 movetools:
 	./synctools
 
