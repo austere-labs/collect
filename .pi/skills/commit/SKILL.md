@@ -1,6 +1,6 @@
 ---
 name: commit
-description: Auto-stages all changes and creates a git commit with a well-crafted conventional commit message. Analyzes unstaged files, stages them with git add, reviews the changes, and commits with proper formatting including Claude Code attribution. Does not push to remote.
+description: Auto-stages all changes and creates a git commit with a well-crafted conventional commit message. Analyzes unstaged files, stages them with git add, reviews the changes, and commits with proper formatting including pi attribution. Does not push to remote.
 allowed-tools: Bash(git status:*) Bash(git add:*) Bash(git diff:*) Bash(git log:*) Bash(git commit:*)
 disable-model-invocation: true
 ---
@@ -41,8 +41,8 @@ Additional details if necessary (optional)
 - Key change 1
 - Key change 2
 
-🤖 Generated with Claude Code
-Co-Authored-By: Claude <noreply@anthropic.com>
+🤖 Generated with pi
+Co-Authored-By: Benjamin Metz and pi
 ```
 
 ### Step 5: Commit Changes
@@ -51,8 +51,8 @@ Execute the commit using:
 git commit -m "$(cat <<'EOF'
 [Your crafted commit message here]
 
-🤖 Generated with Claude Code
-Co-Authored-By: Claude <noreply@anthropic.com>
+🤖 Generated with pi
+Co-Authored-By: Benjamin Metz and pi
 EOF
 )"
 ```
@@ -65,7 +65,7 @@ EOF
 ## Important Notes:
 - This command stages ALL changes with `git add .`
 - Review changes carefully before committing
-- The commit will include the Claude Code attribution
+- The commit will include the pi attribution
 - Does NOT push to remote (user must run `git push` separately if desired)
 
 ## Example Output:
@@ -82,8 +82,8 @@ Updated normalize_filename to preserve .toml extensions
 - Modified function to check for both .md and .toml
 - Updated docstrings to reflect dual extension support
 
-🤖 Generated with Claude Code
-Co-Authored-By: Claude <noreply@anthropic.com>"
+🤖 Generated with pi
+Co-Authored-By: Benjamin Metz and pi"
 
 Commit created successfully: abc1234
 Working directory is now clean.
