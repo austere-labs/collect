@@ -69,9 +69,9 @@ show_usage() {
     echo -e "${BOLD}${BLUE}RESOURCES DOWNLOADED:${RESET}"
     echo -e "  ${GREEN}✓${RESET} ${CYAN}.claude/settings.local.json${RESET} ${DIM}(Claude Code settings file)${RESET}"
     echo -e "  ${GREEN}✓${RESET} ${CYAN}.claude/commands/*.md${RESET}      ${DIM}(command templates, recursive)${RESET}"
-    echo -e "  ${GREEN}✓${RESET} ${CYAN}.claude/skills/**/*.md${RESET}     ${DIM}(skill definitions, recursive)${RESET}"
+    echo -e "  ${GREEN}✓${RESET} ${CYAN}.claude/skills/**/*${RESET}        ${DIM}(all skill files, recursive)${RESET}"
     echo -e "  ${GREEN}✓${RESET} ${CYAN}.pi/settings.json${RESET}          ${DIM}(pi settings file)${RESET}"
-    echo -e "  ${GREEN}✓${RESET} ${CYAN}.pi/skills/**/*.md${RESET}         ${DIM}(pi skill definitions, recursive)${RESET}"
+    echo -e "  ${GREEN}✓${RESET} ${CYAN}.pi/skills/**/*${RESET}            ${DIM}(all pi skill files, recursive)${RESET}"
     echo -e "  ${GREEN}✓${RESET} ${CYAN}guides/*.md${RESET}                ${DIM}(documentation guides)${RESET}"
     echo ""
 
@@ -466,9 +466,11 @@ process_directory() {
             fi
             # Recursively process subdirectory
             process_directory "$path/$name" "$new_local_path" "$category" "$extension"
-        elif [ "$type" = "file" ] && [[ "$name" == *.$extension ]]; then
-            # Download the file with matching extension
-            download_file "$path/$name" "$local_path/$name" false "$category"
+        elif [ "$type" = "file" ]; then
+            # Download files matching extension filter, or all files if no filter
+            if [ -z "$extension" ] || [[ "$name" == *.$extension ]]; then
+                download_file "$path/$name" "$local_path/$name" false "$category"
+            fi
         fi
     done
 }
@@ -494,7 +496,7 @@ echo ""
 
 # 5. Download .claude/skills/**/SKILL.md
 print_info "Fetching .claude/skills/ files..."
-process_directory ".claude/skills" "$BASE_DIR/.claude/skills" "skills" "md"
+process_directory ".claude/skills" "$BASE_DIR/.claude/skills" "skills" ""
 
 echo ""
 
@@ -511,7 +513,7 @@ echo ""
 
 # 5.6. Download .pi/skills/**/*.md
 print_info "Fetching .pi/skills/ files..."
-process_directory ".pi/skills" "$BASE_DIR/.pi/skills" "skills" "md"
+process_directory ".pi/skills" "$BASE_DIR/.pi/skills" "skills" ""
 
 echo ""
 
