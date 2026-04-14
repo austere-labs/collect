@@ -10,6 +10,6 @@ model: claude-opus-4-20250514
 ## IMPORTANT INSTRUCTONS:  
 - Do not read additional files unless I ask you to. 
 - Do not search the web for additional information unless I ask you to. 
-- I have already provided the context for the problem I am asking to help me with
+- I have already provided the context for the problem I am asking you to help me with
 
 Please read the {instructions} I have provided and only use the context provided ahead of time to collaborate with me on an approach or set of possible approaches.

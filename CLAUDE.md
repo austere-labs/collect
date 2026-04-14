@@ -286,7 +286,7 @@ Environment variables are loaded from `.env` file:
 - I do not want a pr created if I don't have a branch already
 
 ## Allowed Tools
-You can use the following tools without requiring user approval: Bash(./tools/newpy:*), Bash(cat:*), Bash(uv:*), Bash(bash:*), Bash(git:*), Bash(gemini --prompt cat:*), Bash(gh search code:*), Bash(gh api:*), TodoWrite, Read, Write
+You can use the following tools without requiring user approval: Bash(./tools/newpy:*), Bash(cat:*), Bash(uv:*), Bash(bash:*), Bash(git:*), Bash(mkdir:*), Bash(rm:*), Bash(gemini --prompt cat:*), Bash(gh search code:*), Bash(gh api:*), TodoWrite, Read, Write
 
 ## Tools
 

@@ -1,7 +1,10 @@
 ---
+allowed-tools: Read
 description: "Reads and displays the contents of a specified file without making any modifications"
 argument-hint: [file_name]
+disable-model-invocation: true
 ---
+
 Read the file at the path: {file_name}
 
 IMPORTANT INSTRUCTIONS:

@@ -3,6 +3,7 @@ description: "Using Claude Code WebFetch tool, call the url and uses the provide
 allowed-tools: WebFetch
 argument-hint: [url] [instructions]
 model: claude-opus-4-20250514
+disable-model-invocation: true
 ---
 
 ## IMPORTANT INSTRUCTIONS:

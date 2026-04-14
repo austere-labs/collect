@@ -1,6 +1,7 @@
 ---
 argument-hint: [content]
 description: This prompt instructs Claude to provide high-quality, production-ready code examples for user-defined problems without accessing or modifying any files in the current project.
+disable-model-invocation: true
 ---
 
 ## Please do not read any files or explore the project in any way
@@ -11,4 +12,3 @@ description: This prompt instructs Claude to provide high-quality, production-re
 ### I am looking for you to provide high grade example code for the problem defined in the content argument that I am providing you. Keep the example simple and direct but robust. We want to see clean production ready code.
 
 {content}
-
